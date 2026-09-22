@@ -21,8 +21,26 @@ A production-grade, modular Go backend starter framework designed for rapid hack
   A sleek, responsive dark-mode dashboard bundled directly into the Go binary (`web/admin.html`) and served at `/admin` (and `/`). Provides live mesh room/client visualization, real-time activity feed, live LLM streaming tester, scheduled jobs monitor, an interactive RAG playground, and a live WebRTC Lab for P2P video calls and UDP DataChannels.
 ![alt text](image.png)
 
-- 📹 **WebRTC Real-Time Media & Pion UDP DataChannel**  
-  Built-in P2P WebRTC audio/video signaling over [`simplysocket`](https://github.com/DhruvikDonga/simplysocket), automated STUN/TURN configuration (`/api/v1/webrtc/ice-servers`), and server-side [`pion/webrtc/v4`](https://github.com/pion/webrtc) peer integration for sub-millisecond UDP DataChannel messaging and ping-pong latency benchmarks.
+- 📹 **WebRTC Pion SFU & 1:1 Real-Time Media Hub**  
+  Enterprise-grade WebRTC subsystem powered by [`pion/webrtc/v4`](https://github.com/pion/webrtc):
+  - **Selective Forwarding Unit (SFU)**: $O(1)$ mobile uplink bandwidth routing raw RTP video and audio streams across multi-party rooms (`/api/v1/webrtc/sfu/*`), featuring live WebSocket track synchronization, header extension stripping, and 3-second RTCP PLI keyframe heartbeats.
+  - **1:1 P2P Audio/Video**: Direct mesh signaling over [`simplysocket`](https://github.com/DhruvikDonga/simplysocket).
+  - **Sub-Millisecond UDP DataChannel**: Server-managed Pion peer connections for raw UDP messaging and ping-pong latency benchmarking.
+  - **ICE & NAT Traversal**: Automated STUN/TURN configuration (`/api/v1/webrtc/ice-servers`).
+
+- 🎛️ **Modular Subsystem Feature Flags (`services.json`)**  
+  Selectively initialize only the services your hackathon or production workload requires (`services.json` or `SERVICES_CONFIG_PATH`). All components default to `true` with support for lenient aliases (`db`, `ws`, `api`, `sfu`, `scheduler`):
+  ```json
+  {
+    "database": true,
+    "api_handler": true,
+    "rag_handler": true,
+    "job_scheduler": true,
+    "websocket": true,
+    "webrtc": true
+  }
+  ```
+  Disabling a flag cleanly omits database connections, background goroutines, and routes with zero code changes.
 
 - ⚙️ **In-Process Job Scheduler & Workers**  
   Periodic task scheduler (`jobs.Scheduler`) with panic isolation, runtime recovery, and live execution observability (`GET /api/v1/jobs`), plus continuous background worker loops without external broker dependencies.
