@@ -50,6 +50,14 @@ make docker-up
 
 Open **[http://localhost:8080/admin](http://localhost:8080/admin)** to access the live Control Center!
 
+---
+
+## 🤖 Agent Development & Skills
+
+* 📖 **[SKILLS.md](./SKILLS.md)**: Authoritative architecture patterns, invariant safety rules, and step-by-step recipes for AI coding agents.
+* 📚 **[DOCUMENTATION.md](./DOCUMENTATION.md)**: Deep-dive architecture reference and API schemas.
+
 ## 👤 Author
 
-By [Dhruvik](dhruvik.cc)
+By [Dhruvik](https://dhruvik.cc)
+
