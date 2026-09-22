@@ -76,17 +76,19 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 		}
 
 		// Public Example Resource Endpoints
-		items := v1.Group("/items")
-		{
-			items.POST("", rc.ExampleHandler.CreateItem)
-			items.GET("", rc.ExampleHandler.ListItems)
-			items.GET("/:id", rc.ExampleHandler.GetItem)
-		}
+		if rc.ExampleHandler != nil {
+			items := v1.Group("/items")
+			{
+				items.POST("", rc.ExampleHandler.CreateItem)
+				items.GET("", rc.ExampleHandler.ListItems)
+				items.GET("/:id", rc.ExampleHandler.GetItem)
+			}
 
-		// LLM Endpoints
-		llm := v1.Group("/llm")
-		{
-			llm.POST("/ask", rc.ExampleHandler.AskAI)
+			// LLM Endpoints
+			llm := v1.Group("/llm")
+			{
+				llm.POST("/ask", rc.ExampleHandler.AskAI)
+			}
 		}
 
 		// Postgres pgvector RAG Endpoints
@@ -115,6 +117,17 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 				webrtcGroup.GET("/status", rc.WebRTCHandler.GetStatus)
 				webrtcGroup.POST("/server/session", rc.WebRTCHandler.CreateServerSession)
 				webrtcGroup.DELETE("/server/session/:id", rc.WebRTCHandler.CloseServerSession)
+
+				// SFU Multi-Party Conference Endpoints
+				sfu := webrtcGroup.Group("/sfu")
+				{
+					sfu.GET("/ws", rc.WebRTCHandler.HandleSFUWS)
+					sfu.POST("/join", rc.WebRTCHandler.JoinSFU)
+					sfu.POST("/renegotiate", rc.WebRTCHandler.RenegotiateSFU)
+					sfu.POST("/leave", rc.WebRTCHandler.LeaveSFU)
+					sfu.DELETE("/rooms/:room_id/peers/:peer_id", rc.WebRTCHandler.LeaveSFU)
+					sfu.GET("/rooms", rc.WebRTCHandler.GetSFURooms)
+				}
 			}
 		}
 

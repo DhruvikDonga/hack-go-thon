@@ -122,7 +122,7 @@ hack-go-thon/
 
 ## 3. Configuration System
 
-Application configuration is loaded from environment variables into a strongly typed struct in `config/config.go`.
+Application configuration is loaded from environment variables into a strongly typed struct in `config/config.go`, combined with selective subsystem toggling via `services.json`.
 
 ### Supported Variables
 
@@ -138,13 +138,44 @@ Application configuration is loaded from environment variables into a strongly t
 | `OPENAI_API_KEY` | string | `""` | API key for OpenAI LLM client |
 | `JWT_SECRET` | string | `default-dev-jwt-secret` | HMAC-SHA256 secret for signing and validating JWTs |
 | `MASTER_API_KEY` | string | `""` | Optional superuser API key bypassing DB lookup |
+| `STUN_SERVERS` | string | Google STUN | Comma-separated STUN server URLs for WebRTC |
+| `TURN_SERVER_URL` | string | `""` | Optional TURN relay server URL |
+| `TURN_USERNAME` | string | `""` | TURN authentication username |
+| `TURN_CREDENTIAL` | string | `""` | TURN authentication credential |
+| `SERVICES_CONFIG_PATH` | string | `services.json` | Path to JSON file toggling subsystem initialization |
+
+### Subsystem Feature Flags (`services.json`)
+
+Granular subsystem toggling allows disabling unneeded components without code modifications. All services default to `true`. When set to `false`, the subsystem is completely excluded from startup (no background goroutines, connection pools, or route handlers are created).
+
+```json
+{
+  "database": true,
+  "api_handler": true,
+  "rag_handler": true,
+  "job_scheduler": true,
+  "websocket": true,
+  "webrtc": true
+}
+```
+
+#### Supported Subsystems & Lenient Aliases
+
+| Flag | Supported Aliases | Subsystem Affected |
+| :--- | :--- | :--- |
+| `database` | `db`, `postgres` | PostgreSQL connection pool, schema migrations, and API call audit logger |
+| `api_handler` | `api`, `example_handler`, `apihandler` | Example CRUD `/api/v1/items` and AI completions `/api/v1/llm/ask` |
+| `rag_handler` | `rag`, `raghandler` | pgvector document ingestion and similarity search `/api/v1/rag/*` |
+| `job_scheduler` | `scheduler`, `jobs`, `jobscheduler` | In-process periodic cron engine, heartbeat tasks, and `/api/v1/jobs` |
+| `websocket` | `websockets`, `ws` | `simplysocket` multi-room real-time mesh hub at `/api/v1/ws` |
+| `webrtc` | `webrtc_server`, `sfu` | Pion P2P server sessions and SFU multi-party video conferencing at `/api/v1/webrtc/*` |
 
 ### Code Usage
 ```go
 import "hack-go-thon/config"
 
 cfg := config.Load()
-fmt.Println(cfg.Port, cfg.Environment)
+fmt.Println(cfg.Port, cfg.Services.WebRTC, cfg.Services.WebSocket)
 ```
 
 ---
@@ -690,5 +721,28 @@ Response:
 }
 ```
 Once the answer is set as the remote description, the `RTCDataChannel` opens instantly over UDP. Clients can send `ping:<timestamp>` to receive an immediate `pong:<timestamp>` response for real-time latency measurement.
+
+### 16.4 Pion SFU (Selective Forwarding Unit) Multi-Party Conferencing
+
+When scaling beyond 2 participants, P2P mesh requires $N-1$ uplinks per peer, quickly exhausting mobile upload bandwidth. The built-in Pion SFU acts as a media router with **1 uplink per client** and low-latency raw RTP forwarding:
+
+```
+[Mobile Peer 1] --(1 Uplink RTP Track)--> [ Go Backend Pion SFU ] --(RTP Fan-Out)--> [Mobile Peer 2]
+                                                                  --(RTP Fan-Out)--> [Web Dashboard]
+```
+
+#### SFU REST Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/webrtc/sfu/join` | Ingests client SDP offer with local media tracks, attaches room tracks, returns SDP answer |
+| `POST` | `/api/v1/webrtc/sfu/renegotiate` | Updates peer connection when new participants publish tracks in the room |
+| `POST` | `/api/v1/webrtc/sfu/leave` | Disconnects peer, removes published tracks, and cleans up empty rooms |
+| `DELETE`| `/api/v1/webrtc/sfu/rooms/:room_id/peers/:peer_id` | RESTful peer disconnection alternative |
+| `GET`  | `/api/v1/webrtc/sfu/rooms` | Lists active SFU rooms, peer count, participant slugs, and ingested tracks |
+
+#### Periodic RTCP Keyframe Recovery
+To ensure subscribers receive instantaneous video upon joining an already-streaming room, the SFU runs a dedicated RTCP routine emitting `rtcp.PictureLossIndication` (PLI) packets to publishers every 3 seconds, triggering video encoders to emit instantaneous I-frames.
+
 
 

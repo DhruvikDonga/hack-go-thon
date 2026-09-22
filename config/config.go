@@ -23,6 +23,7 @@ type Config struct {
 	TURNServerURL   string
 	TURNUsername    string
 	TURNCredential  string
+	Services        ServicesConfig
 }
 
 // Load reads application configuration from environment variables with fallback defaults.
@@ -76,6 +77,7 @@ func Load() *Config {
 	turnURL := getEnv("TURN_SERVER_URL", "")
 	turnUser := getEnv("TURN_USERNAME", "")
 	turnCred := getEnv("TURN_CREDENTIAL", "")
+	servicesCfg := LoadServicesConfig("")
 
 	return &Config{
 		AppName:         appName,
@@ -92,6 +94,7 @@ func Load() *Config {
 		TURNServerURL:   turnURL,
 		TURNUsername:    turnUser,
 		TURNCredential:  turnCred,
+		Services:        servicesCfg,
 	}
 }
 

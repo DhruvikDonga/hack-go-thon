@@ -1,0 +1,9 @@
+{
+  "database": true,
+  "api_handler": true,
+  "rag_handler": true,
+  "job_scheduler": true,
+  "websocket": true,
+  "webrtc": true
+}
+

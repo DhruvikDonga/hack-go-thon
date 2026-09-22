@@ -31,11 +31,14 @@ This document is the authoritative guide for AI coding agents and developers wor
 
 ```text
 hack-go-thon/
-├── cmd/server/main.go            # Application entrypoint & dependency injection
-├── config/config.go              # Environment variable loading & defaults (w/ STUN/TURN)
+├── cmd/server/main.go            # Application entrypoint & conditional dependency injection
+├── config/
+│   ├── config.go                 # Environment variable loading & defaults (w/ STUN/TURN)
+│   └── services.go               # Subsystem feature flags loader (services.json)
+├── services.json                 # Optional JSON config to selectively toggle subsystems
 ├── internal/
 │   ├── api/
-│   │   ├── router.go             # Gin HTTP router & route mounts
+│   │   ├── router.go             # Gin HTTP router & route mounts (nil-safe service checks)
 │   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs, webrtc)
 │   ├── db_client/
 │   │   └── postgres.go           # database/sql Postgres connection pool
@@ -48,7 +51,8 @@ hack-go-thon/
 │   │   ├── admin_handler.go      # Admin room handler & LLM token streaming
 │   │   └── webrtc_handler.go     # WebRTC P2P signaling room handler
 │   ├── webrtc_server/
-│   │   └── server.go             # Pion WebRTC server peer manager & UDP DataChannel
+│   │   ├── server.go             # Pion WebRTC server peer manager & UDP DataChannel
+│   │   └── sfu.go                # SFU Engine with multi-party track router & PLI heartbeats
 │   ├── llm_client/
 │   │   └── client.go             # LLM completions, streaming & embeddings (w/ offline fallback)
 │   ├── jobs/
@@ -59,7 +63,7 @@ hack-go-thon/
 ├── pkg/                          # Shared reusable packages (logger, apperrors, response)
 └── web/
     ├── web.go                    # Go embed.FS declaration
-    └── admin.html                # Embedded dark-mode admin control center (w/ WebRTC Lab)
+    └── admin.html                # Embedded dark-mode admin control center (w/ SFU Video Lab)
 ```
 
 ---
@@ -260,6 +264,60 @@ scheduler.RegisterInterval(&SyncJob{}, 15*time.Minute)
    * Server returns negotiated SDP answer with all ICE candidates already gathered.
    * Client sets remote description -> DataChannel opens over UDP!
    * Send ping: `serverDataChannel.send("ping:" + Date.now())` -> server replies with `pong:<timestamp>` for sub-millisecond round-trip latency benchmarking.
+
+### Recipe 6: Pion SFU (Selective Forwarding Unit) Multi-Party Group Conferencing
+
+For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink bandwidth. The built-in Pion SFU routes raw RTP packets with $O(1)$ uplink bandwidth per peer:
+
+1. **Join SFU Conference Room & Ingest Tracks**:
+   * Client creates `RTCPeerConnection` with local video/audio tracks.
+   * Adds `recvonly` transceivers for receiving downlink streams.
+   * Creates SDP offer and POSTs to `/api/v1/webrtc/sfu/join`:
+     ```json
+     {
+       "room_id": "conf-alpha",
+       "peer_id": "mobile-alice",
+       "sdp": "v=0..."
+     }
+     ```
+   * SFU attaches existing room tracks, binds an RTP forwarding loop, launches periodic RTCP Picture Loss Indication (PLI) keyframe requests, and returns the SDP answer:
+     ```json
+     {
+       "status": "connected",
+       "room_id": "conf-alpha",
+       "peer_id": "mobile-alice",
+       "answer": { "type": "answer", "sdp": "v=0..." },
+       "active_peers": 3,
+       "active_tracks": 4
+     }
+     ```
+
+2. **Dynamic Downlink Renegotiation**:
+   * When a new peer joins and publishes a track, the SFU triggers `onTrackHook`, broadcasting `sfu-track-published` over `simplysocket`:
+     ```json
+     {
+       "action": "sfu-track-published",
+       "room_id": "conf-alpha",
+       "publisher_id": "mobile-bob",
+       "track_kind": "video"
+     }
+     ```
+   * Connected subscribers create a renegotiation offer and POST to `/api/v1/webrtc/sfu/renegotiate`:
+     ```json
+     {
+       "room_id": "conf-alpha",
+       "peer_id": "mobile-alice",
+       "sdp": "v=0..."
+     }
+     ```
+   * The new remote track fires `pc.ontrack` on the client, rendering the new participant's video tile without disturbing ongoing streams.
+
+3. **Graceful Teardown**:
+   * Client calls `POST /api/v1/webrtc/sfu/leave` with `{"room_id": "conf-alpha", "peer_id": "mobile-alice"}`.
+   * SFU closes peer senders, removes published tracks, and deletes the room when empty.
+
+4. **Cluster Observability**:
+   * `GET /api/v1/webrtc/sfu/rooms`: Returns active rooms, peer count, participant IDs, and track count for admin telemetry.
 
 ---
 

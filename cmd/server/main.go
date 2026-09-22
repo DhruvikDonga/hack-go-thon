@@ -32,6 +32,14 @@ func main() {
 		"env", cfg.Environment,
 		"port", cfg.Port,
 	)
+	log.Info("Services configuration active",
+		"database", cfg.Services.Database,
+		"api_handler", cfg.Services.APIHandler,
+		"rag_handler", cfg.Services.RAGHandler,
+		"job_scheduler", cfg.Services.JobScheduler,
+		"websocket", cfg.Services.WebSocket,
+		"webrtc", cfg.Services.WebRTC,
+	)
 
 	// 3. Setup Graceful Shutdown Context
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -39,7 +47,7 @@ func main() {
 
 	// 4. Initialize Database & LLM Clients
 	var pgDB *dbclient.PostgresDatabase
-	if cfg.PostgresURI != "" {
+	if cfg.Services.Database && cfg.PostgresURI != "" {
 		var err error
 		pgDB, err = dbclient.NewPostgresClient(ctx, cfg.PostgresURI, "postgres")
 		if err != nil {
@@ -58,6 +66,8 @@ func main() {
 				log.Warn("Failed to initialize documents schema (pgvector)", "error", err.Error())
 			}
 		}
+	} else if !cfg.Services.Database {
+		log.Info("Database service disabled via services.json")
 	}
 
 	var llmClient *llmclient.LLMClient
@@ -65,32 +75,71 @@ func main() {
 		llmClient = llmclient.NewClient(cfg.OpenAIKey)
 	}
 
-	// 5. Initialize Job Scheduler
-	scheduler := jobs.NewScheduler()
-	scheduler.RegisterInterval(jobs.NewHeartbeatJob(cfg.AppName), 30*time.Second)
+	// 5. Initialize Job Scheduler (if enabled)
+	var scheduler *jobs.Scheduler
+	if cfg.Services.JobScheduler {
+		scheduler = jobs.NewScheduler()
+		scheduler.RegisterInterval(jobs.NewHeartbeatJob(cfg.AppName), 30*time.Second)
 
-	// Convenience inline job registration
-	scheduler.RegisterFunc("metrics_collector", 1*time.Minute, func(ctx context.Context) error {
-		log.Debug("Sample metrics collector job executed")
-		return nil
-	})
+		// Convenience inline job registration
+		scheduler.RegisterFunc("metrics_collector", 1*time.Minute, func(ctx context.Context) error {
+			log.Debug("Sample metrics collector job executed")
+			return nil
+		})
+	} else {
+		log.Info("Job scheduler service disabled via services.json")
+	}
 
-	// 6. Initialize Handlers & WebSocket Manager
+	// 6. Initialize Handlers & Services
 	healthHandler := handler.NewHealthHandler()
 	if pgDB != nil {
 		healthHandler.RegisterChecker(pgDB)
 	}
 
-	exampleHandler := handler.NewExampleHandler(pgDB, llmClient)
-	ragHandler := handler.NewRAGHandler(pgDB, llmClient)
+	var exampleHandler *handler.ExampleHandler
+	if cfg.Services.APIHandler {
+		exampleHandler = handler.NewExampleHandler(pgDB, llmClient)
+	} else {
+		log.Info("API resource handler service disabled via services.json")
+	}
 
-	// WebRTC server peer manager & HTTP handler
-	webrtcManager := webrtcserver.NewServerPeerManager(cfg)
-	webrtcHandler := handler.NewWebRTCHandler(cfg, webrtcManager)
+	var ragHandler *handler.RAGHandler
+	if cfg.Services.RAGHandler {
+		ragHandler = handler.NewRAGHandler(pgDB, llmClient)
+	} else {
+		log.Info("RAG handler service disabled via services.json")
+	}
 
-	// Initialize WebSocket Manager using simplysocket with AdminRoomHandler wired to scheduler
-	adminHandler := ws.NewAdminRoomHandler(llmClient, scheduler)
-	wsManager := ws.NewManager("mesh-server", ws.NewEventsRoomHandler("global", adminHandler), adminHandler)
+	// WebRTC server peer manager, SFU engine & HTTP handler (if enabled)
+	var webrtcHandler *handler.WebRTCHandler
+	var sfuEngine *webrtcserver.SFUEngine
+	if cfg.Services.WebRTC {
+		webrtcManager := webrtcserver.NewServerPeerManager(cfg)
+		sfuEngine = webrtcserver.NewSFUEngine(cfg)
+		webrtcHandler = handler.NewWebRTCHandler(cfg, webrtcManager, sfuEngine)
+	} else {
+		log.Info("WebRTC subsystem service disabled via services.json")
+	}
+
+	// Initialize WebSocket Manager using simplysocket (if enabled)
+	var wsManager *ws.Manager
+	if cfg.Services.WebSocket {
+		adminHandler := ws.NewAdminRoomHandler(llmClient, scheduler)
+		wsManager = ws.NewManager("mesh-server", ws.NewEventsRoomHandler("global", adminHandler), adminHandler)
+
+		// Broadcast SFU track publishing events over WebSocket mesh if both are active
+		if sfuEngine != nil {
+			sfuEngine.SetOnTrackHook(func(roomID, publisherID, trackKind string) {
+				wsManager.Broadcast("", "sfu-track-published", map[string]any{
+					"room_id":      roomID,
+					"publisher_id": publisherID,
+					"track_kind":   trackKind,
+				})
+			})
+		}
+	} else {
+		log.Info("WebSocket mesh service disabled via services.json")
+	}
 
 	router := api.SetupRouter(api.RouterConfig{
 		Config:         cfg,
@@ -108,7 +157,9 @@ func main() {
 	srvErrCh := srv.Start()
 
 	// 8. Start Job Scheduler & Background Worker
-	scheduler.Start(ctx)
+	if scheduler != nil {
+		scheduler.Start(ctx)
+	}
 
 	bgWorker := worker.NewBackgroundWorker("event-processor", 45*time.Second)
 	go bgWorker.Run(ctx)
@@ -131,7 +182,9 @@ func main() {
 		log.Error("Server forced to shutdown", "error", err.Error())
 	}
 
-	scheduler.Stop()
+	if scheduler != nil {
+		scheduler.Stop()
+	}
 	if pgDB != nil {
 		if err := pgDB.Close(); err != nil {
 			log.Warn("Error closing database connections", "error", err.Error())

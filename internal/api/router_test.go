@@ -36,7 +36,8 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 	adminH := ws.NewAdminRoomHandler(nil, scheduler)
 	wsMgr := ws.NewManager("test-mesh", ws.NewEventsRoomHandler("global", adminH), adminH)
 	webrtcMgr := webrtcserver.NewServerPeerManager(cfg)
-	webrtcH := handler.NewWebRTCHandler(cfg, webrtcMgr)
+	sfuEngine := webrtcserver.NewSFUEngine(cfg)
+	webrtcH := handler.NewWebRTCHandler(cfg, webrtcMgr, sfuEngine)
 
 	router := SetupRouter(RouterConfig{
 		Config:         cfg,
@@ -145,6 +146,98 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		}
 		if !strings.Contains(w.Body.String(), "active_server_sessions") {
 			t.Fatalf("expected active_server_sessions in response")
+		}
+	})
+}
+
+func TestRouter_DisabledServices(t *testing.T) {
+	cfg := &config.Config{
+		Environment:    "test",
+		AllowedOrigins: []string{"*"},
+		JWTSecret:      "test-secret",
+	}
+
+	healthH := handler.NewHealthHandler()
+
+	// All optional handlers are nil, simulating services.json with false for everything
+	router := SetupRouter(RouterConfig{
+		Config:         cfg,
+		HealthHandler:  healthH,
+		ExampleHandler: nil,
+		RAGHandler:     nil,
+		WebRTCHandler:  nil,
+		DB:             nil,
+		WSManager:      nil,
+		Scheduler:      nil,
+	})
+
+	t.Run("Health check still works when all services disabled", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/health/live", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("Admin dashboard UI is still accessible", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/admin", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("Disabled WS endpoint returns 404", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/ws", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for disabled WS, got %d", w.Code)
+		}
+	})
+
+	t.Run("Disabled WebRTC endpoint returns 404", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/webrtc/status", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for disabled WebRTC, got %d", w.Code)
+		}
+	})
+
+	t.Run("Disabled Jobs endpoint returns 404", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/jobs", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for disabled Jobs, got %d", w.Code)
+		}
+	})
+
+	t.Run("Disabled RAG endpoint returns 404", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/rag/ask", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for disabled RAG, got %d", w.Code)
+		}
+	})
+
+	t.Run("Disabled Items endpoint returns 404", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/items", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for disabled Items, got %d", w.Code)
 		}
 	})
 }
