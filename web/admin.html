@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hack-Go-Thon Control Center | simplysocket Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            darkBg: '#0b0f19',
+            cardBg: '#111827',
+            borderCol: '#1f2937'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.05); }
+    }
+    .pulse-dot { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-borderCol bg-cardBg/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Hack-Go-Thon</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">simplysocket Mesh</span>
+        </div>
+      </div>
+
+      <!-- Live Connection Status -->
+      <div class="flex items-center space-x-4">
+        <div id="statusBadge" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
+          <span class="h-2 w-2 rounded-full bg-red-500"></span>
+          <span id="statusText">Disconnected</span>
+        </div>
+        <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+          <span>Client Slug:</span>
+          <span id="clientSlugText" class="font-mono text-emerald-400 font-semibold">Connecting...</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+          <span>Room:</span>
+          <span class="font-mono text-amber-400 font-semibold">admin</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Top Stats Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Active Mesh Rooms</div>
+        <div id="statRoomsCount" class="text-3xl font-bold text-white">-</div>
+      </div>
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Total Mesh Clients</div>
+        <div id="statClientsCount" class="text-3xl font-bold text-brand-500">-</div>
+      </div>
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Active in 'Admin' Room</div>
+        <div id="statAdminCount" class="text-3xl font-bold text-amber-400">-</div>
+      </div>
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Scheduled Background Jobs</div>
+        <div id="statJobsCount" class="text-3xl font-bold text-purple-400 flex items-center space-x-2">
+          <span>-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 Column Layout: Mesh Rooms (Left) & LLM Streaming (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Left: Mesh Server Rooms & Connected Clients (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col space-y-6">
+        <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span>Active Mesh Rooms & Clients</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Live view from <code class="text-emerald-400">MeshServer.GetClientsInRoom()</code></p>
+            </div>
+            <button onclick="requestStateRefresh()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <!-- Rooms Container -->
+          <div id="roomsContainer" class="space-y-3">
+            <div class="text-sm text-slate-400 py-6 text-center italic">Waiting for mesh telemetry...</div>
+          </div>
+        </div>
+
+        <!-- Global Announcement / Admin Broadcast Tool -->
+        <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-white mb-2 flex items-center space-x-2">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+            </svg>
+            <span>Admin Room Broadcast Tool</span>
+          </h2>
+          <p class="text-xs text-slate-400 mb-4">Push an alert or event to any room in the mesh server.</p>
+          <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            <select id="broadcastTarget" class="bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="mesh-global">mesh-global (All Clients)</option>
+              <option value="admin">admin</option>
+            </select>
+            <input id="broadcastInput" type="text" placeholder="Type announcement message..." class="flex-1 bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            <button onclick="sendAdminBroadcast()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded-lg shadow-sm transition">
+              Broadcast
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Event Stream Feed -->
+        <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+              <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              <span>Live Mesh Activity Feed</span>
+            </h2>
+            <button onclick="clearEventLogs()" class="text-xs text-slate-400 hover:text-slate-200">Clear Logs</button>
+          </div>
+          <div id="eventLogs" class="h-44 overflow-y-auto font-mono text-xs p-3 rounded-lg bg-slate-950 border border-borderCol space-y-1.5 text-slate-300">
+            <div class="text-slate-500 italic">Initialized event logger...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: simplysocket LLM Token Streaming Tester (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col space-y-6">
+        <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <span>simplysocket LLM Streaming</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Stream tokens via WebSocket mesh in real-time</p>
+            </div>
+            <span id="streamStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400">Idle</span>
+          </div>
+
+          <!-- Prompt Input -->
+          <div class="space-y-3 mb-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Prompt</label>
+              <textarea id="llmPrompt" rows="3" class="w-full bg-slate-900 border border-borderCol rounded-lg p-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">Explain how simplysocket enables real-time LLM streaming over Go WebSockets.</textarea>
+            </div>
+            
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <label class="text-xs text-slate-400">Model:</label>
+                <select id="llmModel" class="bg-slate-900 border border-borderCol rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none">
+                  <option value="gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="gpt-4o">gpt-4o</option>
+                </select>
+              </div>
+              <button id="streamBtn" onclick="triggerLLMStream()" class="px-4 py-1.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-medium text-xs rounded-lg shadow-md shadow-brand-500/10 transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+                <span>Stream Response</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Streaming Response Output Box -->
+          <div class="flex-1 flex flex-col">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span>Token Output:</span>
+              <span id="tokenStats" class="font-mono text-emerald-400">0 tokens</span>
+            </div>
+            <div id="streamOutput" class="flex-1 min-h-[200px] max-h-[360px] overflow-y-auto bg-slate-950 border border-borderCol rounded-lg p-4 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+              <span class="text-slate-500 italic">Click "Stream Response" to start receiving real-time WebSocket tokens...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW SECTION: Scheduled Background Jobs Observability -->
+    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Scheduled Background Jobs & Workers</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">In-process periodic task scheduler (<code class="text-purple-400">jobs.Scheduler</code>) with panic recovery & live metrics</p>
+        </div>
+        <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span>Refresh Jobs</span>
+        </button>
+      </div>
+
+      <!-- Jobs Table Container -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs font-mono">
+          <thead>
+            <tr class="border-b border-borderCol text-slate-400 uppercase tracking-wider text-[11px]">
+              <th class="py-2.5 px-3">Job Name</th>
+              <th class="py-2.5 px-3">Interval</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Run Count</th>
+              <th class="py-2.5 px-3">Last Duration</th>
+              <th class="py-2.5 px-3">Last Execution</th>
+            </tr>
+          </thead>
+          <tbody id="jobsTableBody" class="divide-y divide-borderCol/50 text-slate-300">
+            <tr>
+              <td colspan="6" class="py-6 text-center text-slate-500 italic">No scheduled tasks registered.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bottom: Postgres pgvector RAG Explorer -->
+    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span>Postgres pgvector & RAG Explorer</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Semantic vector similarity search & question answering with in-database vector embeddings</p>
+        </div>
+        <span class="text-xs px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">pgvector:pg16</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Add Document to RAG -->
+        <div class="bg-slate-900/60 border border-borderCol rounded-lg p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">1. Index Document (Embedding Gen)</h3>
+          <div class="space-y-3">
+            <input id="docTitle" type="text" placeholder="Document Title (e.g., Go Concurrency)" class="w-full bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <textarea id="docContent" rows="3" placeholder="Document Content (e.g., Goroutines are lightweight threads managed by the Go runtime...)" class="w-full bg-slate-950 border border-borderCol rounded-md p-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"></textarea>
+            <button onclick="indexDocument()" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-md shadow transition">
+              Generate Vector & Save to pgvector
+            </button>
+            <div id="indexDocResult" class="text-xs font-mono text-slate-400 hidden"></div>
+          </div>
+        </div>
+
+        <!-- Semantic Search & Ask RAG -->
+        <div class="bg-slate-900/60 border border-borderCol rounded-lg p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">2. Ask RAG / Semantic Search</h3>
+          <div class="space-y-3">
+            <div class="flex space-x-2">
+              <input id="ragQuery" type="text" placeholder="Ask a question or search knowledge base..." class="flex-1 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+              <button onclick="askRAG()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs rounded-md shadow transition">
+                Ask RAG
+              </button>
+            </div>
+            <div id="ragResults" class="h-40 overflow-y-auto bg-slate-950 border border-borderCol rounded-md p-3 text-xs font-mono text-slate-300">
+              <span class="text-slate-500 italic">Retrieved knowledge and citations will appear here...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- WebSocket & Dashboard JavaScript Logic -->
+  <script>
+    let socket = null;
+    let clientSlug = '';
+    let currentStreamID = null;
+    let streamTokenCount = 0;
+
+    function initWebSocket() {
+      const loc = window.location;
+      const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${loc.host}/api/v1/ws?name=AdminConsole`;
+
+      updateStatus(false, 'Connecting...');
+      logEvent('SYSTEM', `Connecting to WebSocket mesh at ${wsUrl}`);
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        updateStatus(true, 'Connected');
+        logEvent('SOCKET', 'WebSocket connected. Dispatching join-room for "admin"');
+        
+        // Immediately send join-room action to join the special "admin" room
+        const joinMsg = {
+          action: 'join-room',
+          target: 'mesh-global',
+          message_body: { room: 'admin' }
+        };
+        socket.send(JSON.stringify(joinMsg));
+
+        // Request initial admin state
+        setTimeout(() => {
+          requestStateRefresh();
+          fetchJobs();
+        }, 300);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const lines = event.data.split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const msg = JSON.parse(line);
+            handleIncomingMessage(msg);
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket message', e, event.data);
+        }
+      };
+
+      socket.onclose = () => {
+        updateStatus(false, 'Disconnected');
+        logEvent('SOCKET', 'WebSocket disconnected. Retrying in 3s...');
+        setTimeout(initWebSocket, 3000);
+      };
+
+      socket.onerror = (err) => {
+        console.error('WebSocket error', err);
+        updateStatus(false, 'Error');
+      };
+    }
+
+    function handleIncomingMessage(msg) {
+      if (!msg || !msg.action) return;
+
+      switch (msg.action) {
+        case 'joined-room-ack':
+          if (msg.message_body && msg.message_body.client_slug) {
+            clientSlug = msg.message_body.client_slug;
+            document.getElementById('clientSlugText').innerText = clientSlug;
+          }
+          logEvent('ROOM', `Joined room "${msg.message_body.joined_room}" successfully`);
+          break;
+
+        case 'admin-state':
+          renderMeshState(msg.message_body);
+          if (msg.message_body.scheduled_jobs) {
+            renderJobs(msg.message_body.scheduled_jobs);
+          }
+          break;
+
+        case 'user-event':
+          logEvent('EVENT', `${msg.message_body.event} (client: ${msg.message_body.client_id})`);
+          break;
+
+        case 'system-announcement':
+          logEvent('ALERT', `[${msg.message_body.from} -> ${msg.target}]: ${msg.message_body.announcement}`);
+          break;
+
+        case 'broadcast-ack':
+          logEvent('BROADCAST', `Dispatched to ${msg.message_body.target_room}: "${msg.message_body.message}"`);
+          break;
+
+        case 'broadcast-error':
+          logEvent('ERROR', `Broadcast failed: ${msg.message_body.error}`);
+          alert(`Broadcast error: ${msg.message_body.error}`);
+          break;
+
+        // LLM Streaming Actions
+        case 'llm-stream-start':
+          currentStreamID = msg.message_body.stream_id;
+          streamTokenCount = 0;
+          document.getElementById('streamStatusBadge').className = 'text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-950 text-emerald-400 border border-emerald-800';
+          document.getElementById('streamStatusBadge').innerText = 'Streaming';
+          document.getElementById('streamOutput').innerHTML = '';
+          logEvent('LLM', `Stream started (${currentStreamID})`);
+          break;
+
+        case 'llm-stream-chunk':
+          if (msg.message_body.stream_id === currentStreamID) {
+            streamTokenCount++;
+            document.getElementById('tokenStats').innerText = `${streamTokenCount} tokens`;
+            const box = document.getElementById('streamOutput');
+            box.innerText += msg.message_body.chunk;
+            box.scrollTop = box.scrollHeight;
+          }
+          break;
+
+        case 'llm-stream-end':
+          if (msg.message_body.stream_id === currentStreamID) {
+            document.getElementById('streamStatusBadge').className = 'text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400';
+            document.getElementById('streamStatusBadge').innerText = 'Completed';
+            logEvent('LLM', `Stream finished (${streamTokenCount} tokens)`);
+            document.getElementById('streamBtn').disabled = false;
+          }
+          break;
+
+        case 'llm-stream-error':
+          document.getElementById('streamStatusBadge').className = 'text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-950 text-red-400 border border-red-800';
+          document.getElementById('streamStatusBadge').innerText = 'Error';
+          document.getElementById('streamOutput').innerHTML += `\n[Error]: ${msg.message_body.error}`;
+          logEvent('ERROR', `Stream error: ${msg.message_body.error}`);
+          document.getElementById('streamBtn').disabled = false;
+          break;
+
+        default:
+          if (msg.action === 'heartbeat') return;
+          logEvent(msg.action.toUpperCase(), JSON.stringify(msg.message_body));
+      }
+    }
+
+    function renderMeshState(state) {
+      if (!state) return;
+
+      document.getElementById('statRoomsCount').innerText = state.total_rooms || (state.rooms ? state.rooms.length : 0);
+      document.getElementById('statClientsCount').innerText = state.total_clients || 0;
+
+      const adminDetail = state.rooms_detail && state.rooms_detail['admin'];
+      document.getElementById('statAdminCount').innerText = adminDetail ? adminDetail.count : '0';
+
+      const container = document.getElementById('roomsContainer');
+      container.innerHTML = '';
+
+      const rooms = state.rooms || [];
+      const details = state.rooms_detail || {};
+
+      if (rooms.length === 0) {
+        container.innerHTML = '<div class="text-sm text-slate-500 italic py-4">No active rooms found.</div>';
+        return;
+      }
+
+      rooms.forEach(rName => {
+        const detail = details[rName] || { count: 0, clients: [] };
+        const isAdmin = rName === 'admin';
+        const isGlobal = rName === 'mesh-global';
+
+        let badgeStyle = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (isAdmin) badgeStyle = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        if (isGlobal) badgeStyle = 'bg-brand-500/10 text-brand-400 border-brand-500/30';
+
+        let clientTags = '';
+        if (detail.clients && detail.clients.length > 0) {
+          clientTags = detail.clients.map(c => `
+            <span class="inline-block font-mono text-[11px] px-2 py-0.5 rounded bg-slate-900 border border-borderCol text-slate-300">
+              ${c} ${c === clientSlug ? '<span class="text-emerald-400 font-bold">(You)</span>' : ''}
+            </span>
+          `).join(' ');
+        } else {
+          clientTags = '<span class="text-xs text-slate-500 italic">No clients currently connected</span>';
+        }
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-lg border bg-slate-950/60 ${isAdmin ? 'border-amber-500/30' : 'border-borderCol'}`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span class="font-mono text-sm font-semibold text-white">${rName}</span>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badgeStyle}">
+                ${isAdmin ? 'Special Admin Room' : isGlobal ? 'Global Mesh Lobby' : 'Custom Room'}
+              </span>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
+              ${detail.count} client${detail.count === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            ${clientTags}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Dynamically update broadcast target dropdown with currently active rooms
+      const targetSelect = document.getElementById('broadcastTarget');
+      if (targetSelect) {
+        const currentVal = targetSelect.value;
+        const availableRooms = state.rooms && state.rooms.length > 0 ? state.rooms : ['mesh-global'];
+        targetSelect.innerHTML = availableRooms.map(r => 
+          `<option value="${escapeHtml(r)}" ${r === currentVal ? 'selected' : ''}>${escapeHtml(r)} ${r === 'mesh-global' ? '(All Clients)' : ''}</option>`
+        ).join('');
+      }
+    }
+
+    // Render Scheduled Background Jobs
+    function renderJobs(tasks) {
+      const tbody = document.getElementById('jobsTableBody');
+      const countEl = document.getElementById('statJobsCount');
+
+      if (!tasks || tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500 italic">No scheduled tasks registered.</td></tr>';
+        if (countEl) countEl.innerText = '0';
+        return;
+      }
+
+      if (countEl) countEl.innerText = `${tasks.length} active`;
+
+      tbody.innerHTML = tasks.map(task => {
+        let badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (task.status === 'running') badgeClass = 'bg-sky-500/10 text-sky-400 border-sky-500/30';
+        if (task.status === 'success') badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        if (task.status === 'failed') badgeClass = 'bg-red-500/10 text-red-400 border-red-500/30';
+        if (task.status === 'scheduled') badgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+
+        const lastRunText = task.last_run ? new Date(task.last_run).toLocaleTimeString() : 'Never';
+        const durationText = task.last_duration || '-';
+        const errorText = task.last_error ? `<div class="text-[10px] text-red-400 mt-0.5 truncate max-w-xs" title="${escapeHtml(task.last_error)}">Error: ${escapeHtml(task.last_error)}</div>` : '';
+
+        return `
+          <tr class="hover:bg-slate-900/50 transition">
+            <td class="py-3 px-3">
+              <span class="font-semibold text-white">${escapeHtml(task.name)}</span>
+              ${errorText}
+            </td>
+            <td class="py-3 px-3 text-slate-300">
+              <span class="px-2 py-0.5 rounded bg-slate-900 border border-borderCol">${escapeHtml(task.interval)}</span>
+            </td>
+            <td class="py-3 px-3">
+              <span class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeClass}">
+                <span class="h-1.5 w-1.5 rounded-full ${task.status === 'running' ? 'bg-sky-400 pulse-dot' : task.status === 'success' ? 'bg-emerald-400' : task.status === 'failed' ? 'bg-red-400' : 'bg-amber-400'}"></span>
+                <span>${escapeHtml(task.status)}</span>
+              </span>
+            </td>
+            <td class="py-3 px-3 text-slate-300 font-mono">${task.run_count || 0} runs</td>
+            <td class="py-3 px-3 text-slate-400">${escapeHtml(durationText)}</td>
+            <td class="py-3 px-3 text-slate-400">${lastRunText}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function fetchJobs() {
+      try {
+        const resp = await fetch('/api/v1/jobs');
+        const data = await resp.json();
+        if (data.success && data.data) {
+          renderJobs(data.data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch jobs', e);
+      }
+    }
+
+    function requestStateRefresh() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          action: 'get-admin-state',
+          target: 'admin',
+          message_body: {}
+        }));
+      }
+      fetchJobs();
+    }
+
+    function sendAdminBroadcast() {
+      const input = document.getElementById('broadcastInput');
+      const target = document.getElementById('broadcastTarget').value;
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          action: 'admin-broadcast',
+          target: 'admin',
+          message_body: {
+            target_room: target,
+            message: text
+          }
+        }));
+        input.value = '';
+      }
+    }
+
+    function triggerLLMStream() {
+      const prompt = document.getElementById('llmPrompt').value.trim();
+      const model = document.getElementById('llmModel').value;
+      if (!prompt) return;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert('WebSocket is not connected');
+        return;
+      }
+
+      document.getElementById('streamBtn').disabled = true;
+      document.getElementById('streamOutput').innerHTML = '<span class="text-slate-500">Initiating stream request...</span>';
+
+      socket.send(JSON.stringify({
+        action: 'llm-stream-request',
+        target: 'admin',
+        message_body: {
+          prompt: prompt,
+          model: model,
+          stream_id: 'stream_' + Math.random().toString(36).substring(2, 9)
+        }
+      }));
+    }
+
+    // RAG HTTP API integration
+    async function indexDocument() {
+      const title = document.getElementById('docTitle').value.trim();
+      const content = document.getElementById('docContent').value.trim();
+      const resBox = document.getElementById('indexDocResult');
+
+      if (!title || !content) {
+        alert('Title and content are required');
+        return;
+      }
+
+      resBox.className = 'text-xs font-mono text-slate-400 block';
+      resBox.innerText = 'Generating 1536-d vector and persisting to PostgreSQL...';
+
+      try {
+        const resp = await fetch('/api/v1/rag/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          resBox.className = 'text-xs font-mono text-emerald-400 block';
+          resBox.innerText = `✓ Indexed doc "${data.data.id}" (${data.data.dimensions} dims)`;
+          document.getElementById('docTitle').value = '';
+          document.getElementById('docContent').value = '';
+        } else {
+          resBox.className = 'text-xs font-mono text-red-400 block';
+          resBox.innerText = `Error: ${data.error ? data.error.message : 'Failed'}`;
+        }
+      } catch (e) {
+        resBox.className = 'text-xs font-mono text-red-400 block';
+        resBox.innerText = `Network error: ${e.message}`;
+      }
+    }
+
+    async function askRAG() {
+      const question = document.getElementById('ragQuery').value.trim();
+      const out = document.getElementById('ragResults');
+      if (!question) return;
+
+      out.innerHTML = '<span class="text-slate-400 italic">Searching pgvector index & generating answer...</span>';
+
+      try {
+        const resp = await fetch('/api/v1/rag/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const citations = (data.data.citations || []).map(c => `
+            <div class="mt-2 p-2 rounded bg-slate-900 border border-borderCol">
+              <div class="text-[11px] font-semibold text-emerald-400">${c.title} (Sim: ${(c.similarity * 100).toFixed(1)}%)</div>
+              <div class="text-[11px] text-slate-300 mt-1">${c.content}</div>
+            </div>
+          `).join('');
+
+          out.innerHTML = `
+            <div class="mb-2">
+              <span class="text-amber-400 font-semibold">Answer:</span>
+              <div class="text-slate-100 mt-1 whitespace-pre-wrap">${data.data.answer}</div>
+            </div>
+            ${citations ? `<div class="mt-3 text-[10px] uppercase font-bold text-slate-500">pgvector Retrieved Context:</div>${citations}` : ''}
+          `;
+        } else {
+          out.innerHTML = `<span class="text-red-400">Error: ${data.error ? data.error.message : 'Query failed'}</span>`;
+        }
+      } catch (e) {
+        out.innerHTML = `<span class="text-red-400">Network error: ${e.message}</span>`;
+      }
+    }
+
+    function updateStatus(connected, label) {
+      const badge = document.getElementById('statusBadge');
+      const text = document.getElementById('statusText');
+      text.innerText = label;
+      if (connected) {
+        badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-400 border border-emerald-800/40';
+        badge.children[0].className = 'h-2 w-2 rounded-full bg-emerald-500 pulse-dot';
+      } else {
+        badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40';
+        badge.children[0].className = 'h-2 w-2 rounded-full bg-red-500';
+      }
+    }
+
+    function logEvent(type, text) {
+      const logs = document.getElementById('eventLogs');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'leading-relaxed';
+      div.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="text-sky-400 font-semibold">[${type}]</span> <span>${escapeHtml(text)}</span>`;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function clearEventLogs() {
+      document.getElementById('eventLogs').innerHTML = '';
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initWebSocket);
+  </script>
+</body>
+</html>

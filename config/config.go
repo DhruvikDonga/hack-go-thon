@@ -1,0 +1,95 @@
+package config
+
+import (
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// Config holds all runtime configuration for the application.
+type Config struct {
+	AppName         string
+	Port            string
+	LogLevel        string
+	Environment     string
+	ShutdownTimeout time.Duration
+	AllowedOrigins  []string
+	PostgresURI     string
+	OpenAIKey       string
+	JWTSecret       string
+	MasterAPIKey    string
+}
+
+// Load reads application configuration from environment variables with fallback defaults.
+func Load() *Config {
+	appName := getEnv("APP_NAME", "hack-go-thon")
+	port := getEnv("PORT", ":8080")
+	if !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
+
+	logLevel := getEnv("LOG_LEVEL", "debug")
+	environment := getEnv("ENV", "development")
+
+	timeoutSec := getEnvAsInt("SHUTDOWN_TIMEOUT_SECONDS", 10)
+	shutdownTimeout := time.Duration(timeoutSec) * time.Second
+
+	originsStr := getEnv("CORS_ALLOWED_ORIGINS", "*")
+	var allowedOrigins []string
+	if originsStr == "*" {
+		allowedOrigins = []string{"*"}
+	} else {
+		for _, o := range strings.Split(originsStr, ",") {
+			trimmed := strings.TrimSpace(o)
+			if trimmed != "" {
+				allowedOrigins = append(allowedOrigins, trimmed)
+			}
+		}
+	}
+
+	pgURI := getEnv("PG_URI", "")
+	if pgURI == "" {
+		pgURI = getEnv("DATABASE_URL", "")
+	}
+
+	openAIKey := getEnv("OPENAI_API_KEY", "")
+	if openAIKey == "" {
+		openAIKey = getEnv("OPEN_AI_KEY", "")
+	}
+
+	jwtSecret := getEnv("JWT_SECRET", "default-dev-jwt-secret")
+	masterAPIKey := getEnv("MASTER_API_KEY", "")
+
+	return &Config{
+		AppName:         appName,
+		Port:            port,
+		LogLevel:        logLevel,
+		Environment:     environment,
+		ShutdownTimeout: shutdownTimeout,
+		AllowedOrigins:  allowedOrigins,
+		PostgresURI:     pgURI,
+		OpenAIKey:       openAIKey,
+		JWTSecret:       jwtSecret,
+		MasterAPIKey:    masterAPIKey,
+	}
+}
+
+func getEnv(key, defaultVal string) string {
+	if val, exists := os.LookupEnv(key); exists && val != "" {
+		return val
+	}
+	return defaultVal
+}
+
+func getEnvAsInt(key string, defaultVal int) int {
+	valStr := getEnv(key, "")
+	if valStr == "" {
+		return defaultVal
+	}
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		return defaultVal
+	}
+	return val
+}

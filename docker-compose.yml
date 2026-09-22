@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  backend:
+    container_name: hack-go-thon-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_NAME=hack-go-thon
+      - PORT=8080
+      - LOG_LEVEL=debug
+      - ENV=development
+      - SHUTDOWN_TIMEOUT_SECONDS=10
+      - CORS_ALLOWED_ORIGINS=*
+      - PG_URI=postgresql://postgres:postgrespassword@postgres:5432/hack_db?sslmode=disable
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health/live"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  postgres:
+    container_name: hack-go-thon-postgres
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: hack_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hack_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Optional Redis service (uncomment to enable)
+  # redis:
+  #   container_name: hack-go-thon-redis
+  #   image: redis:7-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  pg_data:
