@@ -19,6 +19,7 @@ A production-grade, modular Go backend starter framework designed for rapid hack
 
 - 🖥️ **Embedded Admin Control Center UI**  
   A sleek, responsive dark-mode dashboard bundled directly into the Go binary (`web/admin.html`) and served at `/admin` (and `/`). Provides live mesh room/client visualization, real-time activity feed, live LLM streaming tester, scheduled jobs monitor, and an interactive RAG playground.
+  ![alt text](image.png)
 
 - ⚙️ **In-Process Job Scheduler & Workers**  
   Periodic task scheduler (`jobs.Scheduler`) with panic isolation, runtime recovery, and live execution observability (`GET /api/v1/jobs`), plus continuous background worker loops without external broker dependencies.
