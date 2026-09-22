@@ -17,13 +17,12 @@ This document is the authoritative guide for AI coding agents and developers wor
 `hack-go-thon` is a high-performance Go backend built for hackathons and production MVPs:
 
 * **Language**: Go 1.22+
-* **HTTP Router**: `go-chi/chi/v5` with sub-routing and middleware chains.
+* **HTTP Router**: `gin-gonic/gin` with structured middleware chains (CORS, RequestID, Zap logger, Recovery).
 * **Database**: PostgreSQL 16 + `pgvector` extension (`vector(1536)` embeddings).
-* **Database Access**: `jmoiron/sqlx` with native SQL queries.
-* **Cache**: `redis/go-redis/v9` with standard key-value and expiration methods.
+* **Database Access**: Standard `database/sql` with `github.com/lib/pq`.
 * **Real-time Engine**: [`simplysocket`](https://github.com/DhruvikDonga/simplysocket) mesh WebSocket server supporting multi-room multiplexing.
 * **AI & RAG Engine**: Native vector store with HNSW cosine distance indexing (`<=>`), LLM token streaming, and zero-key offline mock fallback.
-* **Background Scheduler**: `robfig/cron/v3` with runtime task telemetry tracking.
+* **Background Scheduler**: **Custom in-process scheduler** (`internal/jobs/scheduler.go`) with goroutine panic isolation (`runtime/debug.Stack()`), graceful cancellation, and live observability telemetry (`TaskInfo`). **Zero external cron dependencies.**
 * **Logging**: `uber-go/zap` structured logging.
 * **Admin Dashboard**: Zero-dependency single-page UI embedded directly via Go `embed.FS` at `/admin` and `/`.
 
@@ -35,10 +34,12 @@ hack-go-thon/
 ├── config/config.go              # Environment variable loading & defaults
 ├── internal/
 │   ├── api/
-│   │   ├── router.go             # Chi HTTP router & route mounts
-│   │   └── handler/              # HTTP handlers (health, user, rag, etc.)
+│   │   ├── router.go             # Gin HTTP router & route mounts
+│   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs)
+│   ├── db_client/
+│   │   └── postgres.go           # database/sql Postgres connection pool
 │   ├── store/
-│   │   ├── store.go              # Storage interfaces (UserStore, DocumentStore)
+│   │   ├── store.go              # Storage interfaces (DocumentStore, etc.)
 │   │   └── pg_store/             # PostgreSQL + pgvector implementations
 │   ├── ws/
 │   │   ├── manager.go            # simplysocket Manager wrapper & broadcast safety
@@ -46,9 +47,12 @@ hack-go-thon/
 │   │   └── admin_handler.go      # Admin room handler & LLM token streaming
 │   ├── llm_client/
 │   │   └── client.go             # LLM completions, streaming & embeddings (w/ offline fallback)
-│   └── jobs/
-│       └── scheduler.go          # robfig/cron runner with TaskInfo observability
-├── pkg/                          # Shared reusable packages (logger, cache, utils)
+│   ├── jobs/
+│   │   ├── job.go                # Job interface and funcJob adapter
+│   │   └── scheduler.go          # Custom in-process scheduler with TaskInfo telemetry
+│   └── worker/
+│       └── worker.go             # Background loop worker runner
+├── pkg/                          # Shared reusable packages (logger, apperrors, response)
 └── web/
     ├── web.go                    # Go embed.FS declaration
     └── admin.html                # Embedded dark-mode admin control center
@@ -61,6 +65,7 @@ hack-go-thon/
 When generating or refactoring code in this repository, strictly adhere to these rules:
 
 ### A. `simplysocket` Room Lifecycle & Nil Safety
+
 1. **Dynamic Room Lifecycle**: In `simplysocket`, rooms other than `MeshGlobalRoom` are dynamically created when clients join and deleted when all clients leave.
 2. **Never register synthetic clients**: Calling `server.JoinClientRoom(room, "system")` will insert `nil` into `clientsinroom[room]["system"]`, causing a `panic: runtime error: invalid memory address or nil pointer dereference` when broadcasting. Only join actual connected client IDs (`msg.Sender`).
 3. **Guard Broadcasts against empty rooms**: Sending messages to non-existent or empty rooms panics inside `meshServer.RunMeshServer`. Always check if `targetRoom == ws.MeshGlobalRoom` or if `targetRoom` exists in `server.GetRooms()` before calling `server.PushMessage`.
@@ -85,6 +90,7 @@ When generating or refactoring code in this repository, strictly adhere to these
    ```
 
 ### C. LLM Streaming & Zero-Key Demo Mode
+
 1. Always maintain the offline simulated fallback in `internal/llm_client`. If `API_KEY` is empty, generate realistic simulated stream chunks and deterministic unit-norm mock embeddings. **Tests and hackathon demos must never crash due to a missing API key.**
 2. Wire protocol for LLM streaming over WebSockets:
    * Client sends: `{"action": "llm-stream-request", "room": "...", "data": "prompt"}`
@@ -100,29 +106,54 @@ When generating or refactoring code in this repository, strictly adhere to these
 ## 3. Step-by-Step Recipes for Agents
 
 ### Recipe 1: Adding a New REST Endpoint
+
 1. **Define the Data Model & Interface**:
-   In `internal/store/store.go`, declare the model struct with `db` and `json` tags, and add methods to the relevant store interface:
+
+   In `internal/store/`, declare the model struct and interface:
    ```go
-   type Item struct {
-       ID        string    `json:"id" db:"id"`
-       Title     string    `json:"title" db:"title"`
-       CreatedAt time.Time `json:"created_at" db:"created_at"`
+   type ItemModel struct {
+       ID        string    `json:"id"`
+       Title     string    `json:"title"`
+       CreatedAt time.Time `json:"created_at"`
    }
    type ItemStore interface {
-       CreateItem(ctx context.Context, item *Item) error
-       GetItem(ctx context.Context, id string) (*Item, error)
+       CreateItem(ctx context.Context, item *ItemModel) error
+       GetItem(ctx context.Context, id string) (*ItemModel, error)
    }
    ```
 2. **Implement in PostgreSQL Store**:
-   In `internal/store/pg_store/item.go`, implement the methods using `r.db.NamedExecContext` or `r.db.GetContext`.
-3. **Create the HTTP Handler**:
-   In `internal/api/handler/item_handler.go`, create `ItemHandler` with standard JSON encoding/decoding.
-4. **Mount in Chi Router**:
-   In `internal/api/router.go`, add route under `/api/v1/items`.
+
+   In `internal/store/pg_store/`, implement using `db.Client.ExecContext` and `db.Client.QueryRowContext`.
+3. **Create the HTTP Handler (Gin)**:
+
+   In `internal/api/handler/item_handler.go`:
+   ```go
+   type ItemHandler struct {
+       store ItemStore
+   }
+   func (h *ItemHandler) Create(c *gin.Context) {
+       var req CreateItemRequest
+       if err := c.ShouldBindJSON(&req); err != nil {
+           response.BadRequest(c, err.Error())
+           return
+       }
+       // Process and respond
+       response.Created(c, "Item created successfully", result)
+   }
+   ```
+4. **Mount in Gin Router**:
+   In `internal/api/router.go`, register route under the API group:
+   ```go
+   items := apiV1.Group("/items")
+   {
+       items.POST("", itemHandler.Create)
+   }
+   ```
 5. **Write Unit Test**:
-   Create `item_handler_test.go` using `net/http/httptest`.
+   Create `item_handler_test.go` using `httptest.NewRecorder()` and `gin.CreateTestContext()`.
 
 ### Recipe 2: Adding a New WebSocket Action
+
 1. Open `internal/ws/admin_handler.go` (or create a domain-specific action handler).
 2. Add a `case "your-action":` inside `AdminRoomHandler`:
    ```go
@@ -135,11 +166,12 @@ When generating or refactoring code in this repository, strictly adhere to these
 3. Update the embedded `web/admin.html` dashboard if the action should be testable or visible from the UI.
 
 ### Recipe 3: Ingesting & Querying Vectors (RAG)
+
 1. **To Ingest a Document**:
    ```go
    embedding, err := llmClient.GenerateEmbedding(ctx, text)
    if err != nil { return err }
-   doc := &store.Document{
+   doc := &pgstore.DocumentModel{
        Title:     title,
        Content:   text,
        Embedding: embedding,
@@ -155,16 +187,24 @@ When generating or refactoring code in this repository, strictly adhere to these
    Format the retrieved documents into a context prompt and pass to `llmClient.GenerateChatCompletionStream`.
 
 ### Recipe 4: Registering a New Scheduled Job with Telemetry
-In `cmd/server/main.go` or a job setup module:
+
+In `cmd/server/main.go`:
 ```go
-cronScheduler.RegisterTask("analytics_sync", "@every 1h", func() error {
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-    defer cancel()
+// Option A: Inline function registration with time.Duration interval
+scheduler.RegisterFunc("analytics_sync", 1*time.Hour, func(ctx context.Context) error {
     // Perform periodic task logic
+    log.Info("Running analytics sync...")
     return nil
 })
+
+// Option B: Implementing the jobs.Job interface
+type SyncJob struct{}
+func (j *SyncJob) Name() string { return "db_sync" }
+func (j *SyncJob) Run(ctx context.Context) error { return nil }
+
+scheduler.RegisterInterval(&SyncJob{}, 15*time.Minute)
 ```
-* The job is automatically tracked in `cronScheduler.GetTasks()` and immediately visible in the `/admin` UI table under Scheduled Jobs.
+* The custom scheduler isolates panics per job, captures call stacks with `runtime/debug.Stack()`, tracks `TaskInfo` (`RunCount`, `LastRun`, `LastDuration`, `Status`, `LastError`), and broadcasts updates directly to `/api/v1/jobs` and the `/admin` dashboard.
 
 ---
 
