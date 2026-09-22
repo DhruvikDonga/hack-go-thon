@@ -13,6 +13,7 @@ import (
 	"hack-go-thon/internal/jobs"
 	llmclient "hack-go-thon/internal/llm_client"
 	pgstore "hack-go-thon/internal/store/pg_store"
+	webrtcserver "hack-go-thon/internal/webrtc_server"
 	"hack-go-thon/internal/worker"
 	"hack-go-thon/internal/ws"
 	"hack-go-thon/pkg/log"
@@ -83,6 +84,10 @@ func main() {
 	exampleHandler := handler.NewExampleHandler(pgDB, llmClient)
 	ragHandler := handler.NewRAGHandler(pgDB, llmClient)
 
+	// WebRTC server peer manager & HTTP handler
+	webrtcManager := webrtcserver.NewServerPeerManager(cfg)
+	webrtcHandler := handler.NewWebRTCHandler(cfg, webrtcManager)
+
 	// Initialize WebSocket Manager using simplysocket with AdminRoomHandler wired to scheduler
 	adminHandler := ws.NewAdminRoomHandler(llmClient, scheduler)
 	wsManager := ws.NewManager("mesh-server", ws.NewEventsRoomHandler("global", adminHandler), adminHandler)
@@ -92,6 +97,7 @@ func main() {
 		HealthHandler:  healthHandler,
 		ExampleHandler: exampleHandler,
 		RAGHandler:     ragHandler,
+		WebRTCHandler:  webrtcHandler,
 		DB:             pgDB,
 		WSManager:      wsManager,
 		Scheduler:      scheduler,

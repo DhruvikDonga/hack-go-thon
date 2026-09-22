@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -86,16 +87,20 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 				case "chat":
 					rd = NewChatRoomHandler("chat")
 				default:
-					rd = NewEventsRoomHandler(targetRoom, h.adminHandler)
+					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {
+						rd = NewWebRTCRoomHandler(targetRoom)
+					} else {
+						rd = NewEventsRoomHandler(targetRoom, h.adminHandler)
+					}
 				}
 
 				server.JoinClientRoom(targetRoom, msg.Sender, rd)
 				log.Info("Client joined room", "client", msg.Sender, "room", targetRoom)
 
-				// Acknowledge back to client
+				// Acknowledge back to client specifically
 				room.BroadcastMessage(&simplysocket.Message{
 					Action: "joined-room-ack",
-					Target: roomName,
+					Target: msg.Sender,
 					MessageBody: map[string]any{
 						"status":      "success",
 						"joined_room": targetRoom,
@@ -103,8 +108,13 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 						"time":        time.Now().UTC().Format(time.RFC3339),
 					},
 					Sender:         "server",
-					IsTargetClient: false,
+					IsTargetClient: true,
 				})
+
+			case "webrtc-join", "webrtc-offer", "webrtc-answer", "webrtc-ice", "webrtc-leave":
+				// Re-broadcast WebRTC signaling actions to participants in this room
+				msg.IsTargetClient = false
+				room.BroadcastMessage(msg)
 
 			case "chat-message", "broadcast":
 				// Re-broadcast message to all clients in this room

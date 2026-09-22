@@ -19,6 +19,7 @@ type RouterConfig struct {
 	HealthHandler  *handler.HealthHandler
 	ExampleHandler *handler.ExampleHandler
 	RAGHandler     *handler.RAGHandler
+	WebRTCHandler  *handler.WebRTCHandler
 	DB             *dbclient.PostgresDatabase
 	WSManager      *ws.Manager
 	Scheduler      *jobs.Scheduler
@@ -104,6 +105,17 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 			v1.GET("/jobs", func(c *gin.Context) {
 				response.OK(c, rc.Scheduler.GetTasks())
 			})
+		}
+
+		// WebRTC Signaling & Configuration Endpoints
+		if rc.WebRTCHandler != nil {
+			webrtcGroup := v1.Group("/webrtc")
+			{
+				webrtcGroup.GET("/ice-servers", rc.WebRTCHandler.GetICEServers)
+				webrtcGroup.GET("/status", rc.WebRTCHandler.GetStatus)
+				webrtcGroup.POST("/server/session", rc.WebRTCHandler.CreateServerSession)
+				webrtcGroup.DELETE("/server/session/:id", rc.WebRTCHandler.CloseServerSession)
+			}
 		}
 
 		// JWT Protected Routes Example

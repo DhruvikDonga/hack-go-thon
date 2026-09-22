@@ -19,6 +19,10 @@ type Config struct {
 	OpenAIKey       string
 	JWTSecret       string
 	MasterAPIKey    string
+	STUNServers     []string
+	TURNServerURL   string
+	TURNUsername    string
+	TURNCredential  string
 }
 
 // Load reads application configuration from environment variables with fallback defaults.
@@ -61,6 +65,18 @@ func Load() *Config {
 	jwtSecret := getEnv("JWT_SECRET", "default-dev-jwt-secret")
 	masterAPIKey := getEnv("MASTER_API_KEY", "")
 
+	stunStr := getEnv("STUN_SERVERS", "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302")
+	var stunServers []string
+	for _, s := range strings.Split(stunStr, ",") {
+		trimmed := strings.TrimSpace(s)
+		if trimmed != "" {
+			stunServers = append(stunServers, trimmed)
+		}
+	}
+	turnURL := getEnv("TURN_SERVER_URL", "")
+	turnUser := getEnv("TURN_USERNAME", "")
+	turnCred := getEnv("TURN_CREDENTIAL", "")
+
 	return &Config{
 		AppName:         appName,
 		Port:            port,
@@ -72,6 +88,10 @@ func Load() *Config {
 		OpenAIKey:       openAIKey,
 		JWTSecret:       jwtSecret,
 		MasterAPIKey:    masterAPIKey,
+		STUNServers:     stunServers,
+		TURNServerURL:   turnURL,
+		TURNUsername:    turnUser,
+		TURNCredential:  turnCred,
 	}
 }
 

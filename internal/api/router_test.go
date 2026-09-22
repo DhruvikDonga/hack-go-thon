@@ -13,6 +13,7 @@ import (
 	"hack-go-thon/config"
 	"hack-go-thon/internal/api/handler"
 	"hack-go-thon/internal/jobs"
+	webrtcserver "hack-go-thon/internal/webrtc_server"
 	"hack-go-thon/internal/ws"
 )
 
@@ -21,6 +22,7 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		Environment:    "test",
 		AllowedOrigins: []string{"*"},
 		JWTSecret:      "test-secret",
+		STUNServers:    []string{"stun:stun.l.google.com:19302"},
 	}
 
 	scheduler := jobs.NewScheduler()
@@ -33,12 +35,15 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 	ragH := handler.NewRAGHandler(nil, nil)
 	adminH := ws.NewAdminRoomHandler(nil, scheduler)
 	wsMgr := ws.NewManager("test-mesh", ws.NewEventsRoomHandler("global", adminH), adminH)
+	webrtcMgr := webrtcserver.NewServerPeerManager(cfg)
+	webrtcH := handler.NewWebRTCHandler(cfg, webrtcMgr)
 
 	router := SetupRouter(RouterConfig{
 		Config:         cfg,
 		HealthHandler:  healthH,
 		ExampleHandler: exampleH,
 		RAGHandler:     ragH,
+		WebRTCHandler:  webrtcH,
 		DB:             nil,
 		WSManager:      wsMgr,
 		Scheduler:      scheduler,
@@ -114,6 +119,32 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("GET /api/v1/webrtc/ice-servers returns STUN servers", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/webrtc/ice-servers", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		if !strings.Contains(w.Body.String(), "stun:stun.l.google.com:19302") {
+			t.Fatalf("expected STUN server in response")
+		}
+	})
+
+	t.Run("GET /api/v1/webrtc/status returns status", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/webrtc/status", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		if !strings.Contains(w.Body.String(), "active_server_sessions") {
+			t.Fatalf("expected active_server_sessions in response")
 		}
 	})
 }

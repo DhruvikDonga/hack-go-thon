@@ -22,6 +22,7 @@ This document is the authoritative guide for AI coding agents and developers wor
 * **Database Access**: Standard `database/sql` with `github.com/lib/pq`.
 * **Real-time Engine**: [`simplysocket`](https://github.com/DhruvikDonga/simplysocket) mesh WebSocket server supporting multi-room multiplexing.
 * **AI & RAG Engine**: Native vector store with HNSW cosine distance indexing (`<=>`), LLM token streaming, and zero-key offline mock fallback.
+* **WebRTC Real-Time Media**: [`simplysocket`](https://github.com/DhruvikDonga/simplysocket) P2P signaling hub + [`pion/webrtc/v4`](https://github.com/pion/webrtc) server peer manager with UDP `RTCDataChannel` support.
 * **Background Scheduler**: **Custom in-process scheduler** (`internal/jobs/scheduler.go`) with goroutine panic isolation (`runtime/debug.Stack()`), graceful cancellation, and live observability telemetry (`TaskInfo`). **Zero external cron dependencies.**
 * **Logging**: `uber-go/zap` structured logging.
 * **Admin Dashboard**: Zero-dependency single-page UI embedded directly via Go `embed.FS` at `/admin` and `/`.
@@ -31,11 +32,11 @@ This document is the authoritative guide for AI coding agents and developers wor
 ```text
 hack-go-thon/
 ├── cmd/server/main.go            # Application entrypoint & dependency injection
-├── config/config.go              # Environment variable loading & defaults
+├── config/config.go              # Environment variable loading & defaults (w/ STUN/TURN)
 ├── internal/
 │   ├── api/
 │   │   ├── router.go             # Gin HTTP router & route mounts
-│   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs)
+│   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs, webrtc)
 │   ├── db_client/
 │   │   └── postgres.go           # database/sql Postgres connection pool
 │   ├── store/
@@ -44,7 +45,10 @@ hack-go-thon/
 │   ├── ws/
 │   │   ├── manager.go            # simplysocket Manager wrapper & broadcast safety
 │   │   ├── handler.go            # WebSocket connection upgrade & client registration
-│   │   └── admin_handler.go      # Admin room handler & LLM token streaming
+│   │   ├── admin_handler.go      # Admin room handler & LLM token streaming
+│   │   └── webrtc_handler.go     # WebRTC P2P signaling room handler
+│   ├── webrtc_server/
+│   │   └── server.go             # Pion WebRTC server peer manager & UDP DataChannel
 │   ├── llm_client/
 │   │   └── client.go             # LLM completions, streaming & embeddings (w/ offline fallback)
 │   ├── jobs/
@@ -55,7 +59,7 @@ hack-go-thon/
 ├── pkg/                          # Shared reusable packages (logger, apperrors, response)
 └── web/
     ├── web.go                    # Go embed.FS declaration
-    └── admin.html                # Embedded dark-mode admin control center
+    └── admin.html                # Embedded dark-mode admin control center (w/ WebRTC Lab)
 ```
 
 ---
@@ -206,6 +210,57 @@ scheduler.RegisterInterval(&SyncJob{}, 15*time.Minute)
 ```
 * The custom scheduler isolates panics per job, captures call stacks with `runtime/debug.Stack()`, tracks `TaskInfo` (`RunCount`, `LastRun`, `LastDuration`, `Status`, `LastError`), and broadcasts updates directly to `/api/v1/jobs` and the `/admin` dashboard.
 
+### Recipe 5: WebRTC P2P Signaling & Pion UDP DataChannel
+
+1. **Fetch Configured ICE Servers**:
+   Mobile and web peers request:
+   `GET /api/v1/webrtc/ice-servers`
+   Returns standard `urls` for STUN/TURN configurations.
+
+2. **Establish P2P Call over simplysocket**:
+   * **Join Room**: Client sends `{"action": "join-room", "message_body": {"room": "call-room-1"}}`.
+   * **Announce Presence**: Client sends `{"action": "webrtc-join", "target": "call-room-1"}`.
+   * **Exchange SDP Offer**:
+     ```json
+     {
+       "action": "webrtc-offer",
+       "target": "call-room-1",
+       "message_body": {
+         "target_id": "remote_peer_id",
+         "sdp": { "type": "offer", "sdp": "v=0..." }
+       }
+     }
+     ```
+   * **Exchange SDP Answer**:
+     ```json
+     {
+       "action": "webrtc-answer",
+       "target": "call-room-1",
+       "message_body": {
+         "target_id": "initiating_peer_id",
+         "sdp": { "type": "answer", "sdp": "v=0..." }
+       }
+     }
+     ```
+   * **Exchange ICE Candidates**:
+     ```json
+     {
+       "action": "webrtc-ice",
+       "target": "call-room-1",
+       "message_body": {
+         "target_id": "remote_peer_id",
+         "candidate": { "candidate": "...", "sdpMid": "0", "sdpMLineIndex": 0 }
+       }
+     }
+     ```
+
+3. **Establish Server-Side WebRTC DataChannel (Pion)**:
+   * Client creates `RTCPeerConnection` with a DataChannel (`label: "echo"`).
+   * Generates SDP offer and posts to `POST /api/v1/webrtc/server/session`.
+   * Server returns negotiated SDP answer with all ICE candidates already gathered.
+   * Client sets remote description -> DataChannel opens over UDP!
+   * Send ping: `serverDataChannel.send("ping:" + Date.now())` -> server replies with `pong:<timestamp>` for sub-millisecond round-trip latency benchmarking.
+
 ---
 
 ## 4. Mobile Team Integration Guide
@@ -218,13 +273,13 @@ When pairing with the mobile developers (iOS / Android / Flutter):
 2. **Unified WebSocket Envelope**:
    ```json
    {
-     "action": "join-room | admin-broadcast | llm-stream-request",
+     "action": "join-room | admin-broadcast | llm-stream-request | webrtc-join | webrtc-offer | webrtc-answer | webrtc-ice",
      "room": "room-name",
      "sender": "client-id",
      "data": "payload or stringified json"
    }
    ```
-3. **Debug Dashboard**: Direct mobile devs to `http://<HOST>:8080/admin` to inspect real-time connection status, test message delivery, and monitor system events.
+3. **Debug Dashboard**: Direct mobile devs to `http://<HOST>:8080/admin` to inspect real-time connection status, test message delivery, monitor scheduled jobs, and run interactive WebRTC P2P video calls and DataChannel benchmarks.
 
 ---
 

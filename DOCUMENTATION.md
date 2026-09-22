@@ -21,6 +21,7 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 13. [Graceful Lifecycle & Shutdown](#13-graceful-lifecycle--shutdown)
 14. [Docker & Containerization](#14-docker--containerization)
 15. [Recipes & Common Extensions](#15-recipes--common-extensions)
+16. [WebRTC Real-Time Media & Pion DataChannels](#16-webrtc-real-time-media--pion-datachannels)
 
 ---
 
@@ -638,4 +639,56 @@ token, err := middleware.GenerateToken(
 // Pass in HTTP header:
 // Authorization: Bearer <token>
 ```
+
+---
+
+## 16. WebRTC Real-Time Media & Pion DataChannels
+
+The framework provides comprehensive WebRTC support for mobile apps (iOS / Android / Flutter) and web clients, combining **simplysocket P2P signaling** with **Pion WebRTC server-side peer sessions**.
+
+### 16.1 Architecture Overview
+
+1. **Signaling Hub (`internal/ws/webrtc_handler.go`)**:
+   Peers join rooms (`call-<name>` or `webrtc-<name>`) over `/api/v1/ws` and exchange SDP offers, answers, and ICE candidates using `simplysocket`.
+2. **ICE Configuration Endpoint (`GET /api/v1/webrtc/ice-servers`)**:
+   Provides standard `RTCIceServer` STUN/TURN configurations with environment variable overrides.
+3. **Pion WebRTC Server Peer (`internal/webrtc_server/server.go`)**:
+   Terminates client-to-server WebRTC sessions via `POST /api/v1/webrtc/server/session`, opening an ultra-low latency UDP `RTCDataChannel` for bi-directional messaging, telemetry, and ping-pong latency benchmarks.
+
+### 16.2 Signaling Wire Protocol
+
+| Action | Sender | Target | Description |
+| :--- | :--- | :--- | :--- |
+| `webrtc-join` | Client | Room | Announces presence in call room |
+| `webrtc-peers` | Server | Room | Returns list of active peers in the room |
+| `webrtc-peer-joined` | Server | Room | Broadcasts newly joined peer ID to other occupants |
+| `webrtc-offer` | Client | Target Peer | Forwards SDP offer (`{"target_id": "...", "sdp": {...}}`) |
+| `webrtc-answer` | Client | Target Peer | Forwards SDP answer (`{"target_id": "...", "sdp": {...}}`) |
+| `webrtc-ice` | Client | Target Peer | Exchanges ICE candidate network descriptors |
+| `webrtc-leave` | Client | Room | Gracefully leaves call session |
+
+### 16.3 Client-to-Server Pion UDP DataChannel
+
+To establish an ultra-low latency UDP connection directly with the Go backend:
+```bash
+# Client creates offer and sends to backend:
+curl -X POST http://localhost:8080/api/v1/webrtc/server/session \
+  -H "Content-Type: application/json" \
+  -d '{"sdp": "..."}'
+```
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "session_id": "8f2d5a31-...",
+    "answer": {
+      "type": "answer",
+      "sdp": "..."
+    }
+  }
+}
+```
+Once the answer is set as the remote description, the `RTCDataChannel` opens instantly over UDP. Clients can send `ping:<timestamp>` to receive an immediate `pong:<timestamp>` response for real-time latency measurement.
+
 

@@ -163,6 +163,43 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 					IsTargetClient: false,
 				})
 
+			case "join-room":
+				targetRoom, _ := msg.MessageBody["room"].(string)
+				if targetRoom == "" {
+					targetRoom = "admin"
+				}
+
+				var rd simplysocket.RoomData
+				switch targetRoom {
+				case "admin":
+					rd = h
+				case "chat":
+					rd = NewChatRoomHandler("chat")
+				default:
+					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {
+						rd = NewWebRTCRoomHandler(targetRoom)
+					} else {
+						rd = NewEventsRoomHandler(targetRoom, h)
+					}
+				}
+
+				server.JoinClientRoom(targetRoom, msg.Sender, rd)
+				log.Info("Client joined room via admin handler", "client", msg.Sender, "room", targetRoom)
+
+				// Acknowledge back to client specifically in admin room
+				room.BroadcastMessage(&simplysocket.Message{
+					Action: "joined-room-ack",
+					Target: msg.Sender,
+					MessageBody: map[string]any{
+						"status":      "success",
+						"joined_room": targetRoom,
+						"client_slug": msg.Sender,
+						"time":        time.Now().UTC().Format(time.RFC3339),
+					},
+					Sender:         "server",
+					IsTargetClient: true,
+				})
+
 			case "llm-stream-request":
 				// Real-time LLM token streaming over simplysocket
 				prompt, _ := msg.MessageBody["prompt"].(string)
@@ -173,6 +210,11 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 				}
 
 				go h.handleLLMStream(room, roomName, msg.Sender, streamID, model, prompt)
+
+			case "webrtc-join", "webrtc-offer", "webrtc-answer", "webrtc-ice", "webrtc-leave":
+				// Forward WebRTC signaling messages to peers in admin room
+				msg.IsTargetClient = false
+				room.BroadcastMessage(msg)
 			}
 
 		case clientEvent := <-room.EventTriggers():

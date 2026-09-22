@@ -18,8 +18,11 @@ A production-grade, modular Go backend starter framework designed for rapid hack
   Native in-database vector storage using `pgvector/pgvector:pg16`. Features 1536-dimensional embeddings, an HNSW cosine similarity index (`<=>`), and ready-to-use endpoints for document indexing (`/api/v1/rag/documents`), semantic search (`/api/v1/rag/search`), and grounded Q&A (`/api/v1/rag/ask`).
 
 - 🖥️ **Embedded Admin Control Center UI**  
-  A sleek, responsive dark-mode dashboard bundled directly into the Go binary (`web/admin.html`) and served at `/admin` (and `/`). Provides live mesh room/client visualization, real-time activity feed, live LLM streaming tester, scheduled jobs monitor, and an interactive RAG playground.
+  A sleek, responsive dark-mode dashboard bundled directly into the Go binary (`web/admin.html`) and served at `/admin` (and `/`). Provides live mesh room/client visualization, real-time activity feed, live LLM streaming tester, scheduled jobs monitor, an interactive RAG playground, and a live WebRTC Lab for P2P video calls and UDP DataChannels.
   ![alt text](image.png)
+
+- 📹 **WebRTC Real-Time Media & Pion UDP DataChannel**  
+  Built-in P2P WebRTC audio/video signaling over [`simplysocket`](https://github.com/DhruvikDonga/simplysocket), automated STUN/TURN configuration (`/api/v1/webrtc/ice-servers`), and server-side [`pion/webrtc/v4`](https://github.com/pion/webrtc) peer integration for sub-millisecond UDP DataChannel messaging and ping-pong latency benchmarks.
 
 - ⚙️ **In-Process Job Scheduler & Workers**  
   Periodic task scheduler (`jobs.Scheduler`) with panic isolation, runtime recovery, and live execution observability (`GET /api/v1/jobs`), plus continuous background worker loops without external broker dependencies.
