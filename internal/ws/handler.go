@@ -108,8 +108,8 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					targetRoom = "admin"
 				}
 
-				// Only the "admin" room requires Auth Level 10 to 99!
-				if targetRoom == "admin" {
+				// Only the "admin" (and "admin-chat") room requires Auth Level strictly above 10 (Level 11 to 99)!
+				if targetRoom == "admin" || targetRoom == "admin-chat" {
 					tokenStr, _ := msg.MessageBody["token"].(string)
 					if tokenStr == "" {
 						tokenStr = h.GetClientToken(msg.Sender)
@@ -119,9 +119,9 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					sec := h.jwtSecret
 					h.mu.RUnlock()
 
-					valid, claims, err := middleware.VerifyTokenAuthLevel(sec, tokenStr, 10, 99)
+					valid, claims, err := middleware.VerifyTokenAuthLevel(sec, tokenStr, 11, 99)
 					if !valid {
-						errMsg := "Unauthorized: 'admin' room requires Auth Level 10 to 99"
+						errMsg := "Unauthorized: admin chat room requires Auth Level above 10 (Level 11 to 99)"
 						if err != nil {
 							errMsg = fmt.Sprintf("Unauthorized: %v", err)
 						}

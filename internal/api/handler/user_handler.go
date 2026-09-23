@@ -2,6 +2,8 @@ package handler
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,6 +53,7 @@ func (h *UserHandler) seedFallbackUsers() {
 
 	adminHash, _ := pgstore.HashPassword("Mp@tel98")
 	userHash, _ := pgstore.HashPassword("user123")
+	staffHash, _ := pgstore.HashPassword("Staff@123")
 	now := time.Now().UTC()
 
 	admin := &pgstore.UserModel{
@@ -85,8 +88,25 @@ func (h *UserHandler) seedFallbackUsers() {
 		UpdatedAt: now,
 	}
 
+	staff := &pgstore.UserModel{
+		ID:           "user_staff_10",
+		Username:     "staff_user",
+		Email:        "staff@hack-go-thon.local",
+		PhoneNumber:  "9427425570",
+		PasswordHash: staffHash,
+		Metadata: map[string]any{
+			"auth_level":  10,
+			"role":        "staff",
+			"department":  "operations",
+			"permissions": []any{"read"},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
 	h.fallbackUsers[admin.ID] = admin
 	h.fallbackUsers[demo.ID] = demo
+	h.fallbackUsers[staff.ID] = staff
 }
 
 // RegisterUserRequest defines payload for registering a user.
@@ -354,6 +374,62 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	response.OK(c, users)
 }
 
+// checkCanModifyUsers verifies that if an authentication token is provided in the request
+// (context, Bearer header, or query param), the user has an auth_level strictly above 10.
+// Users with auth_level 10 (e.g. staff/viewer) have view-only access and cannot create, update, or delete users.
+func (h *UserHandler) checkCanModifyUsers(c *gin.Context) (bool, error) {
+	// If context has auth_level set from middleware
+	if val, exists := c.Get("auth_level"); exists && val != nil {
+		lvl := 0
+		switch v := val.(type) {
+		case int:
+			lvl = v
+		case int64:
+			lvl = int(v)
+		case float64:
+			lvl = int(v)
+		case string:
+			if strings.EqualFold(v, "admin") || strings.EqualFold(v, "superadmin") {
+				lvl = 99
+			} else if n, err := strconv.Atoi(v); err == nil {
+				lvl = n
+			}
+		}
+		if lvl <= 10 {
+			return false, fmt.Errorf("forbidden: user auth level %d has view-only permissions and cannot update or modify users (auth level above 10 required)", lvl)
+		}
+		return true, nil
+	}
+
+	// Check if Bearer token or query param token was passed in request
+	var tokenString string
+	authHeader := c.GetHeader("Authorization")
+	if authHeader != "" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+			tokenString = parts[1]
+		}
+	}
+	if tokenString == "" {
+		tokenString = c.Query("token")
+	}
+	if tokenString == "" {
+		tokenString = c.Query("access_token")
+	}
+
+	if tokenString != "" {
+		valid, claims, err := middleware.VerifyTokenAuthLevel(h.jwtSecret, tokenString, 11, 99)
+		if !valid {
+			if err != nil {
+				return false, fmt.Errorf("forbidden: %w", err)
+			}
+			return false, fmt.Errorf("forbidden: user auth level %v has view-only permissions (auth level above 10 required)", claims.AuthLevel)
+		}
+	}
+
+	return true, nil
+}
+
 // CreateUser godoc
 // @Summary Create a user (Admin/API)
 // @Description Creates a new user with full attribute and metadata control.
@@ -364,6 +440,10 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 // @Success 201 {object} response.Response
 // @Router /api/v1/users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
+	if ok, err := h.checkCanModifyUsers(c); !ok {
+		response.Error(c, apperrors.NewForbidden(err.Error()))
+		return
+	}
 	h.Register(c)
 }
 
@@ -413,6 +493,11 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Failure 404 {object} response.Response
 // @Router /api/v1/users/{id} [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
+	if ok, err := h.checkCanModifyUsers(c); !ok {
+		response.Error(c, apperrors.NewForbidden(err.Error()))
+		return
+	}
+
 	id := c.Param("id")
 
 	var req UpdateUserRequest
@@ -480,6 +565,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Failure 404 {object} response.Response
 // @Router /api/v1/users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
+	if ok, err := h.checkCanModifyUsers(c); !ok {
+		response.Error(c, apperrors.NewForbidden(err.Error()))
+		return
+	}
+
 	id := c.Param("id")
 
 	if h.db != nil && h.db.Client != nil {

@@ -47,7 +47,7 @@
           </svg>
         </div>
         <h1 class="text-xl font-bold tracking-tight text-white">Admin Console Authentication</h1>
-        <p class="text-xs text-slate-400">Sign in to unlock the Hack-Go-Thon Control Center & simplysocket mesh (Auth Level 10 - 99 required).</p>
+        <p class="text-xs text-slate-400">Sign in to unlock the Control Center (Level 10 view-only; Level &gt; 10 for admin chat room & user editing).</p>
       </div>
 
       <!-- Login Form -->
@@ -69,12 +69,20 @@
           <span>Sign In to Admin Panel</span>
         </button>
 
-        <!-- Quick Fill Default Admin Credentials -->
-        <div class="pt-2 border-t border-borderCol/60 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Fallback Demo Admin:</span>
-          <button type="button" onclick="fillAdminCredentials()" class="text-emerald-400 hover:text-emerald-300 font-mono font-medium underline transition">
-            Fill Credentials
-          </button>
+        <!-- Quick Fill Credentials Helpers -->
+        <div class="pt-2 border-t border-borderCol/60 space-y-1.5 text-[11px] text-slate-400">
+          <div class="flex items-center justify-between">
+            <span>Fallback Admin (Lvl 99):</span>
+            <button type="button" onclick="fillAdminCredentials()" class="text-emerald-400 hover:text-emerald-300 font-mono font-medium underline transition">
+              Fill Admin (Lvl 99)
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>Staff Viewer (Lvl 10, View-Only):</span>
+            <button type="button" onclick="fillStaffCredentials()" class="text-cyan-400 hover:text-cyan-300 font-mono font-medium underline transition">
+              Fill Staff (Lvl 10)
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -790,15 +798,21 @@
 
       socket.onopen = () => {
         updateStatus(true, 'Connected');
-        logEvent('SOCKET', `WebSocket connected as "${clientName}". Joining "admin" room.`);
         
-        // Immediately send join-room action to join the special "admin" room
-        const joinMsg = {
-          action: 'join-room',
-          target: 'mesh-global',
-          message_body: { room: 'admin', token: token }
-        };
-        socket.send(JSON.stringify(joinMsg));
+        const userLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+
+        if (userLevel > 10) {
+          logEvent('SOCKET', `WebSocket connected as "${clientName}". Joining "admin" room.`);
+          // Send join-room action to join the special "admin" room (requires level > 10)
+          const joinMsg = {
+            action: 'join-room',
+            target: 'mesh-global',
+            message_body: { room: 'admin', token: token }
+          };
+          socket.send(JSON.stringify(joinMsg));
+        } else {
+          logEvent('SOCKET', `WebSocket connected as "${clientName}" (Level ${userLevel}). Note: admin chat room requires Level > 10 (View-only mode).`);
+        }
 
         // Request initial admin state
         setTimeout(() => {
@@ -1023,7 +1037,7 @@
         let badgeText = 'Custom Room';
         let badgeStyle = 'bg-slate-800 text-slate-300 border-slate-700';
         if (isAdmin) {
-          badgeText = 'Special Admin Room (Lvl 10-99)';
+          badgeText = 'Special Admin Room (Lvl > 10)';
           badgeStyle = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
         } else if (isGlobal) {
           badgeText = 'Default Global Lobby';
@@ -1047,6 +1061,8 @@
           clientTags = '<span class="text-xs text-slate-500 italic">No clients currently connected</span>';
         }
 
+        const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+
         const card = document.createElement('div');
         card.className = `p-3.5 rounded-lg border bg-slate-950/60 ${isAdmin ? 'border-amber-500/30' : isGlobal ? 'border-brand-500/30' : 'border-borderCol'}`;
         card.innerHTML = `
@@ -1061,11 +1077,17 @@
               <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
                 ${detail.count} client${detail.count === 1 ? '' : 's'}
               </span>
-              ${!isGlobal ? `
-                <button onclick="joinCustomRoom('${escapeHtml(rName)}')" class="px-2.5 py-1 text-xs rounded font-medium ${isUserJoined ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'} transition flex items-center space-x-1">
-                  <span>${isUserJoined ? '✓ Joined' : 'Join Room'}</span>
-                </button>
-              ` : ''}
+              ${!isGlobal ? (
+                (isAdmin && myLevel <= 10) ? `
+                  <span title="Level 10 view-only: Admin room requires Auth Level > 10" class="px-2 py-1 text-[11px] rounded font-mono bg-slate-900 text-slate-500 border border-slate-800 cursor-not-allowed">
+                    Lvl &gt; 10 req
+                  </span>
+                ` : `
+                  <button onclick="joinCustomRoom('${escapeHtml(rName)}')" class="px-2.5 py-1 text-xs rounded font-medium ${isUserJoined ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'} transition flex items-center space-x-1">
+                    <span>${isUserJoined ? '✓ Joined' : 'Join Room'}</span>
+                  </button>
+                `
+              ) : ''}
             </div>
           </div>
           <div class="flex flex-wrap gap-1.5 mt-2">
@@ -1093,6 +1115,11 @@
       }
       if (!roomName) {
         alert('Please enter a room name to join or create.');
+        return;
+      }
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if ((roomName === 'admin' || roomName === 'admin-chat') && myLevel <= 10) {
+        alert(`Access Denied: The "${roomName}" room requires Auth Level strictly above 10 (Level 11 to 99). Your account has Auth Level ${myLevel} (view-only).`);
         return;
       }
       if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -2039,6 +2066,9 @@
           return;
         }
 
+        const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+        const isViewOnly = myLevel <= 10;
+
         tbody.innerHTML = users.map(u => {
           const authLvl = (u.metadata && u.metadata.auth_level !== undefined) ? u.metadata.auth_level : 1;
           const role = (u.metadata && u.metadata.role) ? u.metadata.role : 'member';
@@ -2069,9 +2099,15 @@
                 <button onclick="generateUserToken('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded text-[11px] font-medium transition">
                   🔑 Get JWT
                 </button>
-                <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2 py-1 bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded text-[11px] font-medium transition">
-                  🗑️
-                </button>
+                ${isViewOnly ? `
+                  <span title="Level 10 view-only: Cannot delete users" class="inline-block px-2 py-1 bg-slate-900 text-slate-500 border border-slate-800 rounded text-[11px] font-mono cursor-not-allowed">
+                    🔒 View-Only
+                  </span>
+                ` : `
+                  <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2 py-1 bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded text-[11px] font-medium transition">
+                    🗑️
+                  </button>
+                `}
               </td>
             </tr>
           `;
@@ -2087,6 +2123,12 @@
     }
 
     async function createUser() {
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if (myLevel <= 10) {
+        alert('Access Denied: Level 10 users have view-only access and cannot register/update users.');
+        return;
+      }
+
       const username = document.getElementById('newUsername').value.trim();
       const email = document.getElementById('newEmail').value.trim();
       const phoneNumber = document.getElementById('newPhone').value.trim();
@@ -2107,9 +2149,13 @@
       }
 
       try {
-        const resp = await fetch('/api/v1/auth/register', {
+        const token = localStorage.getItem('admin_jwt_token') || '';
+        const resp = await fetch('/api/v1/users', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
           body: JSON.stringify({
             username: username,
             email: email,
@@ -2257,14 +2303,24 @@
     }
 
     async function deleteUser(userId) {
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if (myLevel <= 10) {
+        alert('Access Denied: Level 10 users have view-only access and cannot delete users.');
+        return;
+      }
       if (!confirm(`Are you sure you want to delete user ${userId}?`)) return;
       try {
-        const resp = await fetch(`/api/v1/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+        const token = localStorage.getItem('admin_jwt_token') || '';
+        const resp = await fetch(`/api/v1/users/${encodeURIComponent(userId)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
         if (resp.ok) {
           fetchUsers();
           logEvent('AUTH', `Deleted user ${userId}`);
         } else {
-          alert('Failed to delete user');
+          const errData = await resp.json().catch(() => ({}));
+          alert(`Failed to delete user: ${errData.message || resp.statusText}`);
         }
       } catch (err) {
         console.error('Delete error', err);
@@ -2274,6 +2330,11 @@
     function fillAdminCredentials() {
       document.getElementById('loginEmail').value = 'admin@hack-go-thon.local';
       document.getElementById('loginPassword').value = 'Mp@tel98';
+    }
+
+    function fillStaffCredentials() {
+      document.getElementById('loginEmail').value = 'staff@hack-go-thon.local';
+      document.getElementById('loginPassword').value = 'Staff@123';
     }
 
     async function submitAdminLogin() {
@@ -2326,15 +2387,55 @@
       const modal = document.getElementById('loginModalOverlay');
       if (modal) modal.classList.add('hidden');
 
+      const lvl = (user && user.metadata && user.metadata.auth_level !== undefined) ? user.metadata.auth_level : ((user && user.auth_level !== undefined) ? user.auth_level : 99);
+      const isViewOnly = lvl <= 10;
+
       // Update header
       const profileHeader = document.getElementById('userProfileHeader');
       const headerUsername = document.getElementById('headerUsername');
       const headerLevel = document.getElementById('headerAuthLevelBadge');
       if (profileHeader) profileHeader.classList.remove('hidden');
       if (headerUsername && user) headerUsername.innerText = user.username || user.email;
-      if (headerLevel && user) {
-        const lvl = (user.metadata && user.metadata.auth_level !== undefined) ? user.metadata.auth_level : (user.auth_level || 99);
-        headerLevel.innerText = `Lvl ${lvl}`;
+      if (headerLevel) {
+        headerLevel.innerText = isViewOnly ? `Lvl ${lvl} (View-Only)` : `Lvl ${lvl}`;
+        headerLevel.className = isViewOnly 
+          ? 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800'
+          : 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800';
+      }
+
+      // Configure View-Only UI restrictions on User Management if lvl <= 10
+      const createForm = document.getElementById('createUserForm');
+      const submitBtn = createForm ? createForm.querySelector('button[type="submit"]') : null;
+      let viewOnlyBanner = document.getElementById('userMgmtViewOnlyBanner');
+
+      if (isViewOnly) {
+        if (!viewOnlyBanner && createForm) {
+          viewOnlyBanner = document.createElement('div');
+          viewOnlyBanner.id = 'userMgmtViewOnlyBanner';
+          viewOnlyBanner.className = 'mb-3 p-2.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-xs text-cyan-300 font-mono';
+          viewOnlyBanner.innerHTML = '<strong>👁️ View-Only Mode (Level 10):</strong> Your account has read-only access to user data and tokens. Creating, updating, or deleting users is restricted to Level &gt; 10.';
+          createForm.parentElement.insertBefore(viewOnlyBanner, createForm);
+        }
+        ['newUsername', 'newEmail', 'newPhone', 'newPassword', 'newAuthLevelPreset', 'newMetadata'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = true;
+        });
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.className = 'w-full py-2 bg-slate-800 text-slate-500 font-medium text-xs rounded-md cursor-not-allowed';
+          submitBtn.innerText = 'Creating Users Disabled (Level 10 View-Only)';
+        }
+      } else {
+        if (viewOnlyBanner) viewOnlyBanner.remove();
+        ['newUsername', 'newEmail', 'newPhone', 'newPassword', 'newAuthLevelPreset', 'newMetadata'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = false;
+        });
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.className = 'w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs rounded-md shadow transition flex items-center justify-center space-x-1.5';
+          submitBtn.innerText = 'Create & Register User';
+        }
       }
 
       // Also populate the active token on the inspector bench

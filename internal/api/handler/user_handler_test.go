@@ -222,3 +222,116 @@ func TestUserHandler_CRUDAndTokenGen(t *testing.T) {
 		t.Fatalf("expected 404 on deleted user, got %d", wCheck.Code)
 	}
 }
+
+func TestUserHandler_Level10ViewOnlyRestrictions(t *testing.T) {
+	r, _ := setupUserTestRouter()
+
+	// 1. Verify staff_user exists and can log in
+	loginPayload := LoginRequest{
+		Identifier: "staff_user",
+		Password:   "Staff@123",
+	}
+	loginBody, _ := json.Marshal(loginPayload)
+
+	wLogin := httptest.NewRecorder()
+	reqLogin := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(loginBody))
+	reqLogin.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wLogin, reqLogin)
+
+	if wLogin.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK on staff login, got %d: %s", wLogin.Code, wLogin.Body.String())
+	}
+
+	var loginResp struct {
+		Data struct {
+			Token     string `json:"token"`
+			AuthLevel any    `json:"auth_level"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(wLogin.Body.Bytes(), &loginResp)
+	staffToken := loginResp.Data.Token
+	if staffToken == "" {
+		t.Fatalf("expected valid token for staff user")
+	}
+
+	// 2. Staff user can view users list (GET /api/v1/users) -> 200 OK
+	wList := httptest.NewRecorder()
+	reqList := httptest.NewRequest("GET", "/api/v1/users", nil)
+	reqList.Header.Set("Authorization", "Bearer "+staffToken)
+	r.ServeHTTP(wList, reqList)
+	if wList.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for staff viewing users list, got %d", wList.Code)
+	}
+
+	// 3. Staff user CANNOT update a user (PUT /api/v1/users/:id) -> 403 Forbidden
+	newPhone := "+1-888-7777"
+	upPayload := UpdateUserRequest{PhoneNumber: &newPhone}
+	upBody, _ := json.Marshal(upPayload)
+
+	wUp := httptest.NewRecorder()
+	reqUp := httptest.NewRequest("PUT", "/api/v1/users/user_admin_01", bytes.NewReader(upBody))
+	reqUp.Header.Set("Content-Type", "application/json")
+	reqUp.Header.Set("Authorization", "Bearer "+staffToken)
+	r.ServeHTTP(wUp, reqUp)
+
+	if wUp.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden when level 10 attempts to update user, got %d: %s", wUp.Code, wUp.Body.String())
+	}
+
+	// 4. Staff user CANNOT delete a user (DELETE /api/v1/users/:id) -> 403 Forbidden
+	wDel := httptest.NewRecorder()
+	reqDel := httptest.NewRequest("DELETE", "/api/v1/users/user_demo_01", nil)
+	reqDel.Header.Set("Authorization", "Bearer "+staffToken)
+	r.ServeHTTP(wDel, reqDel)
+
+	if wDel.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden when level 10 attempts to delete user, got %d: %s", wDel.Code, wDel.Body.String())
+	}
+
+	// 5. Staff user CANNOT create a new user (POST /api/v1/users) -> 403 Forbidden
+	createPayload := RegisterUserRequest{
+		Username: "malicious_user",
+		Email:    "evil@local.test",
+		Password: "password123",
+	}
+	createBody, _ := json.Marshal(createPayload)
+
+	wCreate := httptest.NewRecorder()
+	reqCreate := httptest.NewRequest("POST", "/api/v1/users", bytes.NewReader(createBody))
+	reqCreate.Header.Set("Content-Type", "application/json")
+	reqCreate.Header.Set("Authorization", "Bearer "+staffToken)
+	r.ServeHTTP(wCreate, reqCreate)
+
+	if wCreate.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden when level 10 attempts to create user, got %d: %s", wCreate.Code, wCreate.Body.String())
+	}
+
+	// 6. Admin user (Level 99) CAN update users -> 200 OK
+	adminLoginPayload := LoginRequest{
+		Identifier: "admin",
+		Password:   "Mp@tel98",
+	}
+	adminLoginBody, _ := json.Marshal(adminLoginPayload)
+	wAdminLogin := httptest.NewRecorder()
+	reqAdminLogin := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(adminLoginBody))
+	reqAdminLogin.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wAdminLogin, reqAdminLogin)
+
+	var adminLoginResp struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(wAdminLogin.Body.Bytes(), &adminLoginResp)
+	adminToken := adminLoginResp.Data.Token
+
+	wAdminUp := httptest.NewRecorder()
+	reqAdminUp := httptest.NewRequest("PUT", "/api/v1/users/user_staff_10", bytes.NewReader(upBody))
+	reqAdminUp.Header.Set("Content-Type", "application/json")
+	reqAdminUp.Header.Set("Authorization", "Bearer "+adminToken)
+	r.ServeHTTP(wAdminUp, reqAdminUp)
+
+	if wAdminUp.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK when admin updates user, got %d: %s", wAdminUp.Code, wAdminUp.Body.String())
+	}
+}

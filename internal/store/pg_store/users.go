@@ -125,6 +125,23 @@ func SeedDefaultUsers(ctx context.Context, db *dbclient.PostgresDatabase) error 
 	}
 	_ = CreateUser(ctx, db, demoUser)
 
+	// Level 10 Staff User (View-only admin access)
+	staffHash, _ := HashPassword("Staff@123")
+	staffUser := &UserModel{
+		ID:           "user_staff_10",
+		Username:     "staff_user",
+		Email:        "staff@hack-go-thon.local",
+		PhoneNumber:  "9427425570",
+		PasswordHash: staffHash,
+		Metadata: map[string]any{
+			"auth_level":  10,
+			"role":        "staff",
+			"department":  "operations",
+			"permissions": []string{"read"},
+		},
+	}
+	_ = CreateUser(ctx, db, staffUser)
+
 	return nil
 }
 
