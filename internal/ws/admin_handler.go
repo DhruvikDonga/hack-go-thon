@@ -10,6 +10,7 @@ import (
 	"hack-go-thon/internal/jobs"
 	llmclient "hack-go-thon/internal/llm_client"
 	"hack-go-thon/pkg/log"
+	"sort"
 
 	"github.com/DhruvikDonga/simplysocket"
 	"github.com/google/uuid"
@@ -312,22 +313,49 @@ func (h *AdminRoomHandler) handleLLMStream(room simplysocket.Room, roomName, sen
 
 // buildMeshSnapshot collects real-time rooms, clients, and scheduled tasks from simplysocket.MeshServer and Scheduler.
 func buildMeshSnapshot(server simplysocket.MeshServer, scheduler *jobs.Scheduler) map[string]any {
-	allRooms := server.GetRooms()
 	clientsInRoomMap := server.GetClientsInRoom()
+	allRooms := server.GetRooms()
 	allClientsMap := server.GetClients()
 
-	roomsDetail := make(map[string]map[string]any)
+	// Capture all rooms created and joined from GetClientsInRoom and GetRooms
+	roomSet := make(map[string]bool)
+	for rName := range clientsInRoomMap {
+		roomSet[rName] = true
+	}
 	for _, rName := range allRooms {
+		roomSet[rName] = true
+	}
+	// Default global room is always guaranteed
+	roomSet[simplysocket.MeshGlobalRoom] = true
+
+	roomsDetail := make(map[string]map[string]any)
+	var finalRooms []string
+	uniqueClients := make(map[string]bool)
+
+	for rName := range roomSet {
+		finalRooms = append(finalRooms, rName)
 		clientMap := clientsInRoomMap[rName]
 		var clientSlugs []string
 		for slug := range clientMap {
-			clientSlugs = append(clientSlugs, slug)
+			if slug != "" {
+				clientSlugs = append(clientSlugs, slug)
+				uniqueClients[slug] = true
+			}
 		}
+		sort.Strings(clientSlugs)
 		roomsDetail[rName] = map[string]any{
 			"count":   len(clientSlugs),
 			"clients": clientSlugs,
 		}
 	}
+
+	for slug := range allClientsMap {
+		if slug != "" {
+			uniqueClients[slug] = true
+		}
+	}
+
+	sort.Strings(finalRooms)
 
 	var scheduledJobs []jobs.TaskInfo
 	if scheduler != nil {
@@ -337,9 +365,9 @@ func buildMeshSnapshot(server simplysocket.MeshServer, scheduler *jobs.Scheduler
 	}
 
 	return map[string]any{
-		"rooms":          allRooms,
-		"total_rooms":    len(allRooms),
-		"total_clients":  len(allClientsMap),
+		"rooms":          finalRooms,
+		"total_rooms":    len(finalRooms),
+		"total_clients":  len(uniqueClients),
 		"rooms_detail":   roomsDetail,
 		"scheduled_jobs": scheduledJobs,
 		"server_name":    server.GetGameName(),

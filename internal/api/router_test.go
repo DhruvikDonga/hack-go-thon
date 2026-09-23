@@ -237,6 +237,17 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		if wWSLevel1.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400 Bad Request for level 1 user reaching open WS handler, got %d", wWSLevel1.Code)
 		}
+
+		// 4. WebSocket Rooms Telemetry Endpoint
+		reqRooms, _ := http.NewRequest(http.MethodGet, "/api/v1/ws/rooms", nil)
+		wRooms := httptest.NewRecorder()
+		router.ServeHTTP(wRooms, reqRooms)
+		if wRooms.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /api/v1/ws/rooms, got %d", wRooms.Code)
+		}
+		if !strings.Contains(wRooms.Body.String(), "mesh-global") {
+			t.Fatalf("expected rooms response to include 'mesh-global', got %s", wRooms.Body.String())
+		}
 	})
 }
 

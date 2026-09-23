@@ -9,7 +9,9 @@ import (
 	"hack-go-thon/internal/ws"
 	"hack-go-thon/pkg/response"
 	"hack-go-thon/web"
+	"sort"
 
+	"github.com/DhruvikDonga/simplysocket"
 	"github.com/gin-gonic/gin"
 )
 
@@ -74,6 +76,63 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 		// WebSocket Endpoint (Single connection point for multiple RoomData logic implementations)
 		if rc.WSManager != nil {
 			v1.GET("/ws", rc.WSManager.Handler())
+
+			// Live MeshServer.GetClientsInRoom() telemetry endpoint
+			v1.GET("/ws/rooms", func(c *gin.Context) {
+				roomsMap := rc.WSManager.Server().GetClientsInRoom()
+				allRooms := rc.WSManager.Server().GetRooms()
+				allClients := rc.WSManager.Server().GetClients()
+
+				roomSet := make(map[string]bool)
+				for r := range roomsMap {
+					roomSet[r] = true
+				}
+				for _, r := range allRooms {
+					roomSet[r] = true
+				}
+				roomSet[simplysocket.MeshGlobalRoom] = true
+
+				type roomInfo struct {
+					Name        string   `json:"name"`
+					ClientCount int      `json:"client_count"`
+					Clients     []string `json:"clients"`
+				}
+
+				var roomsList []roomInfo
+				uniqueClients := make(map[string]bool)
+
+				for rName := range roomSet {
+					var slugs []string
+					if cmap, ok := roomsMap[rName]; ok {
+						for slug := range cmap {
+							if slug != "" {
+								slugs = append(slugs, slug)
+								uniqueClients[slug] = true
+							}
+						}
+					}
+					sort.Strings(slugs)
+					roomsList = append(roomsList, roomInfo{
+						Name:        rName,
+						ClientCount: len(slugs),
+						Clients:     slugs,
+					})
+				}
+				for slug := range allClients {
+					if slug != "" {
+						uniqueClients[slug] = true
+					}
+				}
+				sort.Slice(roomsList, func(i, j int) bool {
+					return roomsList[i].Name < roomsList[j].Name
+				})
+
+				response.OK(c, gin.H{
+					"total_rooms":   len(roomsList),
+					"total_clients": len(uniqueClients),
+					"rooms":         roomsList,
+				})
+			})
 		}
 
 		// Public Example Resource Endpoints

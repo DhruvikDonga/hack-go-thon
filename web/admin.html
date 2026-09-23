@@ -170,6 +170,14 @@
             </button>
           </div>
 
+          <!-- Join / Create Room Toolbar -->
+          <div class="flex items-center gap-2 mb-4 bg-slate-950/80 p-2.5 rounded-lg border border-borderCol">
+            <input id="newRoomInput" type="text" placeholder="Enter room name (e.g. chat, room-1, custom-room)..." class="flex-1 bg-slate-900 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" onkeydown="if(event.key==='Enter') joinCustomRoom();" />
+            <button onclick="joinCustomRoom()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1 whitespace-nowrap">
+              <span>➕ Join / Create Room</span>
+            </button>
+          </div>
+
           <!-- Rooms Container -->
           <div id="roomsContainer" class="space-y-3">
             <div class="text-sm text-slate-400 py-6 text-center italic">Waiting for mesh telemetry...</div>
@@ -1010,16 +1018,29 @@
         const detail = details[rName] || { count: 0, clients: [] };
         const isAdmin = rName === 'admin';
         const isGlobal = rName === 'mesh-global';
+        const isUserJoined = detail.clients && clientSlug && detail.clients.includes(clientSlug);
 
+        let badgeText = 'Custom Room';
         let badgeStyle = 'bg-slate-800 text-slate-300 border-slate-700';
-        if (isAdmin) badgeStyle = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-        if (isGlobal) badgeStyle = 'bg-brand-500/10 text-brand-400 border-brand-500/30';
+        if (isAdmin) {
+          badgeText = 'Special Admin Room (Lvl 10-99)';
+          badgeStyle = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        } else if (isGlobal) {
+          badgeText = 'Default Global Lobby';
+          badgeStyle = 'bg-brand-500/10 text-brand-400 border-brand-500/30';
+        } else if (rName.startsWith('call-') || rName.startsWith('webrtc') || rName.startsWith('sfu')) {
+          badgeText = 'WebRTC Media Room';
+          badgeStyle = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        } else if (rName === 'chat') {
+          badgeText = 'Chat Room';
+          badgeStyle = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
+        }
 
         let clientTags = '';
         if (detail.clients && detail.clients.length > 0) {
           clientTags = detail.clients.map(c => `
             <span class="inline-block font-mono text-[11px] px-2 py-0.5 rounded bg-slate-900 border border-borderCol text-slate-300">
-              ${c} ${c === clientSlug ? '<span class="text-emerald-400 font-bold">(You)</span>' : ''}
+              ${escapeHtml(c)} ${c === clientSlug ? '<span class="text-emerald-400 font-bold">(You)</span>' : ''}
             </span>
           `).join(' ');
         } else {
@@ -1027,18 +1048,25 @@
         }
 
         const card = document.createElement('div');
-        card.className = `p-3.5 rounded-lg border bg-slate-950/60 ${isAdmin ? 'border-amber-500/30' : 'border-borderCol'}`;
+        card.className = `p-3.5 rounded-lg border bg-slate-950/60 ${isAdmin ? 'border-amber-500/30' : isGlobal ? 'border-brand-500/30' : 'border-borderCol'}`;
         card.innerHTML = `
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
-              <span class="font-mono text-sm font-semibold text-white">${rName}</span>
+              <span class="font-mono text-sm font-semibold text-white">${escapeHtml(rName)}</span>
               <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badgeStyle}">
-                ${isAdmin ? 'Special Admin Room' : isGlobal ? 'Global Mesh Lobby' : 'Custom Room'}
+                ${badgeText}
               </span>
             </div>
-            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
-              ${detail.count} client${detail.count === 1 ? '' : 's'}
-            </span>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
+                ${detail.count} client${detail.count === 1 ? '' : 's'}
+              </span>
+              ${!isGlobal ? `
+                <button onclick="joinCustomRoom('${escapeHtml(rName)}')" class="px-2.5 py-1 text-xs rounded font-medium ${isUserJoined ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'} transition flex items-center space-x-1">
+                  <span>${isUserJoined ? '✓ Joined' : 'Join Room'}</span>
+                </button>
+              ` : ''}
+            </div>
           </div>
           <div class="flex flex-wrap gap-1.5 mt-2">
             ${clientTags}
@@ -1055,6 +1083,58 @@
         targetSelect.innerHTML = availableRooms.map(r => 
           `<option value="${escapeHtml(r)}" ${r === currentVal ? 'selected' : ''}>${escapeHtml(r)} ${r === 'mesh-global' ? '(All Clients)' : ''}</option>`
         ).join('');
+      }
+    }
+
+    function joinCustomRoom(roomName) {
+      if (!roomName) {
+        const input = document.getElementById('newRoomInput');
+        roomName = input ? input.value.trim() : '';
+      }
+      if (!roomName) {
+        alert('Please enter a room name to join or create.');
+        return;
+      }
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert('WebSocket is not connected');
+        return;
+      }
+      const token = localStorage.getItem('admin_jwt_token') || '';
+      socket.send(JSON.stringify({
+        action: 'join-room',
+        target: 'mesh-global',
+        message_body: { room: roomName, token: token }
+      }));
+      logEvent('ROOM', `Dispatched request to join/create room: "${roomName}"`);
+      if (document.getElementById('newRoomInput')) {
+        document.getElementById('newRoomInput').value = '';
+      }
+    }
+
+    async function fetchMeshRoomsHTTP() {
+      try {
+        const resp = await fetch('/api/v1/ws/rooms');
+        if (resp.ok) {
+          const res = await resp.json();
+          if (res.data) {
+            const rooms = (res.data.rooms || []).map(r => r.name);
+            const roomsDetail = {};
+            (res.data.rooms || []).forEach(r => {
+              roomsDetail[r.name] = {
+                count: r.client_count,
+                clients: r.clients
+              };
+            });
+            renderMeshState({
+              total_rooms: res.data.total_rooms,
+              total_clients: res.data.total_clients,
+              rooms: rooms,
+              rooms_detail: roomsDetail
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch mesh rooms via HTTP', e);
       }
     }
 
@@ -1118,14 +1198,15 @@
     }
 
     function requestStateRefresh() {
-      if (socket && socket.readyState === WebSocket.OPEN) {
+      fetchMeshRoomsHTTP();
+      fetchJobs();
+      if (isAdminRoomJoined && socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({
           action: 'get-admin-state',
           target: 'admin',
           message_body: {}
         }));
       }
-      fetchJobs();
     }
 
     function sendAdminBroadcast() {
@@ -2286,6 +2367,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      fetchMeshRoomsHTTP();
       const savedToken = localStorage.getItem('admin_jwt_token');
       if (savedToken) {
         try {
