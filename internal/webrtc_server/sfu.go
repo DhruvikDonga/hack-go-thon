@@ -110,6 +110,24 @@ func (r *SFURoom) signalPeerConnectionsLocked() {
 					peer.mu.Lock()
 					peer.senders[trackID] = sender
 					peer.mu.Unlock()
+
+					// Read RTCP from this sender so PLI/FIR requests from subscriber trigger keyframes
+					go func(s *webrtc.RTPSender, pubID string) {
+						for {
+							pkts, _, rtcpErr := s.ReadRTCP()
+							if rtcpErr != nil {
+								return
+							}
+							for _, pkt := range pkts {
+								switch pkt.(type) {
+								case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
+									r.mu.Lock()
+									r.dispatchKeyFrameToPeerLocked(pubID)
+									r.mu.Unlock()
+								}
+							}
+						}
+					}(sender, sfuTrack.Publisher)
 				} else {
 					log.Error("Failed to add track to SFU peer", "peer_id", peer.ID, "track_id", trackID, "error", err)
 				}
@@ -118,7 +136,7 @@ func (r *SFURoom) signalPeerConnectionsLocked() {
 
 		// 3. Negotiate if this peer is newly connecting or if tracks changed
 		if peer.wsConn != nil {
-			if !peer.signaled || hasChanges {
+			if !peer.signaled || hasChanges || peer.renegotiatePending {
 				if peer.PC.SignalingState() != webrtc.SignalingStateStable {
 					peer.renegotiatePending = true
 					continue
@@ -165,6 +183,23 @@ func (r *SFURoom) dispatchKeyFrameLocked() {
 					},
 				})
 			}
+		}
+	}
+}
+
+// dispatchKeyFrameToPeerLocked sends an RTCP PLI request to a specific publisher peer.
+func (r *SFURoom) dispatchKeyFrameToPeerLocked(peerID string) {
+	pubPeer, exists := r.peers[peerID]
+	if !exists || pubPeer.PC == nil {
+		return
+	}
+	for _, receiver := range pubPeer.PC.GetReceivers() {
+		if receiver.Track() != nil && receiver.Track().Kind() == webrtc.RTPCodecTypeVideo {
+			_ = pubPeer.PC.WriteRTCP([]rtcp.Packet{
+				&rtcp.PictureLossIndication{
+					MediaSSRC: uint32(receiver.Track().SSRC()),
+				},
+			})
 		}
 	}
 }
@@ -334,7 +369,8 @@ func (e *SFUEngine) HandleWebSocket(w http.ResponseWriter, r *http.Request, room
 			rtpPkt.Extension = false
 			rtpPkt.Extensions = nil
 			if writeErr := localTrack.WriteRTP(rtpPkt); writeErr != nil {
-				return
+				// Don't terminate forwarding loop on transient write errors
+				continue
 			}
 		}
 	})
@@ -394,9 +430,9 @@ func (e *SFUEngine) HandleWebSocket(w http.ResponseWriter, r *http.Request, room
 				} else {
 					room.mu.Lock()
 					if peer.renegotiatePending {
-						peer.renegotiatePending = false
 						room.signalPeerConnectionsLocked()
 					}
+					room.dispatchKeyFrameLocked()
 					room.mu.Unlock()
 				}
 			}
@@ -504,7 +540,8 @@ func (e *SFUEngine) JoinRoom(ctx context.Context, req SFUJoinRequest) (*SFUJoinR
 			rtpPkt.Extension = false
 			rtpPkt.Extensions = nil
 			if writeErr := localTrack.WriteRTP(rtpPkt); writeErr != nil {
-				return
+				// Don't terminate forwarding loop on transient write errors
+				continue
 			}
 		}
 	})

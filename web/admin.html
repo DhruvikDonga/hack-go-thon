@@ -763,6 +763,20 @@
     </div>
   </main>
 
+  <!-- Page Footer -->
+  <footer class="border-t border-borderCol bg-cardBg/40 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <div class="flex items-center space-x-2">
+        <span class="font-medium text-slate-400">Hack-Go-Thon Control Center</span>
+        <span>•</span>
+        <span>simplysocket Mesh &amp; Pion WebRTC SFU</span>
+      </div>
+      <div class="font-mono">
+        <span>by <a href="https://dhruvik.cc" target="_blank" rel="noopener noreferrer" class="text-brand-500 hover:text-brand-400 hover:underline">dhruvik</a></span>
+      </div>
+    </div>
+  </footer>
+
   <!-- WebSocket & Dashboard JavaScript Logic -->
   <script>
     let socket = null;
@@ -1930,16 +1944,15 @@
       const video = document.getElementById('sfuVideo_' + track.id);
       if (video) {
         video.muted = true;
-        if (stream) {
-          video.srcObject = stream;
-        } else {
-          video.srcObject = new MediaStream([track]);
-        }
+        video.playsInline = true;
+        video.autoplay = true;
+        const mediaStream = stream || new MediaStream([track]);
+        video.srcObject = mediaStream;
+        video.onloadedmetadata = () => {
+          video.play().catch(e => console.warn('Autoplay on metadata error:', e));
+        };
         video.play().catch(e => console.warn('Autoplay error:', e));
 
-        track.onmute = () => {
-          video.play().catch(e => console.warn('Unmute play error:', e));
-        };
         track.onunmute = () => {
           video.play().catch(e => console.warn('Onunmute play error:', e));
         };

@@ -2,11 +2,16 @@ package webrtcserver
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"hack-go-thon/config"
 
+	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -294,4 +299,151 @@ func TestSFUEngine_MultiPartyTrackFanOut(t *testing.T) {
 		t.Errorf("expected peer1_video to be removed from peer2 after peer1 left")
 	}
 	peer2.mu.RUnlock()
+}
+
+func TestSFUEngine_WebSocketRenegotiationPending(t *testing.T) {
+	cfg := &config.Config{
+		STUNServers: []string{},
+	}
+	engine := NewSFUEngine(cfg)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		engine.HandleWebSocket(w, r, "reneg-test-room", "client1")
+	}))
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("failed to dial websocket: %v", err)
+	}
+	defer ws.Close()
+
+	readOffer := func() string {
+		for {
+			_ = ws.SetReadDeadline(time.Now().Add(3 * time.Second))
+			_, raw, err := ws.ReadMessage()
+			if err != nil {
+				t.Fatalf("failed to read ws message: %v", err)
+			}
+			var msg struct {
+				Event string `json:"event"`
+				Data  string `json:"data"`
+			}
+			if err := json.Unmarshal(raw, &msg); err != nil {
+				t.Fatalf("failed to unmarshal ws message: %v", err)
+			}
+			if msg.Event == "offer" {
+				return msg.Data
+			}
+		}
+	}
+
+	sendAnswer := func(clientPC *webrtc.PeerConnection, offerSDP string) {
+		var offer webrtc.SessionDescription
+		if err := json.Unmarshal([]byte(offerSDP), &offer); err != nil {
+			t.Fatalf("failed to parse offer SDP: %v", err)
+		}
+		if err := clientPC.SetRemoteDescription(offer); err != nil {
+			t.Fatalf("client failed to set remote description: %v", err)
+		}
+		ans, err := clientPC.CreateAnswer(nil)
+		if err != nil {
+			t.Fatalf("client failed to create answer: %v", err)
+		}
+		if err := clientPC.SetLocalDescription(ans); err != nil {
+			t.Fatalf("client failed to set local description: %v", err)
+		}
+		ansBytes, _ := json.Marshal(ans)
+		msg := map[string]any{
+			"event": "answer",
+			"data":  string(ansBytes),
+		}
+		_ = ws.WriteJSON(msg)
+	}
+
+	clientPC, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	if err != nil {
+		t.Fatalf("failed to create client PC: %v", err)
+	}
+	defer clientPC.Close()
+
+	// 1. Initial offer
+	initialOffer := readOffer()
+	sendAnswer(clientPC, initialOffer)
+
+	// Wait briefly for server to process initial answer
+	time.Sleep(100 * time.Millisecond)
+
+	// 2. User 2 adds track 1
+	room := engine.GetOrCreateRoom("reneg-test-room")
+	localTrack1, _ := webrtc.NewTrackLocalStaticRTP(
+		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8},
+		"track1",
+		"peer2",
+	)
+	sfuTrack1 := &SFUTrack{
+		ID:        "track1",
+		Kind:      "video",
+		Publisher: "peer2",
+		Track:     localTrack1,
+	}
+
+	room.mu.Lock()
+	room.tracks["track1"] = sfuTrack1
+	room.signalPeerConnectionsLocked()
+	room.mu.Unlock()
+
+	// Read offer for track 1
+	offer1 := readOffer()
+
+	// 3. User 2 adds track 2 while client1 is in HaveLocalOffer!
+	localTrack2, _ := webrtc.NewTrackLocalStaticRTP(
+		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus},
+		"track2",
+		"peer2",
+	)
+	sfuTrack2 := &SFUTrack{
+		ID:        "track2",
+		Kind:      "audio",
+		Publisher: "peer2",
+		Track:     localTrack2,
+	}
+
+	room.mu.Lock()
+	room.tracks["track2"] = sfuTrack2
+	room.signalPeerConnectionsLocked()
+	room.mu.Unlock()
+
+	// Verify renegotiatePending is set
+	room.mu.RLock()
+	peer1 := room.peers["client1"]
+	if !peer1.renegotiatePending {
+		t.Errorf("expected renegotiatePending to be true")
+	}
+	room.mu.RUnlock()
+
+	// 4. Client answers offer 1
+	sendAnswer(clientPC, offer1)
+
+	// 5. Server should now detect renegotiatePending on answer and send offer 2
+	offer2 := readOffer()
+
+	// 6. Client answers offer 2
+	sendAnswer(clientPC, offer2)
+
+	// Wait for server to process answer 2
+	time.Sleep(100 * time.Millisecond)
+
+	room.mu.RLock()
+	if peer1.renegotiatePending {
+		t.Errorf("expected renegotiatePending to be false after second answer")
+	}
+	if _, ok := peer1.senders["track1"]; !ok {
+		t.Errorf("expected peer1 to have track1")
+	}
+	if _, ok := peer1.senders["track2"]; !ok {
+		t.Errorf("expected peer1 to have track2")
+	}
+	room.mu.RUnlock()
 }
