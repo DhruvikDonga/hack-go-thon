@@ -19,7 +19,7 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
 
 - 🖥️ **Embedded Admin Control Center UI**  
   A sleek, responsive dark-mode dashboard bundled directly into the Go binary (`web/admin.html`) and served at `/admin` (and `/`). Provides live mesh room/client visualization, real-time activity feed, live LLM streaming tester, scheduled jobs monitor, an interactive RAG playground, and a live WebRTC Lab for P2P video calls and UDP DataChannels.
-![alt text](image.png)
+![alt text](image-1.png)
 
 - 📹 **WebRTC Pion SFU & 1:1 Real-Time Media Hub**  
   Enterprise-grade WebRTC subsystem powered by [`pion/webrtc/v4`](https://github.com/pion/webrtc):
