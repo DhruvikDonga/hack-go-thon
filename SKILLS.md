@@ -162,14 +162,14 @@ When generating or refactoring code in this repository, strictly adhere to these
 
 ### Recipe 2: Adding a New WebSocket Action
 
-1. Open `internal/ws/admin_handler.go` (or create a domain-specific action handler).
-2. Add a `case "your-action":` inside `AdminRoomHandler`:
+1. Open `internal/ws/admin_handler.go` or `internal/ws/handler.go` (or create a domain-specific `simplysocket.RoomData` implementation).
+2. Add a `case "your-action":` inside the room's message loop (`HandleRoomData`):
    ```go
    case "your-action":
        // Process payload
-       response := map[string]interface{}{"status": "success", "result": msg.Data}
-       payloadBytes, _ := json.Marshal(response)
-       _ = h.manager.Broadcast(ctx, h.roomName, "your-action-response", string(payloadBytes))
+       msg.MessageBody["processed"] = true
+       msg.IsTargetClient = false // false = broadcast to entire room; true = target specific client
+       room.BroadcastMessage(msg)
    ```
 3. Update the embedded `web/admin.html` dashboard if the action should be testable or visible from the UI.
 
@@ -325,7 +325,10 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
    * Stored in PostgreSQL `users` table with bcrypt password hashing and `metadata` JSONB column.
    * `metadata` embeds authorization attributes (`auth_level`, `role`, `department`, `permissions`).
    * When PostgreSQL is disabled or offline, falls back seamlessly to an in-memory thread-safe store.
-   * Default seeded accounts: `admin` (auth_level: 99) and `demo_user` (auth_level: 1).
+   * **Default seeded accounts**:
+     - `admin` (`admin@hack-go-thon.local` / `Mp@tel98`, phone `9427425572`): `auth_level: 99` — Superadmin with full write/delete permissions and admin room access.
+     - `staff` (`staff@hack-go-thon.local` / `Staff@123`, phone `9427425570`): `auth_level: 10` — Staff Viewer with view-only dashboard permissions. Restricted from room `"admin"` and modifying users.
+     - `demo_user` (`user@hackathon.local` / `user123`): `auth_level: 1` — Standard member.
 
 2. **Issuing & Validating Tokens**:
    ```go
@@ -333,7 +336,7 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
    token, err := middleware.GenerateUserToken(cfg.JWTSecret, user, cfg.TokenTTL)
    ```
 
-3. **Protecting Routes with Multi-Level RBAC**:
+3. **Protecting Routes with Multi-Level RBAC & View-Only Rules**:
    ```go
    // Restrict endpoint to users with auth_level >= 50
    v1.GET("/protected/admin-only",
@@ -342,12 +345,8 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
        handlerFunc,
    )
 
-   // Or restrict by role
-   v1.GET("/protected/moderators",
-       middleware.JWTAuth(cfg.JWTSecret),
-       middleware.RequireRole("admin", "moderator"),
-       handlerFunc,
-   )
+   // Level 10 View-Only Restrictions: User modification endpoints (POST, PUT, DELETE)
+   // enforce checkCanModifyUsers and reject requests with Level <= 10 with 403 Forbidden.
    ```
 
 4. **Testing in Admin UI**:
@@ -356,9 +355,12 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
    * The token, claims, and auth level are instantly loaded into the inspector bench.
    * Click **"GET /protected/admin-only"** to verify access granted or 403 Forbidden based on `auth_level`.
 
-5. **WebSocket Room-Level RBAC**:
-   * The connection endpoint (`/api/v1/ws`) is open to all clients.
-   * Fine-grained room admission (such as the `"admin"` room requiring Level 10–99) is enforced inside simplysocket room handlers (`EventsRoomHandler`), verifying the client's token before admitting them to the room.
+5. **WebSocket Room-Level RBAC & Direct Room Broadcast**:
+   * The connection endpoint (`/api/v1/ws`) is open to all clients; all clients automatically join `mesh-global`.
+   * **Direct Broadcast**: In `mesh-global`, all users can broadcast directly using `action: "broadcast"`, `target: "mesh-global"`.
+   * **Room `"admin"` Access**: Strictly requires Auth Level $> 10$ (Level 11–99), enforced dynamically inside `EventsRoomHandler.HandleRoomData`. Clients with Level $\le 10$ are denied with a descriptive error.
+   * Admins in `"admin"` can broadcast directly with `action: "broadcast"`, `target: "admin"`.
+   * **Safety Rule**: In simplysocket, sending messages with `target` set to a non-existent room can cause a nil-pointer dereference inside `readPump`. Always target known active rooms (such as `mesh-global` or rooms verified via `GET /api/v1/ws/rooms`).
 
 ---
 
@@ -366,16 +368,19 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
 
 When pairing with the mobile developers (iOS / Android / Flutter):
 1. **Network Binding**: Ensure the server runs on `0.0.0.0:8080`.
-   * Android Emulators connect to `http://10.0.2.2:8080` (or `ws://10.0.2.2:8080/ws`).
-   * iOS Simulators connect to `http://localhost:8080` (or `ws://localhost:8080/ws`).
+   * Android Emulators connect to `http://10.0.2.2:8080` (or `ws://10.0.2.2:8080/api/v1/ws`).
+   * iOS Simulators connect to `http://localhost:8080` (or `ws://localhost:8080/api/v1/ws`).
    * Physical Devices connect to `http://<LAN-IP>:8080` or via `ngrok http 8080`.
 2. **Unified WebSocket Envelope**:
    ```json
    {
-     "action": "join-room | admin-broadcast | llm-stream-request | webrtc-join | webrtc-offer | webrtc-answer | webrtc-ice",
-     "room": "room-name",
-     "sender": "client-id",
-     "data": "payload or stringified json"
+     "action": "join-room | broadcast | llm-stream-request | webrtc-join | webrtc-offer | webrtc-answer | webrtc-ice",
+     "target": "mesh-global | admin | custom-room",
+     "message_body": {
+       "message": "text content",
+       "sender": "username",
+       "time": "ISO-8601 timestamp"
+     }
    }
    ```
 3. **Debug Dashboard**: Direct mobile devs to `http://<HOST>:8080/admin` to inspect real-time connection status, test message delivery, monitor scheduled jobs, and run interactive WebRTC P2P video calls and DataChannel benchmarks.

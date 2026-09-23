@@ -369,12 +369,14 @@ type UserModel struct {
 - **Password Hashing**: Secure bcrypt hashing (`pgstore.HashPassword` & `pgstore.CheckPassword`).
 - **Flexible JSONB Metadata**: Holds arbitrary key-values including `auth_level`, `role`, `department`, and `permissions`.
 - **Pre-Seeded Accounts**:
-  - `admin` (`admin@hack-go-thon.local` / `Mp@tel98`, phone `9427425572`): `auth_level: 99`, `role: "admin"`
+  - `admin` (`admin@hack-go-thon.local` / `Mp@tel98`, phone `9427425572`): `auth_level: 99`, `role: "admin"` — full read/write, user management, and `admin` room access.
+  - `staff` (`staff@hack-go-thon.local` / `Staff@123`, phone `9427425570`): `auth_level: 10`, `role: "staff"` — view-only dashboard access. Restricted from room `"admin"` and user modifications.
   - `demo_user` (`user@hackathon.local` / `user123`, phone `+1-555-0101`): `auth_level: 1`, `role: "member"`
 - **Access Control & Room-Level Security**:
   - The Admin Panel (`/admin`) UI prompts for login requiring an authenticated account with **Auth Level 10 to 99**.
-  - The WebSocket URL (`/api/v1/ws`) is an open connection endpoint allowing any client to connect to the mesh.
-  - Room-level RBAC is enforced within simplysocket: only users with **Auth Level 10 to 99** can join the `"admin"` room. Non-admin or unauthenticated join attempts to the `"admin"` room are rejected with an error acknowledgment.
+  - **Level 10 View-Only Restrictions**: Accounts with Auth Level $\le 10$ have read-only access to user directories (`GET /api/v1/users`, `GET /api/v1/users/:id`). Modification endpoints (`POST /api/v1/users`, `PUT /api/v1/users/:id`, `DELETE /api/v1/users/:id`) respond with `403 Forbidden`. The Admin UI adaptively hides or disables user creation, update, and deletion controls.
+  - The WebSocket URL (`/api/v1/ws`) is an open connection endpoint allowing any client to connect to `mesh-global`.
+  - Room-level RBAC is enforced within simplysocket: only users with **Auth Level strictly above 10 (Level 11 to 99)** can join the `"admin"` room. Non-admin join attempts are rejected with `"Unauthorized: admin chat room requires Auth Level above 10 (Level 11 to 99)"`.
 - **Dual Storage Engine**: Persists to PostgreSQL `users` table with `JSONB` index. When PostgreSQL is offline or disabled (`services.json`), seamlessly falls back to thread-safe in-memory storage so demo velocity is never blocked.
 
 #### Auth & User Endpoints
@@ -477,25 +479,29 @@ type RoomData interface {
 ### Reference Handlers Provided:
 
 #### 1. `ws.AdminRoomHandler` (`internal/ws/admin_handler.go`)
+- **Dynamic Room Lifecycle**: Assigned to room `"admin"` when created dynamically upon the first authorized admin join.
 - **Mesh Observability**: Periodically and reactively queries `server.GetRooms()`, `server.GetClients()`, and `server.GetClientsInRoom()`, broadcasting an `admin-state` snapshot to all clients in the `"admin"` room.
 - **simplysocket LLM Token Streaming**: Receives `llm-stream-request`, invokes `llmClient.GenerateChatCompletionStream`, and streams tokens chunk-by-chunk to the room using `llm-stream-chunk` messages.
-- **Admin Broadcasts**: Dispatches announcements to any target room or the global lobby via `admin-broadcast`.
+- **Direct Room Broadcast**: Dispatches incoming room messages (`action: "broadcast"`, `target: "admin"`) directly to room occupants via `room.BroadcastMessage(msg)`.
 
 #### 2. `ws.EventsRoomHandler` (`internal/ws/handler.go`)
-- **Dynamic Room Joining**: Clients in the global lobby can send `action: "join-room"` with `{"room": "admin"}` or custom room names to dynamically enter rooms.
+- **Default Lobby Handler (`mesh-global`)**: Serves as the default handler for simplysocket's initial lobby room (`simplysocket.MeshGlobalRoom`), where all connecting clients land automatically.
+- **Direct Mesh Broadcast**: Clients of all roles and authorization levels (Admin, Staff, or Member) can broadcast directly to `mesh-global` (`action: "broadcast"`, `target: "mesh-global"`). `EventsRoomHandler` immediately delivers it to all connected clients via `room.BroadcastMessage(msg)`.
+- **Dynamic Room Joining & RBAC**: Clients in `mesh-global` send `action: "join-room"`. Joining the special `"admin"` room strictly requires Auth Level $> 10$ (Level 11 to 99), verified via `middleware.VerifyTokenAuthLevel`.
+- **Live Mesh Telemetry**: Live endpoint `GET /api/v1/ws/rooms` unions `MeshServer.GetRooms()` and `MeshServer.GetClientsInRoom()`, providing real-time room names and connected client slugs.
 - **Ping / Pong**: Automatically answers `action: "ping"` with a timestamped `"pong"`.
-- **Broadcast**: Dispatches `action: "broadcast"` or `"chat-message"` to everyone in the room.
 - **Client Lifecycle**: Listens to `room.EventTriggers()` for `client-joined-room` and `client-left-room` events.
 - **Heartbeat**: Broadcasts a background tick every 30 seconds.
 
 #### 3. `ws.ChatRoomHandler` (`internal/ws/chat_handler.go`)
-- Dedicated group chat logic: handles `"send-chat"` and `"user-typing"` indicators.
+- Dedicated group chat logic: handles `"send-chat"`, `"broadcast"`, and `"user-typing"` indicators.
 
 ### Embedded Admin Dashboard UI
 The server serves a responsive, dark-mode single-page control center directly at:
 - `http://localhost:8080/admin` (and `http://localhost:8080/`)
 - Built with zero frontend build dependencies (embedded directly into Go binary via `web/web.go`).
 - Visualizes mesh rooms, active clients, live event logs, real-time LLM streaming, and pgvector RAG queries.
+- Includes a dedicated **Mesh Broadcast Tool** allowing direct broadcasting to `mesh-global` (all users) or any active room.
 
 ---
 
