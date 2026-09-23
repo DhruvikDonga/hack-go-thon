@@ -64,7 +64,7 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 The system is organized into modular, independently toggleable components:
 - **HTTP Routing Layer (Gin)**: High-performance router with CORS, request correlation (`X-Request-ID`), Zap access logging, panic recovery, and asynchronous PostgreSQL audit logging.
 - **WebSocket Mesh (`simplysocket`)**: Single connection endpoint (`/api/v1/ws`) multiplexing independent `RoomData` handlers for admin telemetry, LLM token streaming, and WebRTC P2P signaling.
-- **WebRTC Subsystem (Pion & `simplysocket`)**:
+- **WebRTC Subsystem (Pion & `simplysocket`)** *(see [WEBRTC_INFO.md](WEBRTC_INFO.md))*:
   - **1:1 P2P Mesh**: Direct browser-to-browser audio/video calls with signaling coordinated over `simplysocket`.
   - **Selective Forwarding Unit (SFU)**: Enterprise-grade media router with $O(1)$ client uplink bandwidth, raw RTP track forwarding, and periodic RTCP PLI keyframe heartbeats (`/api/v1/webrtc/sfu/*`).
   - **Server DataChannel**: Sub-millisecond direct UDP binary messaging and latency ping-pong benchmarks (`/api/v1/webrtc/server/session`).
@@ -782,6 +782,8 @@ token, err := middleware.GenerateToken(
 ---
 
 ## 16. WebRTC Real-Time Media & Pion DataChannels
+
+> 📖 **Comprehensive Deep Dive**: For an in-depth architectural breakdown of WebRTC SFU topologies, sequence diagrams, live WebSocket renegotiation queues (`renegotiatePending`), raw RTP packet forwarding, and RTCP PLI keyframe propagation, see [WEBRTC_INFO.md](WEBRTC_INFO.md).
 
 The boilerplate provides comprehensive WebRTC support for mobile apps (iOS / Android / Flutter) and web clients, combining **simplysocket P2P signaling** with **Pion WebRTC server-side peer sessions**.
 

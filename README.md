@@ -22,7 +22,7 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
 ![alt text](image-1.png)
 ![alt text](image.png)
 
-- 📹 **WebRTC Pion SFU & 1:1 Real-Time Media Hub**  
+- 📹 **WebRTC Pion SFU & 1:1 Real-Time Media Hub** *(see detailed architecture & sequence diagrams in [`WEBRTC_INFO.md`](WEBRTC_INFO.md))*  
   Enterprise-grade WebRTC subsystem powered by [`pion/webrtc/v4`](https://github.com/pion/webrtc):
   - **Selective Forwarding Unit (SFU)**: $O(1)$ mobile uplink bandwidth routing raw RTP video and audio streams across multi-party rooms (`/api/v1/webrtc/sfu/*`), featuring live WebSocket track synchronization, header extension stripping, and 3-second RTCP PLI keyframe heartbeats.
   - **1:1 P2P Audio/Video**: Direct mesh signaling over [`simplysocket`](https://github.com/DhruvikDonga/simplysocket).
