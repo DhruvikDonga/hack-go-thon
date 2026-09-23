@@ -770,6 +770,7 @@
     let currentStreamID = null;
     let streamTokenCount = 0;
     let currentAdminUser = null;
+    let isAdminRoomJoined = false;
 
     function initWebSocket(token) {
       if (!token) {
@@ -834,6 +835,7 @@
       };
 
       socket.onclose = (ev) => {
+        isAdminRoomJoined = false;
         updateStatus(false, 'Disconnected');
         if (localStorage.getItem('admin_jwt_token')) {
           logEvent('SOCKET', 'WebSocket disconnected. Retrying in 3s...');
@@ -861,7 +863,14 @@
           if (status === 'error') {
             const errMsg = msg.message_body ? msg.message_body.error : 'Unauthorized to join room';
             logEvent('AUTH-ERROR', `Room "${joinedRoom}" denied entry: ${errMsg}`);
+            if (joinedRoom === 'admin') {
+              isAdminRoomJoined = false;
+            }
             return;
+          }
+
+          if (joinedRoom === 'admin') {
+            isAdminRoomJoined = true;
           }
 
           // Protect client slug: set on initial connect and never overwrite from other clients
@@ -1265,8 +1274,13 @@
           return;
         }
         if (!isAdminRoomJoined) {
-          alert('Admin room is not active or joined yet. Please join room "admin" first.');
-          return;
+          const token = localStorage.getItem('admin_jwt_token') || '';
+          socket.send(JSON.stringify({
+            action: 'join-room',
+            target: 'mesh-global',
+            message_body: { room: 'admin', token: token }
+          }));
+          isAdminRoomJoined = true;
         }
       }
 
@@ -2487,6 +2501,7 @@
     function logoutAdmin() {
       localStorage.removeItem('admin_jwt_token');
       currentAdminUser = null;
+      isAdminRoomJoined = false;
       if (socket) {
         socket.close();
         socket = null;
