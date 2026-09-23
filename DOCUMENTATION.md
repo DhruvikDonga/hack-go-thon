@@ -1,6 +1,6 @@
-# Hack-Go-Thon Framework Documentation
+# Hack-Go-Thon Boilerplate Documentation
 
-Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** base framework. This framework is designed for rapid hackathon velocity while adhering to production-grade microservice architecture, strict type safety, clean separation of concerns, and resilient concurrency.
+Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** base boilerplate. This boilerplate is designed for rapid hackathon velocity while adhering to production-grade microservice architecture, strict type safety, clean separation of concerns, and resilient concurrency.
 
 ---
 
@@ -241,7 +241,7 @@ subLog.Infow("Processing payment batch", "batch_size", 100)
 
 ### Standard Response Envelope (`pkg/response`)
 
-Every HTTP API response from the framework uses a standardized JSON envelope:
+Every HTTP API response from the boilerplate uses a standardized JSON envelope:
 
 #### Success Envelope
 ```json
@@ -314,7 +314,7 @@ func MyHandler(c *gin.Context) {
 
 ## 6. HTTP API & Routing Engine
 
-The framework uses **Gin** configured with a standard middleware pipeline:
+The boilerplate uses **Gin** configured with a standard middleware pipeline:
 
 1. **CORS Middleware**: Handles cross-origin requests, custom headers, and `OPTIONS` preflight requests.
 2. **APILogger Middleware**: Assigns a unique `X-Request-ID` (or honors an existing one), timing the request and logging status, method, path, IP, and latency via Zap.
@@ -393,7 +393,7 @@ secureGroup.Use(middleware.APIKeyAuth(db, cfg.MasterAPIKey))
 
 ## 8. Real-time WebSockets (`simplysocket`) & Admin Control Center
 
-The framework embeds [`github.com/DhruvikDonga/simplysocket`](https://github.com/DhruvikDonga/simplysocket), implementing the **"Connect once, write logic multiple times"** architecture.
+The boilerplate embeds [`github.com/DhruvikDonga/simplysocket`](https://github.com/DhruvikDonga/simplysocket), implementing the **"Connect once, write logic multiple times"** architecture.
 
 ### Why This Architecture?
 Clients open a single WebSocket connection to `/api/v1/ws`. Instead of writing monolithic routers or spinning up multiple WebSocket ports, developers implement the simple `simplysocket.RoomData` interface for different features.
@@ -478,7 +478,7 @@ The repository pattern is structured into dedicated domain files:
 
 ## 10. LLM Client Integration & simplysocket Streaming
 
-Located in `internal/llm_client/client.go`, the framework provides a clean wrapper around the official `github.com/openai/openai-go` SDK with fallback mock support for zero-friction hackathon demos.
+Located in `internal/llm_client/client.go`, the boilerplate provides a clean wrapper around the official `github.com/openai/openai-go` SDK with fallback mock support for zero-friction hackathon demos.
 
 ### 1. Synchronous Chat Completion
 ```go
@@ -545,7 +545,7 @@ go worker.Run(ctx)
 
 ## 12. Health Checks & Observability
 
-The framework exposes Kubernetes and container probe endpoints:
+The boilerplate exposes Kubernetes and container probe endpoints:
 
 ### Liveness Probe (`GET /api/v1/health/live`)
 Confirms the HTTP server process is running and accepting sockets. Always returns HTTP 200:
@@ -707,7 +707,7 @@ token, err := middleware.GenerateToken(
 
 ## 16. WebRTC Real-Time Media & Pion DataChannels
 
-The framework provides comprehensive WebRTC support for mobile apps (iOS / Android / Flutter) and web clients, combining **simplysocket P2P signaling** with **Pion WebRTC server-side peer sessions**.
+The boilerplate provides comprehensive WebRTC support for mobile apps (iOS / Android / Flutter) and web clients, combining **simplysocket P2P signaling** with **Pion WebRTC server-side peer sessions**.
 
 ### 16.1 Architecture Overview
 
