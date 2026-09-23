@@ -2,7 +2,6 @@ package ws
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -97,84 +96,6 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 			case "get-admin-state":
 				broadcastState()
 
-			case "admin-broadcast":
-				// Admin wants to broadcast a global or room-specific announcement
-				targetRoom, _ := msg.MessageBody["target_room"].(string)
-				if targetRoom == "" {
-					targetRoom = simplysocket.MeshGlobalRoom
-				}
-				text, _ := msg.MessageBody["message"].(string)
-				if text == "" {
-					text = "System alert from Admin"
-				}
-				// Validate that target room exists in mesh to prevent simplysocket panic on nil room
-				activeRooms := server.GetRooms()
-				roomExists := false
-				for _, r := range activeRooms {
-					if r == targetRoom {
-						roomExists = true
-						break
-					}
-				}
-
-				if !roomExists {
-					log.Warn("Admin broadcast rejected: target room is not active", "target_room", targetRoom)
-					room.BroadcastMessage(&simplysocket.Message{
-						Action: "broadcast-error",
-						Target: roomName,
-						MessageBody: map[string]any{
-							"error":       fmt.Sprintf("Target room %q is not active or has no connected clients", targetRoom),
-							"target_room": targetRoom,
-						},
-						Sender:         "server",
-						IsTargetClient: false,
-					})
-					continue
-				}
-
-				senderName := msg.Sender
-				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
-					senderName = fromUser
-				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
-					senderName = fromUser
-				}
-
-				announcement := &simplysocket.Message{
-					Action: "system-announcement",
-					Target: targetRoom,
-					MessageBody: map[string]any{
-						"announcement":    text,
-						"message":         text,
-						"from":            senderName,
-						"sender":          senderName,
-						"sender_username": senderName,
-						"target_room":     targetRoom,
-						"time":            time.Now().UTC().Format(time.RFC3339),
-					},
-					Sender:         senderName,
-					IsTargetClient: false,
-				}
-
-				select {
-				case server.PushMessage() <- announcement:
-					log.Info("Admin broadcast sent", "target", targetRoom, "sender", senderName, "message", text)
-				default:
-					log.Warn("Failed to push admin announcement, channel full")
-				}
-
-				// Acknowledge in admin room
-				room.BroadcastMessage(&simplysocket.Message{
-					Action: "broadcast-ack",
-					Target: roomName,
-					MessageBody: map[string]any{
-						"status":      "dispatched",
-						"target_room": targetRoom,
-						"message":     text,
-					},
-					Sender:         "server",
-					IsTargetClient: false,
-				})
-
 			case "join-room":
 				targetRoom, _ := msg.MessageBody["room"].(string)
 				if targetRoom == "" {
@@ -228,12 +149,23 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)
 
-			case "system-announcement", "chat-message", "broadcast", "send-chat", "message":
+			case "broadcast", "chat-message", "send-chat", "message", "system-announcement":
 				// Re-broadcast announcements or chat messages to all clients in this room
 				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
 					msg.Sender = fromUser
 				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
 					msg.Sender = fromUser
+				} else if fromUser, ok := msg.MessageBody["sender"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				}
+				if msg.MessageBody == nil {
+					msg.MessageBody = make(map[string]any)
+				}
+				if _, ok := msg.MessageBody["time"]; !ok {
+					msg.MessageBody["time"] = time.Now().UTC().Format(time.RFC3339)
+				}
+				if _, ok := msg.MessageBody["from"]; !ok {
+					msg.MessageBody["from"] = msg.Sender
 				}
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)

@@ -192,21 +192,20 @@
           </div>
         </div>
 
-        <!-- Global Announcement / Admin Broadcast Tool -->
+        <!-- Global Announcement / Mesh Broadcast Tool -->
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
           <h2 class="text-base font-semibold text-white mb-2 flex items-center space-x-2">
             <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
             </svg>
-            <span>Admin Room Broadcast Tool</span>
+            <span>Mesh Broadcast Tool</span>
           </h2>
-          <p class="text-xs text-slate-400 mb-4">Push an alert or event to any room in the mesh server.</p>
+          <p class="text-xs text-slate-400 mb-4">Broadcast a message to mesh-global (all clients) or any active room.</p>
           <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             <select id="broadcastTarget" class="bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-              <option value="mesh-global">mesh-global (All Clients)</option>
-              <option value="admin">admin</option>
+              <option value="mesh-global" selected>mesh-global (All Clients)</option>
             </select>
-            <input id="broadcastInput" type="text" placeholder="Type announcement message..." class="flex-1 bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+            <input id="broadcastInput" type="text" placeholder="Type broadcast message..." class="flex-1 bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" onkeydown="if(event.key==='Enter') sendAdminBroadcast();" />
             <button onclick="sendAdminBroadcast()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded-lg shadow-sm transition">
               Broadcast
             </button>
@@ -898,17 +897,17 @@
           logEvent('EVENT', `${msg.message_body.event} (client: ${msg.message_body.client_id})`);
           break;
 
+        case 'broadcast':
         case 'system-announcement':
         case 'chat-message':
-        case 'broadcast':
         case 'send-chat':
         case 'message':
           {
             const b = msg.message_body || {};
             const from = b.from || b.sender || b.sender_username || msg.sender || 'system';
-            const text = b.announcement || b.message || b.text || b.content || JSON.stringify(b);
-            const target = msg.target || b.target_room || 'room';
-            logEvent('MSG', `[${from} in ${target}]: ${text}`);
+            const text = b.announcement || b.message || b.text || b.content || (typeof b === 'string' ? b : JSON.stringify(b));
+            const target = msg.target || b.target_room || 'mesh-global';
+            logEvent('BROADCAST', `[${from} in ${target}]: ${text}`);
           }
           break;
 
@@ -1110,8 +1109,9 @@
       // Dynamically update broadcast target dropdown with currently active rooms
       const targetSelect = document.getElementById('broadcastTarget');
       if (targetSelect) {
-        const currentVal = targetSelect.value;
-        const availableRooms = state.rooms && state.rooms.length > 0 ? state.rooms : ['mesh-global'];
+        const currentVal = targetSelect.value || 'mesh-global';
+        const rawRooms = (state.rooms && state.rooms.length > 0) ? state.rooms : ['mesh-global'];
+        const availableRooms = ['mesh-global', ...rawRooms.filter(r => r !== 'mesh-global')];
         targetSelect.innerHTML = availableRooms.map(r => 
           `<option value="${escapeHtml(r)}" ${r === currentVal ? 'selected' : ''}>${escapeHtml(r)} ${r === 'mesh-global' ? '(All Clients)' : ''}</option>`
         ).join('');
@@ -1248,32 +1248,40 @@
 
     function sendAdminBroadcast() {
       const input = document.getElementById('broadcastInput');
-      const target = document.getElementById('broadcastTarget').value;
-      const text = input.value.trim();
+      const targetSelect = document.getElementById('broadcastTarget');
+      const target = (targetSelect && targetSelect.value) ? targetSelect.value : 'mesh-global';
+      const text = input ? input.value.trim() : '';
       if (!text) return;
-
-      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
-      if (target === 'admin' && myLevel <= 10) {
-        alert('Access Denied: Room "admin" requires Auth Level strictly above 10 (Level 11 to 99). Please select mesh-global or another active room.');
-        return;
-      }
 
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert('WebSocket is not connected');
         return;
       }
 
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if (target === 'admin') {
+        if (myLevel <= 10) {
+          alert('Access Denied: Room "admin" requires Auth Level strictly above 10 (Level 11 to 99). Please select mesh-global or another active room.');
+          return;
+        }
+        if (!isAdminRoomJoined) {
+          alert('Admin room is not active or joined yet. Please join room "admin" first.');
+          return;
+        }
+      }
+
       const senderUsername = (currentAdminUser && (currentAdminUser.username || currentAdminUser.email)) ? (currentAdminUser.username || currentAdminUser.email) : (clientSlug || 'user');
-      const dispatchTarget = isAdminRoomJoined ? 'admin' : 'mesh-global';
 
       socket.send(JSON.stringify({
-        action: 'admin-broadcast',
-        target: dispatchTarget,
+        action: 'broadcast',
+        target: target,
         message_body: {
-          target_room: target,
           message: text,
+          sender: senderUsername,
+          from: senderUsername,
           sender_username: senderUsername,
-          from: senderUsername
+          target_room: target,
+          time: new Date().toISOString()
         }
       }));
       input.value = '';

@@ -187,69 +187,23 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)
 
-			case "admin-broadcast":
-				targetRoom, _ := msg.MessageBody["target_room"].(string)
-				if targetRoom == "" {
-					targetRoom = roomName
-				}
-				text, _ := msg.MessageBody["message"].(string)
-				if text == "" {
-					text = "System alert"
-				}
-
-				senderName := msg.Sender
-				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
-					senderName = fromUser
-				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
-					senderName = fromUser
-				}
-
-				announcement := &simplysocket.Message{
-					Action: "system-announcement",
-					Target: targetRoom,
-					MessageBody: map[string]any{
-						"announcement":    text,
-						"message":         text,
-						"from":            senderName,
-						"sender":          senderName,
-						"sender_username": senderName,
-						"target_room":     targetRoom,
-						"time":            time.Now().UTC().Format(time.RFC3339),
-					},
-					Sender:         senderName,
-					IsTargetClient: false,
-				}
-
-				if targetRoom == roomName {
-					room.BroadcastMessage(announcement)
-				} else {
-					select {
-					case server.PushMessage() <- announcement:
-						log.Info("Broadcast announcement pushed from events handler", "target", targetRoom, "sender", senderName)
-					default:
-						log.Warn("Failed to push announcement, channel full", "target", targetRoom)
-					}
-				}
-
-				// Acknowledge back to sender
-				room.BroadcastMessage(&simplysocket.Message{
-					Action: "broadcast-ack",
-					Target: msg.Sender,
-					MessageBody: map[string]any{
-						"status":      "dispatched",
-						"target_room": targetRoom,
-						"message":     text,
-					},
-					Sender:         "server",
-					IsTargetClient: true,
-				})
-
-			case "system-announcement", "chat-message", "broadcast", "send-chat", "message":
-				// Forward message/announcement to all clients in this room
+			case "broadcast", "chat-message", "send-chat", "message", "system-announcement":
+				// Forward broadcast/chat/announcement to all clients in this room
 				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
 					msg.Sender = fromUser
 				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
 					msg.Sender = fromUser
+				} else if fromUser, ok := msg.MessageBody["sender"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				}
+				if msg.MessageBody == nil {
+					msg.MessageBody = make(map[string]any)
+				}
+				if _, ok := msg.MessageBody["time"]; !ok {
+					msg.MessageBody["time"] = time.Now().UTC().Format(time.RFC3339)
+				}
+				if _, ok := msg.MessageBody["from"]; !ok {
+					msg.MessageBody["from"] = msg.Sender
 				}
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)

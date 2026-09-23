@@ -17,6 +17,8 @@ import (
 	"hack-go-thon/internal/worker"
 	"hack-go-thon/internal/ws"
 	"hack-go-thon/pkg/log"
+
+	"github.com/DhruvikDonga/simplysocket"
 )
 
 func main() {
@@ -133,7 +135,7 @@ func main() {
 	var wsManager *ws.Manager
 	if cfg.Services.WebSocket {
 		adminHandler := ws.NewAdminRoomHandler(llmClient, scheduler)
-		eventsHandler := ws.NewEventsRoomHandler("global", adminHandler)
+		eventsHandler := ws.NewEventsRoomHandler(simplysocket.MeshGlobalRoom, adminHandler)
 		eventsHandler.SetJWTSecret(cfg.JWTSecret)
 		wsManager = ws.NewManager("mesh-server", eventsHandler, adminHandler)
 		wsManager.SetJWTSecret(cfg.JWTSecret)

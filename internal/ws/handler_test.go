@@ -99,4 +99,28 @@ func TestWebSocketHandlers(t *testing.T) {
 			t.Fatalf("expected level 99 to be allowed in admin room, got err: %v", err)
 		}
 	})
+
+	t.Run("Direct broadcast in MeshGlobal and Admin rooms", func(t *testing.T) {
+		adminHandler := NewAdminRoomHandler(nil)
+		eventsHandler := NewEventsRoomHandler(simplysocket.MeshGlobalRoom, adminHandler)
+		mgr := NewManager("test-mesh-server", eventsHandler, adminHandler)
+
+		if mgr == nil {
+			t.Fatalf("expected non-nil manager")
+		}
+
+		// Verify broadcast to MeshGlobalRoom works cleanly for all users
+		mgr.Broadcast(simplysocket.MeshGlobalRoom, "broadcast", map[string]any{
+			"message": "Hello mesh from staff user",
+			"from":    "staff_user",
+			"sender":  "staff_user",
+		})
+
+		// Verify broadcast to admin room works cleanly
+		mgr.Broadcast("admin", "broadcast", map[string]any{
+			"message": "Hello admin from superadmin",
+			"from":    "admin",
+			"sender":  "admin",
+		})
+	})
 }
