@@ -28,32 +28,50 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 ## 1. Architectural Overview
 
 ```
-                          ┌───────────────────────────┐
-                          │    Client (HTTP / WS)     │
-                          └─────────────┬─────────────┘
-                                        │
-                         ┌──────────────▼──────────────┐
-                         │      Gin Router Engine      │
-                         │   (CORS, Request ID, Zap)   │
-                         └──────────────┬──────────────┘
-                                        │
-           ┌────────────────────────────┼────────────────────────────┐
-           │                            │                            │
- ┌─────────▼──────────┐       ┌─────────▼──────────┐       ┌─────────▼──────────┐
- │  Public Endpoints  │       │   JWT Protected    │       │  API Key Protected │
- │  (/health, /items) │       │    (/protected)    │       │     (/secure)      │
- └─────────┬──────────┘       └─────────┬──────────┘       └─────────┬──────────┘
-           │                            │                            │
-           └────────────────────────────┼────────────────────────────┘
-                                        │
-     ┌───────────────────┬──────────────┴───────┬───────────────────┐
-     │                   │                      │                   │
-┌────▼─────────────┐┌────▼─────────────┐ ┌──────▼────────────┐ ┌────▼─────────────┐
-│ PostgreSQL Store ││  simplysocket    │ │   Job Scheduler   │ │    LLM Client    │
-│  (Items, Keys,   ││  WebSocket Mesh  │ │ (Periodic Tasks,  │ │    (OpenAI SDK   │
-│   Audit Logs)    ││   (RoomData)     │ │   Workers, Panics)│ │   Completions)   │
-└──────────────────┘└──────────────────┘ └───────────────────┘ └──────────────────┘
+                           ┌─────────────────────────────────────────┐
+                           │    Client (HTTP / WS / WebRTC Media)    │
+                           └───────┬─────────────────┬───────────────┘
+                                   │                 │
+                ┌──────────────────▼──────────┐      │  [Direct UDP Media / RTP]
+                │      Gin Router Engine      │      │
+                │   (CORS, Request ID, Zap)   │      │
+                └──────────────┬──────────────┘      │
+                               │                     │
+     ┌─────────────────────────┼─────────────────────┼─────────────────────────┐
+     │                         │                     │                         │
+┌────▼──────────────┐ ┌────────▼───────────┐ ┌───────▼───────────┐ ┌───────────▼───────────┐
+│  Public Endpoints │ │   JWT Protected    │ │ API Key Protected │ │ WebRTC & Media Routes │
+│ (/health, /items) │ │    (/protected)    │ │     (/secure)     │ │ (/api/v1/webrtc/*)    │
+└────┬──────────────┘ └────────┬───────────┘ └───────┬───────────┘ └───────────┬───────────┘
+     │                         │                     │                         │
+     └─────────────────────────┼─────────────────────┴─────────────────────────┘
+                               │
+       ┌───────────────────────┼───────────────────────┬───────────────────────┐
+       │                       │                       │                       │
+┌──────▼───────────┐    ┌──────▼───────────┐    ┌──────▼───────────┐    ┌──────▼───────────┐
+│ PostgreSQL Store │    │   simplysocket   │◄───┤ Pion WebRTC SFU  │    │  Job Scheduler   │
+│  (Items, Keys,   │    │  WebSocket Mesh  │event│  & DataChannel   │    │ (In-Process Cron,│
+│ Audit, pgvector) │    │(P2P Signaling,rd)│hook│(RTP Fan-Out, PLI)│    │ Workers, Panics) │
+└──────────────────┘    └──────────────────┘    └──────┬───────────┘    └──────────────────┘
+                                                       │
+                                                ┌──────▼───────────┐
+                                                │    LLM Client    │
+                                                │ (OpenAI SDK, RAG │
+                                                │ Embeds, Fallback)│
+                                                └──────────────────┘
 ```
+
+The system is organized into modular, independently toggleable components:
+- **HTTP Routing Layer (Gin)**: High-performance router with CORS, request correlation (`X-Request-ID`), Zap access logging, panic recovery, and asynchronous PostgreSQL audit logging.
+- **WebSocket Mesh (`simplysocket`)**: Single connection endpoint (`/api/v1/ws`) multiplexing independent `RoomData` handlers for admin telemetry, LLM token streaming, and WebRTC P2P signaling.
+- **WebRTC Subsystem (Pion & `simplysocket`)**:
+  - **1:1 P2P Mesh**: Direct browser-to-browser audio/video calls with signaling coordinated over `simplysocket`.
+  - **Selective Forwarding Unit (SFU)**: Enterprise-grade media router with $O(1)$ client uplink bandwidth, raw RTP track forwarding, and periodic RTCP PLI keyframe heartbeats (`/api/v1/webrtc/sfu/*`).
+  - **Server DataChannel**: Sub-millisecond direct UDP binary messaging and latency ping-pong benchmarks (`/api/v1/webrtc/server/session`).
+  - **Cross-Subsystem Event Hook**: SFU track publishing triggers live notification broadcasts across the `simplysocket` mesh.
+- **PostgreSQL & pgvector**: ACID relational persistence and 1536-dimensional HNSW cosine vector search for grounded RAG Q&A.
+- **In-Process Job Scheduler**: Resilient periodic cron scheduler with panic recovery, runtime metrics, and live observability (`GET /api/v1/jobs`).
+- **Subsystem Feature Flags (`services.json`)**: Granular toggles allowing developers to selectively enable or disable components with zero overhead.
 
 ---
 
@@ -65,12 +83,17 @@ hack-go-thon/
 │   └── server/
 │       └── main.go                 # Application bootstrap & lifecycle orchestration
 ├── config/
-│   └── config.go                   # Strongly typed environment configuration
+│   ├── config.go                   # Strongly typed environment configuration
+│   ├── services.go                 # Subsystem feature flags loader (services.json)
+│   └── services_test.go            # Unit tests for services configuration & aliases
+├── services.json                   # Optional JSON config to selectively toggle subsystems
 ├── internal/
 │   ├── api/
 │   │   ├── handler/
 │   │   │   ├── health_handler.go   # Liveness & Readiness probe handlers
-│   │   │   └── example_handler.go  # Sample REST handler (Validation, DB, LLM)
+│   │   │   ├── example_handler.go  # Sample REST handler (Validation, DB, LLM)
+│   │   │   ├── rag_handler.go      # pgvector RAG document ingestion & semantic search
+│   │   │   └── webrtc_handler.go   # WebRTC ICE servers, DataChannel & SFU endpoints
 │   │   ├── middleware/
 │   │   │   ├── api_call_logger.go  # Asynchronous PostgreSQL audit logging
 │   │   │   ├── api_key_auth.go     # X-API-Key validator (DB or master key)
@@ -92,13 +115,19 @@ hack-go-thon/
 │   │   └── pg_store/
 │   │       ├── api_calls.go        # API audit logging schema & inserts
 │   │       ├── api_keys.go         # API keys schema & lookups
+│   │       ├── documents.go        # pgvector vector store & similarity search
 │   │       └── item.go             # PostgreSQL item schema migration & CRUD repository
+│   ├── webrtc_server/
+│   │   ├── server.go               # Pion WebRTC server peer manager & UDP DataChannel
+│   │   └── sfu.go                  # Pion SFU multi-party media router & RTP forwarder
 │   ├── worker/
 │   │   └── worker.go               # Continuous background worker processor
 │   └── ws/
+│       ├── admin_handler.go        # Admin dashboard telemetry & LLM token streaming
 │       ├── chat_handler.go         # ChatRoomHandler implementing simplysocket.RoomData
 │       ├── handler.go              # EventsRoomHandler implementing simplysocket.RoomData
-│       └── manager.go              # WebSocket mesh manager & Gin upgrade handler
+│       ├── manager.go              # WebSocket mesh manager & Gin upgrade handler
+│       └── webrtc_handler.go       # WebRTC P2P signaling RoomData handler
 ├── pkg/
 │   ├── apperrors/
 │   │   └── errors.go               # Standard domain errors & HTTP status code mapping
@@ -107,6 +136,9 @@ hack-go-thon/
 │   │   └── zap_config.go           # Development (console) vs Production (JSON) Zap config
 │   └── response/
 │       └── response.go             # Standardized JSON response envelope
+├── web/
+│   ├── admin.html                  # Embedded dark-mode control center UI with WebRTC lab
+│   └── web.go                      # Go embed.FS declaration
 ├── .dockerignore
 ├── .env.example
 ├── .gitignore
