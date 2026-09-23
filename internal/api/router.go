@@ -20,6 +20,7 @@ type RouterConfig struct {
 	ExampleHandler *handler.ExampleHandler
 	RAGHandler     *handler.RAGHandler
 	WebRTCHandler  *handler.WebRTCHandler
+	UserHandler    *handler.UserHandler
 	DB             *dbclient.PostgresDatabase
 	WSManager      *ws.Manager
 	Scheduler      *jobs.Scheduler
@@ -131,16 +132,49 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 			}
 		}
 
-		// JWT Protected Routes Example
+		// User & Authentication Endpoints (Multi-Level Auth & Metadata)
+		if rc.UserHandler != nil {
+			auth := v1.Group("/auth")
+			{
+				auth.POST("/register", rc.UserHandler.Register)
+				auth.POST("/login", rc.UserHandler.Login)
+				auth.GET("/me", middleware.JWTAuth(rc.Config.JWTSecret), rc.UserHandler.Me)
+			}
+
+			users := v1.Group("/users")
+			{
+				users.GET("", rc.UserHandler.ListUsers)
+				users.POST("", rc.UserHandler.CreateUser)
+				users.GET("/:id", rc.UserHandler.GetUser)
+				users.PUT("/:id", rc.UserHandler.UpdateUser)
+				users.DELETE("/:id", rc.UserHandler.DeleteUser)
+				users.POST("/:id/token", rc.UserHandler.GenerateUserToken)
+			}
+		}
+
+		// JWT Protected Routes Example (Multi-level verification)
 		jwtProtected := v1.Group("/protected")
 		jwtProtected.Use(middleware.JWTAuth(rc.Config.JWTSecret))
 		{
 			jwtProtected.GET("/profile", func(c *gin.Context) {
 				response.OK(c, gin.H{
-					"message": "Access granted via valid JWT",
-					"user_id": c.GetString("user_id"),
-					"email":   c.GetString("email"),
-					"role":    c.GetString("role"),
+					"message":      "Access granted via valid JWT",
+					"user_id":      c.GetString("user_id"),
+					"username":     c.GetString("username"),
+					"email":        c.GetString("email"),
+					"phone_number": c.GetString("phone_number"),
+					"role":         c.GetString("role"),
+					"auth_level":   c.MustGet("auth_level"),
+					"metadata":     c.MustGet("metadata"),
+				})
+			})
+			jwtProtected.GET("/admin-only", middleware.RequireAuthLevel(50), func(c *gin.Context) {
+				response.OK(c, gin.H{
+					"message":    "Access granted: Auth level >= 50 verified",
+					"user_id":    c.GetString("user_id"),
+					"username":   c.GetString("username"),
+					"auth_level": c.MustGet("auth_level"),
+					"metadata":   c.MustGet("metadata"),
 				})
 			})
 		}

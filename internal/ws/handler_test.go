@@ -36,4 +36,30 @@ func TestWebSocketHandlers(t *testing.T) {
 		// Test broadcast dispatch to the default global room
 		m.Broadcast(simplysocket.MeshGlobalRoom, "test-action", map[string]any{"key": "value"})
 	})
+
+	t.Run("EventsRoomHandler ClientToken and JWTSecret", func(t *testing.T) {
+		h := NewEventsRoomHandler("events-room")
+		h.SetJWTSecret("my-secret")
+		h.SetClientToken("client-123", "tok-xyz")
+
+		if tok := h.GetClientToken("client-123"); tok != "tok-xyz" {
+			t.Errorf("expected 'tok-xyz', got '%s'", tok)
+		}
+		if tok := h.GetClientToken("non-existent"); tok != "" {
+			t.Errorf("expected empty string for non-existent client, got '%s'", tok)
+		}
+	})
+
+	t.Run("Manager Token & JWT Configuration", func(t *testing.T) {
+		h := NewEventsRoomHandler("global")
+		m := NewManager("test-mesh", h)
+		m.SetJWTSecret("super-secret")
+		if m.EventsHandler() == nil {
+			t.Fatalf("expected non-nil EventsHandler")
+		}
+		m.EventsHandler().SetClientToken("alice", "token-alice")
+		if tok := m.EventsHandler().GetClientToken("alice"); tok != "token-alice" {
+			t.Errorf("expected 'token-alice', got '%s'", tok)
+		}
+	})
 }

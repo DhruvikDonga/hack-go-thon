@@ -45,8 +45,12 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
 - ⚙️ **In-Process Job Scheduler & Workers**  
   Periodic task scheduler (`jobs.Scheduler`) with panic isolation, runtime recovery, and live execution observability (`GET /api/v1/jobs`), plus continuous background worker loops without external broker dependencies.
 
+- 👥 **Pre-Setup User Base & Multi-Level RBAC Auth**  
+  Production-ready user authentication with `username`, `phone_number`, `email`, bcrypt password hashing, and custom `JSONB` metadata embedding `auth_level`. Directly embeds user metadata into JWT claims to support multi-level authorization/RBAC out of the box without complex 3rd-party auth services (Firebase, Auth0). Includes `RequireAuthLevel(minLevel)` middleware, zero-dependency in-memory fallback mode for offline demos, pre-seeded accounts (`admin@hack-go-thon.local` / `Mp@tel98`, phone `9427425572` at Level 99; `demo_user` at Level 1), and a 1-click token inspector in the Admin Control Center.
+  - **simplysocket Room-Level RBAC**: The WebSocket connection endpoint (`/api/v1/ws`) remains openly accessible to all mesh clients, while room admission controls (such as the `"admin"` room requiring Level 10–99) are enforced dynamically inside simplysocket room handlers.
+
 - 🔐 **Authentication & Security Middlewares**  
-  Production-ready authentication middleware pipeline with JWT (`Bearer <token>`) validation/generation and database-backed API Key (`X-API-Key`) checking with master key bypass.
+  Production-ready authentication middleware pipeline with JWT (`Bearer <token>`) validation/generation, custom claims RBAC verification, and database-backed API Key (`X-API-Key`) checking with master key bypass.
 
 - 📊 **Audit Logging & Structured Telemetry**  
   Asynchronous PostgreSQL request audit logging (`api_calls`), high-performance Zap structured logging with console/JSON modes, and unique `X-Request-ID` correlation.
@@ -70,6 +74,7 @@ make docker-up
 ```
 
 Open **[http://localhost:8080/admin](http://localhost:8080/admin)** to access the live Control Center!
+- **Default Admin Login**: `admin@hack-go-thon.local` / `Mp@tel98` (phone `9427425572`, Auth Level 99) or use the **"Fill Credentials"** button on the sign-in modal.
 
 ---
 

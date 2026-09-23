@@ -18,6 +18,7 @@ type Config struct {
 	PostgresURI     string
 	OpenAIKey       string
 	JWTSecret       string
+	TokenTTL        time.Duration
 	MasterAPIKey    string
 	STUNServers     []string
 	TURNServerURL   string
@@ -64,6 +65,8 @@ func Load() *Config {
 	}
 
 	jwtSecret := getEnv("JWT_SECRET", "default-dev-jwt-secret")
+	jwtTTLHours := getEnvAsInt("JWT_TTL_HOURS", 24)
+	tokenTTL := time.Duration(jwtTTLHours) * time.Hour
 	masterAPIKey := getEnv("MASTER_API_KEY", "")
 
 	stunStr := getEnv("STUN_SERVERS", "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302")
@@ -89,6 +92,7 @@ func Load() *Config {
 		PostgresURI:     pgURI,
 		OpenAIKey:       openAIKey,
 		JWTSecret:       jwtSecret,
+		TokenTTL:        tokenTTL,
 		MasterAPIKey:    masterAPIKey,
 		STUNServers:     stunServers,
 		TURNServerURL:   turnURL,

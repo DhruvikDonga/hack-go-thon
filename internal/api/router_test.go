@@ -38,6 +38,7 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 	webrtcMgr := webrtcserver.NewServerPeerManager(cfg)
 	sfuEngine := webrtcserver.NewSFUEngine(cfg)
 	webrtcH := handler.NewWebRTCHandler(cfg, webrtcMgr, sfuEngine)
+	userH := handler.NewUserHandler(nil, cfg.JWTSecret, time.Hour)
 
 	router := SetupRouter(RouterConfig{
 		Config:         cfg,
@@ -45,6 +46,7 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		ExampleHandler: exampleH,
 		RAGHandler:     ragH,
 		WebRTCHandler:  webrtcH,
+		UserHandler:    userH,
 		DB:             nil,
 		WSManager:      wsMgr,
 		Scheduler:      scheduler,
@@ -146,6 +148,94 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		}
 		if !strings.Contains(w.Body.String(), "active_server_sessions") {
 			t.Fatalf("expected active_server_sessions in response")
+		}
+	})
+
+	t.Run("GET /api/v1/users returns seeded users", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/users", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		if !strings.Contains(w.Body.String(), "admin") || !strings.Contains(w.Body.String(), "demo_user") {
+			t.Fatalf("expected seeded users in response: %s", w.Body.String())
+		}
+	})
+
+	t.Run("Multi-Level Auth Enforcement on Protected Routes", func(t *testing.T) {
+		// 1. Get demo user token (auth_level 1)
+		reqTok, _ := http.NewRequest(http.MethodPost, "/api/v1/users/user_demo_01/token", bytes.NewBuffer([]byte(`{}`)))
+		reqTok.Header.Set("Content-Type", "application/json")
+		wTok := httptest.NewRecorder()
+		router.ServeHTTP(wTok, reqTok)
+		if wTok.Code != http.StatusOK {
+			t.Fatalf("expected 200 for demo token gen, got %d", wTok.Code)
+		}
+
+		var tokData struct {
+			Data struct {
+				Token string `json:"token"`
+			} `json:"data"`
+		}
+		_ = json.Unmarshal(wTok.Body.Bytes(), &tokData)
+		demoToken := tokData.Data.Token
+
+		// Demo token should access standard /profile
+		reqProf, _ := http.NewRequest(http.MethodGet, "/api/v1/protected/profile", nil)
+		reqProf.Header.Set("Authorization", "Bearer "+demoToken)
+		wProf := httptest.NewRecorder()
+		router.ServeHTTP(wProf, reqProf)
+		if wProf.Code != http.StatusOK {
+			t.Fatalf("expected 200 for demo user on /profile, got %d", wProf.Code)
+		}
+
+		// Demo token should be FORBIDDEN from /admin-only (requires level 50)
+		reqAdmin, _ := http.NewRequest(http.MethodGet, "/api/v1/protected/admin-only", nil)
+		reqAdmin.Header.Set("Authorization", "Bearer "+demoToken)
+		wAdmin := httptest.NewRecorder()
+		router.ServeHTTP(wAdmin, reqAdmin)
+		if wAdmin.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 Forbidden for demo user on /admin-only, got %d", wAdmin.Code)
+		}
+
+		// 2. Get admin user token (auth_level 99)
+		reqAdmTok, _ := http.NewRequest(http.MethodPost, "/api/v1/users/user_admin_01/token", bytes.NewBuffer([]byte(`{}`)))
+		reqAdmTok.Header.Set("Content-Type", "application/json")
+		wAdmTok := httptest.NewRecorder()
+		router.ServeHTTP(wAdmTok, reqAdmTok)
+		if wAdmTok.Code != http.StatusOK {
+			t.Fatalf("expected 200 for admin token gen, got %d", wAdmTok.Code)
+		}
+		_ = json.Unmarshal(wAdmTok.Body.Bytes(), &tokData)
+		adminToken := tokData.Data.Token
+
+		// Admin token should be allowed on /admin-only
+		reqAdminOk, _ := http.NewRequest(http.MethodGet, "/api/v1/protected/admin-only", nil)
+		reqAdminOk.Header.Set("Authorization", "Bearer "+adminToken)
+		wAdminOk := httptest.NewRecorder()
+		router.ServeHTTP(wAdminOk, reqAdminOk)
+		if wAdminOk.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for admin user on /admin-only, got %d", wAdminOk.Code)
+		}
+
+		// 3. WebSocket Endpoint: Open connection endpoint (room-level auth applies inside simplysocket rooms)
+		// Connecting without WebSocket upgrade headers reaches the WS handler and returns 400 Bad Request,
+		// confirming it is NOT blocked by route-level 401/403 middleware.
+		reqWSNoAuth, _ := http.NewRequest(http.MethodGet, "/api/v1/ws", nil)
+		wWSNoAuth := httptest.NewRecorder()
+		router.ServeHTTP(wWSNoAuth, reqWSNoAuth)
+		if wWSNoAuth.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request (missing WS upgrade headers) for open WS connection, got %d", wWSNoAuth.Code)
+		}
+
+		// Level 1 demo user also reaches WS handler (returns 400 due to non-upgrade HTTP request)
+		reqWSLevel1, _ := http.NewRequest(http.MethodGet, "/api/v1/ws?token="+demoToken, nil)
+		wWSLevel1 := httptest.NewRecorder()
+		router.ServeHTTP(wWSLevel1, reqWSLevel1)
+		if wWSLevel1.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 Bad Request for level 1 user reaching open WS handler, got %d", wWSLevel1.Code)
 		}
 	})
 }

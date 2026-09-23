@@ -39,12 +39,12 @@ hack-go-thon/
 ├── internal/
 │   ├── api/
 │   │   ├── router.go             # Gin HTTP router & route mounts (nil-safe service checks)
-│   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs, webrtc)
+│   │   └── handler/              # Gin HTTP handlers (health, example, rag, jobs, webrtc, users)
 │   ├── db_client/
 │   │   └── postgres.go           # database/sql Postgres connection pool
 │   ├── store/
 │   │   ├── store.go              # Storage interfaces (DocumentStore, etc.)
-│   │   └── pg_store/             # PostgreSQL + pgvector implementations
+│   │   └── pg_store/             # PostgreSQL + pgvector + users implementations
 │   ├── ws/
 │   │   ├── manager.go            # simplysocket Manager wrapper & broadcast safety
 │   │   ├── handler.go            # WebSocket connection upgrade & client registration
@@ -318,6 +318,47 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
 
 4. **Cluster Observability**:
    * `GET /api/v1/webrtc/sfu/rooms`: Returns active rooms, peer count, participant IDs, and track count for admin telemetry.
+
+### Recipe 7: User Base & Multi-Level RBAC Authentication
+
+1. **User Model & Metadata**:
+   * Stored in PostgreSQL `users` table with bcrypt password hashing and `metadata` JSONB column.
+   * `metadata` embeds authorization attributes (`auth_level`, `role`, `department`, `permissions`).
+   * When PostgreSQL is disabled or offline, falls back seamlessly to an in-memory thread-safe store.
+   * Default seeded accounts: `admin` (auth_level: 99) and `demo_user` (auth_level: 1).
+
+2. **Issuing & Validating Tokens**:
+   ```go
+   // Generate signed token with user metadata & auth_level embedded in claims
+   token, err := middleware.GenerateUserToken(cfg.JWTSecret, user, cfg.TokenTTL)
+   ```
+
+3. **Protecting Routes with Multi-Level RBAC**:
+   ```go
+   // Restrict endpoint to users with auth_level >= 50
+   v1.GET("/protected/admin-only",
+       middleware.JWTAuth(cfg.JWTSecret),
+       middleware.RequireAuthLevel(50),
+       handlerFunc,
+   )
+
+   // Or restrict by role
+   v1.GET("/protected/moderators",
+       middleware.JWTAuth(cfg.JWTSecret),
+       middleware.RequireRole("admin", "moderator"),
+       handlerFunc,
+   )
+   ```
+
+4. **Testing in Admin UI**:
+   * Navigate to `/admin`.
+   * Under **User Base & Multi-Level Auth (RBAC)**, click **"🔑 Get JWT"** on any account.
+   * The token, claims, and auth level are instantly loaded into the inspector bench.
+   * Click **"GET /protected/admin-only"** to verify access granted or 403 Forbidden based on `auth_level`.
+
+5. **WebSocket Room-Level RBAC**:
+   * The connection endpoint (`/api/v1/ws`) is open to all clients.
+   * Fine-grained room admission (such as the `"admin"` room requiring Level 10–99) is enforced inside simplysocket room handlers (`EventsRoomHandler`), verifying the client's token before admitting them to the room.
 
 ---
 

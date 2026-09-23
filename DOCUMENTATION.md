@@ -349,24 +349,94 @@ v1 := engine.Group("/api/v1")
 
 ## 7. Authentication & Security Middlewares
 
-### 1. JWT Key Authentication (`internal/api/middleware/jwt_auth.go`)
-- Inspects `Authorization: Bearer <token>`.
-- Validates signature against `cfg.JWTSecret` using HMAC-SHA256.
-- Injects `user_id`, `email`, `role`, and `jwt_claims` into `gin.Context`.
-- Includes `middleware.GenerateToken(secret, userID, email, role, ttl)` for issuing test or session tokens.
+### 1. Pre-Setup User Base & Multi-Level Auth (RBAC)
+The boilerplate includes a pre-configured user model (`internal/store/pg_store/users.go`) and REST handler (`internal/api/handler/user_handler.go`) designed for products requiring multi-tier access without third-party identity providers:
 
+#### UserModel Schema
 ```go
-protectedGroup := v1.Group("/protected")
-protectedGroup.Use(middleware.JWTAuth(cfg.JWTSecret))
-{
-    protectedGroup.GET("/profile", func(c *gin.Context) {
-        userID := c.GetString("user_id")
-        response.OK(c, gin.H{"user_id": userID})
-    })
+type UserModel struct {
+    ID           string         `json:"id"`
+    Username     string         `json:"username"`
+    Email        string         `json:"email"`
+    PhoneNumber  string         `json:"phone_number"`
+    PasswordHash string         `json:"-"`
+    Metadata     map[string]any `json:"metadata"`
+    CreatedAt    time.Time      `json:"created_at"`
+    UpdatedAt    time.Time      `json:"updated_at"`
 }
 ```
 
-### 2. API Key Authentication (`internal/api/middleware/api_key_auth.go`)
+- **Password Hashing**: Secure bcrypt hashing (`pgstore.HashPassword` & `pgstore.CheckPassword`).
+- **Flexible JSONB Metadata**: Holds arbitrary key-values including `auth_level`, `role`, `department`, and `permissions`.
+- **Pre-Seeded Accounts**:
+  - `admin` (`admin@hack-go-thon.local` / `Mp@tel98`, phone `9427425572`): `auth_level: 99`, `role: "admin"`
+  - `demo_user` (`user@hackathon.local` / `user123`, phone `+1-555-0101`): `auth_level: 1`, `role: "member"`
+- **Access Control & Room-Level Security**:
+  - The Admin Panel (`/admin`) UI prompts for login requiring an authenticated account with **Auth Level 10 to 99**.
+  - The WebSocket URL (`/api/v1/ws`) is an open connection endpoint allowing any client to connect to the mesh.
+  - Room-level RBAC is enforced within simplysocket: only users with **Auth Level 10 to 99** can join the `"admin"` room. Non-admin or unauthenticated join attempts to the `"admin"` room are rejected with an error acknowledgment.
+- **Dual Storage Engine**: Persists to PostgreSQL `users` table with `JSONB` index. When PostgreSQL is offline or disabled (`services.json`), seamlessly falls back to thread-safe in-memory storage so demo velocity is never blocked.
+
+#### Auth & User Endpoints
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Register new user with password hashing & metadata, returns signed JWT |
+| `POST` | `/api/v1/auth/login` | Authenticate with username/email & password, returns JWT & user profile |
+| `GET` | `/api/v1/auth/me` | Retrieve profile and decoded JWT claims for authenticated user |
+| `GET` | `/api/v1/users` | List all registered users |
+| `POST` | `/api/v1/users` | Admin create user with full metadata control |
+| `GET` | `/api/v1/users/:id` | Get user by ID |
+| `PUT` | `/api/v1/users/:id` | Update phone number, password, or metadata |
+| `DELETE` | `/api/v1/users/:id` | Delete user by ID |
+| `POST` | `/api/v1/users/:id/token` | Instant JWT generator for user without requiring password (for Admin UI testing) |
+
+### 2. JWT Claims with Embedded Metadata (`internal/api/middleware/jwt_auth.go`)
+User metadata and `auth_level` are directly embedded into the signed JWT payload claims:
+
+```go
+type JWTClaims struct {
+    UserID      string         `json:"user_id"`
+    Username    string         `json:"username,omitempty"`
+    Email       string         `json:"email"`
+    PhoneNumber string         `json:"phone_number,omitempty"`
+    Role        string         `json:"role,omitempty"`
+    AuthLevel   any            `json:"auth_level,omitempty"`
+    Metadata    map[string]any `json:"metadata,omitempty"`
+    jwt.RegisteredClaims
+}
+```
+
+When verified, the middleware automatically injects into `gin.Context`:
+- `c.GetString("user_id")`
+- `c.GetString("username")`
+- `c.GetString("email")`
+- `c.GetString("phone_number")`
+- `c.GetString("role")`
+- `c.MustGet("auth_level")`
+- `c.MustGet("metadata")`
+
+### 3. Multi-Level Authorization Middlewares
+Protect endpoints with custom authorization requirements without database lookups:
+
+```go
+// 1. Require minimum authorization level (e.g. >= 50)
+v1.GET("/protected/admin-only", 
+    middleware.JWTAuth(cfg.JWTSecret), 
+    middleware.RequireAuthLevel(50), 
+    func(c *gin.Context) {
+        response.OK(c, gin.H{"status": "authorized"})
+    },
+)
+
+// 2. Require specific role membership
+v1.GET("/protected/staff", 
+    middleware.JWTAuth(cfg.JWTSecret), 
+    middleware.RequireRole("admin", "moderator"), 
+    handlerFunc,
+)
+```
+
+### 4. API Key Authentication (`internal/api/middleware/api_key_auth.go`)
 - Inspects `X-API-Key` header.
 - Validates against PostgreSQL `api_keys` table using `pgstore.GetAPIKeyBySecret`.
 - Supports an optional `cfg.MasterAPIKey` bypass (useful for administrative services or internal tooling).
@@ -380,7 +450,7 @@ secureGroup.Use(middleware.APIKeyAuth(db, cfg.MasterAPIKey))
 }
 ```
 
-### 3. PostgreSQL API Call Audit Logger (`internal/api/middleware/api_call_logger.go`)
+### 5. PostgreSQL API Call Audit Logger (`internal/api/middleware/api_call_logger.go`)
 - Intercepts requests and records:
   - `user_id` (if authenticated via JWT or API Key)
   - Endpoint path & HTTP method

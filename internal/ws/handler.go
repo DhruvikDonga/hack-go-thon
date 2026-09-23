@@ -1,10 +1,12 @@
 package ws
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"hack-go-thon/internal/api/middleware"
 	"hack-go-thon/pkg/log"
 
 	"github.com/DhruvikDonga/simplysocket"
@@ -22,6 +24,8 @@ type RoomHandler interface {
 type EventsRoomHandler struct {
 	slug         string
 	adminHandler *AdminRoomHandler
+	jwtSecret    string
+	clientTokens map[string]string
 	mu           sync.RWMutex
 }
 
@@ -34,7 +38,35 @@ func NewEventsRoomHandler(slug string, adminHandlers ...*AdminRoomHandler) *Even
 	return &EventsRoomHandler{
 		slug:         slug,
 		adminHandler: admin,
+		clientTokens: make(map[string]string),
 	}
+}
+
+// SetJWTSecret configures the secret used to verify room-level access permissions.
+func (h *EventsRoomHandler) SetJWTSecret(secret string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.jwtSecret = secret
+}
+
+// SetClientToken caches a client's JWT token associated with their client ID.
+func (h *EventsRoomHandler) SetClientToken(clientID, token string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.clientTokens == nil {
+		h.clientTokens = make(map[string]string)
+	}
+	h.clientTokens[clientID] = token
+}
+
+// GetClientToken retrieves a cached JWT token for a given client ID.
+func (h *EventsRoomHandler) GetClientToken(clientID string) string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if h.clientTokens == nil {
+		return ""
+	}
+	return h.clientTokens[clientID]
 }
 
 // Slug returns the room slug identifier.
@@ -74,6 +106,45 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 				targetRoom, _ := msg.MessageBody["room"].(string)
 				if targetRoom == "" {
 					targetRoom = "admin"
+				}
+
+				// Only the "admin" room requires Auth Level 10 to 99!
+				if targetRoom == "admin" {
+					tokenStr, _ := msg.MessageBody["token"].(string)
+					if tokenStr == "" {
+						tokenStr = h.GetClientToken(msg.Sender)
+					}
+
+					h.mu.RLock()
+					sec := h.jwtSecret
+					h.mu.RUnlock()
+
+					valid, claims, err := middleware.VerifyTokenAuthLevel(sec, tokenStr, 10, 99)
+					if !valid {
+						errMsg := "Unauthorized: 'admin' room requires Auth Level 10 to 99"
+						if err != nil {
+							errMsg = fmt.Sprintf("Unauthorized: %v", err)
+						}
+						log.Warn("Denied client access to admin room", "client", msg.Sender, "error", errMsg)
+
+						// Acknowledge refusal specifically to the requesting client
+						room.BroadcastMessage(&simplysocket.Message{
+							Action: "joined-room-ack",
+							Target: msg.Sender,
+							MessageBody: map[string]any{
+								"status":      "error",
+								"error":       errMsg,
+								"joined_room": targetRoom,
+								"client_slug": msg.Sender,
+								"time":        time.Now().UTC().Format(time.RFC3339),
+							},
+							Sender:         "server",
+							IsTargetClient: true,
+						})
+						continue
+					}
+
+					log.Info("Authorized client to join admin room", "client", msg.Sender, "auth_level", claims.AuthLevel)
 				}
 
 				var rd simplysocket.RoomData

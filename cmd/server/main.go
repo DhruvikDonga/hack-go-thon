@@ -65,6 +65,9 @@ func main() {
 			if err := pgstore.InitDocumentSchema(ctx, pgDB); err != nil {
 				log.Warn("Failed to initialize documents schema (pgvector)", "error", err.Error())
 			}
+			if err := pgstore.InitUserSchema(ctx, pgDB); err != nil {
+				log.Warn("Failed to initialize users schema", "error", err.Error())
+			}
 		}
 	} else if !cfg.Services.Database {
 		log.Info("Database service disabled via services.json")
@@ -110,6 +113,11 @@ func main() {
 		log.Info("RAG handler service disabled via services.json")
 	}
 
+	var userHandler *handler.UserHandler
+	if cfg.Services.APIHandler {
+		userHandler = handler.NewUserHandler(pgDB, cfg.JWTSecret, cfg.TokenTTL)
+	}
+
 	// WebRTC server peer manager, SFU engine & HTTP handler (if enabled)
 	var webrtcHandler *handler.WebRTCHandler
 	var sfuEngine *webrtcserver.SFUEngine
@@ -125,7 +133,10 @@ func main() {
 	var wsManager *ws.Manager
 	if cfg.Services.WebSocket {
 		adminHandler := ws.NewAdminRoomHandler(llmClient, scheduler)
-		wsManager = ws.NewManager("mesh-server", ws.NewEventsRoomHandler("global", adminHandler), adminHandler)
+		eventsHandler := ws.NewEventsRoomHandler("global", adminHandler)
+		eventsHandler.SetJWTSecret(cfg.JWTSecret)
+		wsManager = ws.NewManager("mesh-server", eventsHandler, adminHandler)
+		wsManager.SetJWTSecret(cfg.JWTSecret)
 
 		// Broadcast SFU track publishing events over WebSocket mesh if both are active
 		if sfuEngine != nil {
@@ -147,6 +158,7 @@ func main() {
 		ExampleHandler: exampleHandler,
 		RAGHandler:     ragHandler,
 		WebRTCHandler:  webrtcHandler,
+		UserHandler:    userHandler,
 		DB:             pgDB,
 		WSManager:      wsManager,
 		Scheduler:      scheduler,

@@ -35,6 +35,51 @@
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
 
+  <!-- Admin Authentication Modal Overlay (Required for Level 10-99 access) -->
+  <div id="loginModalOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md transition-opacity">
+    <div class="relative w-full max-w-md mx-4 bg-cardBg border border-borderCol rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+      
+      <!-- Modal Header -->
+      <div class="text-center space-y-2">
+        <div class="inline-flex h-12 w-12 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 items-center justify-center shadow-lg shadow-brand-500/20 mb-2">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight text-white">Admin Console Authentication</h1>
+        <p class="text-xs text-slate-400">Sign in to unlock the Hack-Go-Thon Control Center & simplysocket mesh (Auth Level 10 - 99 required).</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="adminLoginForm" onsubmit="event.preventDefault(); submitAdminLogin();" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Email or Username</label>
+          <input id="loginEmail" type="text" required value="admin@hack-go-thon.local" placeholder="admin@hack-go-thon.local" class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+          <input id="loginPassword" type="password" required value="Mp@tel98" placeholder="••••••••" class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+        </div>
+
+        <!-- Error Alert Box -->
+        <div id="loginErrorAlert" class="hidden p-3 rounded-lg bg-red-950/60 border border-red-800/60 text-xs text-red-300 font-mono"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-brand-500/20 transition flex items-center justify-center space-x-2">
+          <span>Sign In to Admin Panel</span>
+        </button>
+
+        <!-- Quick Fill Default Admin Credentials -->
+        <div class="pt-2 border-t border-borderCol/60 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Fallback Demo Admin:</span>
+          <button type="button" onclick="fillAdminCredentials()" class="text-emerald-400 hover:text-emerald-300 font-mono font-medium underline transition">
+            Fill Credentials
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Navigation Bar -->
   <header class="border-b border-borderCol bg-cardBg/80 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -50,8 +95,8 @@
         </div>
       </div>
 
-      <!-- Live Connection Status -->
-      <div class="flex items-center space-x-4">
+      <!-- Live Connection Status & User Profile -->
+      <div class="flex items-center space-x-3">
         <div id="statusBadge" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
           <span class="h-2 w-2 rounded-full bg-red-500"></span>
           <span id="statusText">Disconnected</span>
@@ -63,6 +108,14 @@
         <div class="flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span>Room:</span>
           <span class="font-mono text-amber-400 font-semibold">admin</span>
+        </div>
+
+        <!-- Authenticated User Profile & Sign Out -->
+        <div id="userProfileHeader" class="hidden flex items-center space-x-2 text-xs border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+          <span class="text-slate-400">User:</span>
+          <span id="headerUsername" class="font-bold text-cyan-400">admin</span>
+          <span id="headerAuthLevelBadge" class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">Lvl 99</span>
+          <button onclick="logoutAdmin()" class="ml-1 text-[11px] text-red-400 hover:text-red-300 transition underline">Log Out</button>
         </div>
       </div>
     </div>
@@ -523,6 +576,176 @@
         </div>
       </div>
     </div>
+
+    <!-- User Base & Multi-Level Auth Management (RBAC) -->
+    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span>User Base & Multi-Level Auth (RBAC)</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Pre-setup user store with contact info, credentials, and custom JSONB metadata embedding <code class="text-cyan-400">auth_level</code> directly into JWT token claims</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-xs px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">JWT Claims RBAC</span>
+          <button onclick="fetchUsers()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Refresh Users</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- User Grid: Table on Left, Register Form on Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        <!-- Users Table (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-900/60 border border-borderCol rounded-lg p-4 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+              <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+              <span>Registered Accounts</span>
+            </h3>
+            <span id="userCountBadge" class="text-xs font-mono text-slate-400">0 Users</span>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950/60 text-slate-400 border-b border-borderCol">
+                <tr>
+                  <th class="p-2">User / Email</th>
+                  <th class="p-2">Phone</th>
+                  <th class="p-2">Level / Role</th>
+                  <th class="p-2">Metadata</th>
+                  <th class="p-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody" class="divide-y divide-borderCol text-slate-300">
+                <tr>
+                  <td colspan="5" class="p-4 text-center text-slate-500 italic">Loading users...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Create User Form (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-900/60 border border-borderCol rounded-lg p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3 flex items-center space-x-2">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            <span>Register New User</span>
+          </h3>
+          <form id="createUserForm" onsubmit="event.preventDefault(); createUser();" class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">Username *</label>
+                <input id="newUsername" type="text" required placeholder="alice_hacker" class="w-full bg-slate-950 border border-borderCol rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">Email *</label>
+                <input id="newEmail" type="email" required placeholder="alice@hackathon.local" class="w-full bg-slate-950 border border-borderCol rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">Phone Number</label>
+                <input id="newPhone" type="text" placeholder="+1-555-0199" class="w-full bg-slate-950 border border-borderCol rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 block mb-1">Password *</label>
+                <input id="newPassword" type="password" required placeholder="pass123" class="w-full bg-slate-950 border border-borderCol rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[11px] text-slate-400">Auth Level Preset</label>
+                <span class="text-[10px] text-cyan-400">Included in JWT claims</span>
+              </div>
+              <select id="newAuthLevelPreset" onchange="onAuthLevelSelectChange()" class="w-full bg-slate-950 border border-borderCol rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                <option value="1">Level 1 - Regular Member</option>
+                <option value="10">Level 10 - Support / Operator</option>
+                <option value="50" selected>Level 50 - Manager / Moderator</option>
+                <option value="99">Level 99 - Administrator</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Metadata (JSON format, embeds in JWT)</label>
+              <textarea id="newMetadata" rows="3" class="w-full bg-slate-950 border border-borderCol rounded-md p-2 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500">{
+  "auth_level": 50,
+  "role": "moderator",
+  "department": "engineering",
+  "permissions": ["read", "write"]
+}</textarea>
+            </div>
+            <button type="submit" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs rounded-md shadow transition flex items-center justify-center space-x-1.5">
+              <span>Create & Register User</span>
+            </button>
+            <div id="createUserResult" class="text-xs font-mono text-slate-400 hidden p-2 rounded bg-slate-950 border border-borderCol"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- JWT Token & Multi-Level RBAC Test Bench -->
+      <div class="bg-slate-900/60 border border-borderCol rounded-lg p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+              <span>Instant JWT Token Inspector & RBAC Verification Bench</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Click "🔑 Get JWT" on any user above to load their active token, inspect decoded claims, and test route access.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span id="activeUserBadge" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-borderCol font-mono">No User Selected</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Token Input with Copy Button -->
+          <div class="flex items-center space-x-2">
+            <input id="activeJwtToken" type="text" readonly placeholder="Select a user above or paste Bearer JWT token here..." class="flex-1 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500" />
+            <button onclick="copyTokenToClipboard()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition">
+              Copy
+            </button>
+          </div>
+
+          <!-- Decoded Claims and Action Tester -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Claims Inspector Display -->
+            <div class="bg-slate-950 border border-borderCol rounded-md p-3">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+                <span>Decoded Token Claims</span>
+                <span id="claimsAuthLevelBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Level: -</span>
+              </div>
+              <pre id="decodedClaimsView" class="h-32 overflow-y-auto text-[11px] font-mono text-cyan-300 whitespace-pre-wrap">No active token loaded. Click "🔑 Get JWT" above.</pre>
+            </div>
+
+            <!-- Endpoint Permissions Probe -->
+            <div class="bg-slate-950 border border-borderCol rounded-md p-3 flex flex-col justify-between">
+              <div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Test Multi-Level Route Protection</div>
+                <div class="flex flex-wrap gap-2 mb-2">
+                  <button onclick="testProtectedEndpoint('/api/v1/auth/me')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs border border-slate-700 transition">
+                    GET /auth/me
+                  </button>
+                  <button onclick="testProtectedEndpoint('/api/v1/protected/profile')" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 rounded text-xs border border-cyan-800/40 transition">
+                    GET /protected/profile
+                  </button>
+                  <button onclick="testProtectedEndpoint('/api/v1/protected/admin-only')" class="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs border border-rose-800/40 transition">
+                    GET /protected/admin-only (Req: ≥50)
+                  </button>
+                </div>
+              </div>
+              <div id="probeResultBox" class="h-20 overflow-y-auto p-2 rounded bg-slate-900 text-[11px] font-mono text-slate-400 border border-borderCol">
+                <span class="text-slate-600 italic">Click an endpoint above to verify authorization response...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- WebSocket & Dashboard JavaScript Logic -->
@@ -531,11 +754,26 @@
     let clientSlug = '';
     let currentStreamID = null;
     let streamTokenCount = 0;
+    let currentAdminUser = null;
 
-    function initWebSocket() {
+    function initWebSocket(token) {
+      if (!token) {
+        token = localStorage.getItem('admin_jwt_token');
+      }
+      if (!token) {
+        updateStatus(false, 'Auth Required');
+        logEvent('AUTH', 'WebSocket connection withheld: sign-in required (Level 10-99).');
+        return;
+      }
+
+      if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        socket.close();
+      }
+
       const loc = window.location;
       const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${loc.host}/api/v1/ws?name=AdminConsole`;
+      const clientName = (currentAdminUser && currentAdminUser.username) ? currentAdminUser.username : 'admin';
+      const wsUrl = `${protocol}//${loc.host}/api/v1/ws?name=${encodeURIComponent(clientName)}&token=${encodeURIComponent(token)}`;
 
       updateStatus(false, 'Connecting...');
       logEvent('SYSTEM', `Connecting to WebSocket mesh at ${wsUrl}`);
@@ -544,13 +782,13 @@
 
       socket.onopen = () => {
         updateStatus(true, 'Connected');
-        logEvent('SOCKET', 'WebSocket connected. Dispatching join-room for "admin"');
+        logEvent('SOCKET', `WebSocket connected as "${clientName}". Joining "admin" room.`);
         
         // Immediately send join-room action to join the special "admin" room
         const joinMsg = {
           action: 'join-room',
           target: 'mesh-global',
-          message_body: { room: 'admin' }
+          message_body: { room: 'admin', token: token }
         };
         socket.send(JSON.stringify(joinMsg));
 
@@ -574,10 +812,14 @@
         }
       };
 
-      socket.onclose = () => {
+      socket.onclose = (ev) => {
         updateStatus(false, 'Disconnected');
-        logEvent('SOCKET', 'WebSocket disconnected. Retrying in 3s...');
-        setTimeout(initWebSocket, 3000);
+        if (localStorage.getItem('admin_jwt_token')) {
+          logEvent('SOCKET', 'WebSocket disconnected. Retrying in 3s...');
+          setTimeout(() => initWebSocket(), 3000);
+        } else {
+          logEvent('SOCKET', 'WebSocket closed.');
+        }
       };
 
       socket.onerror = (err) => {
@@ -591,8 +833,15 @@
 
       switch (msg.action) {
         case 'joined-room-ack':
+          const status = msg.message_body ? msg.message_body.status : '';
           const joinedRoom = msg.message_body ? msg.message_body.joined_room : '';
           const reportedSlug = msg.message_body ? msg.message_body.client_slug : '';
+
+          if (status === 'error') {
+            const errMsg = msg.message_body ? msg.message_body.error : 'Unauthorized to join room';
+            logEvent('AUTH-ERROR', `Room "${joinedRoom}" denied entry: ${errMsg}`);
+            return;
+          }
 
           // Protect client slug: set on initial connect and never overwrite from other clients
           if (reportedSlug && !clientSlug) {
@@ -1641,10 +1890,425 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initWebSocket();
-      refreshSFURooms();
-      setInterval(refreshSFURooms, 10000);
+    // ==========================================
+    // User Base & Multi-Level Auth (RBAC) Logic
+    // ==========================================
+    let activeUserToken = '';
+    let activeUserData = null;
+
+    function onAuthLevelSelectChange() {
+      const select = document.getElementById('newAuthLevelPreset');
+      const metaArea = document.getElementById('newMetadata');
+      const val = parseInt(select.value, 10);
+      let role = 'member';
+      let perms = ['read'];
+      let dept = 'general';
+
+      if (val >= 99) {
+        role = 'admin';
+        dept = 'core-team';
+        perms = ['admin', 'read', 'write', 'delete'];
+      } else if (val >= 50) {
+        role = 'moderator';
+        dept = 'engineering';
+        perms = ['read', 'write'];
+      } else if (val >= 10) {
+        role = 'support';
+        dept = 'operations';
+        perms = ['read', 'support'];
+      }
+
+      try {
+        let current = {};
+        if (metaArea.value.trim()) {
+          current = JSON.parse(metaArea.value);
+        }
+        current.auth_level = val;
+        current.role = role;
+        current.department = dept;
+        current.permissions = perms;
+        metaArea.value = JSON.stringify(current, null, 2);
+      } catch (e) {
+        metaArea.value = JSON.stringify({
+          auth_level: val,
+          role: role,
+          department: dept,
+          permissions: perms
+        }, null, 2);
+      }
+    }
+
+    async function fetchUsers() {
+      try {
+        const resp = await fetch('/api/v1/users');
+        const res = await resp.json();
+        const tbody = document.getElementById('usersTableBody');
+        const badge = document.getElementById('userCountBadge');
+
+        if (!resp.ok || !res.data) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-400">Failed to load users: ${escapeHtml(res.message || 'Unknown error')}</td></tr>`;
+          return;
+        }
+
+        const users = res.data;
+        badge.innerText = `${users.length} User${users.length !== 1 ? 's' : ''}`;
+
+        if (users.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">No users found. Register one on the right.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = users.map(u => {
+          const authLvl = (u.metadata && u.metadata.auth_level !== undefined) ? u.metadata.auth_level : 1;
+          const role = (u.metadata && u.metadata.role) ? u.metadata.role : 'member';
+          
+          let lvlBadgeClass = 'bg-slate-800 text-slate-300 border-borderCol';
+          if (authLvl >= 90) lvlBadgeClass = 'bg-purple-950 text-purple-300 border-purple-800';
+          else if (authLvl >= 50) lvlBadgeClass = 'bg-amber-950 text-amber-300 border-amber-800';
+          else if (authLvl >= 10) lvlBadgeClass = 'bg-cyan-950 text-cyan-300 border-cyan-800';
+
+          const metaStr = u.metadata ? escapeHtml(JSON.stringify(u.metadata)) : '{}';
+
+          return `
+            <tr class="hover:bg-slate-900/50 transition">
+              <td class="p-2">
+                <div class="font-bold text-slate-200">${escapeHtml(u.username)}</div>
+                <div class="text-[11px] text-slate-500 font-mono">${escapeHtml(u.email)}</div>
+              </td>
+              <td class="p-2 font-mono text-[11px] text-slate-400">${escapeHtml(u.phone_number || '-')}</td>
+              <td class="p-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${lvlBadgeClass}">
+                  Lvl ${escapeHtml(String(authLvl))} (${escapeHtml(role)})
+                </span>
+              </td>
+              <td class="p-2 max-w-xs truncate font-mono text-[10px] text-slate-500" title="${metaStr}">
+                ${metaStr}
+              </td>
+              <td class="p-2 text-right space-x-1.5 whitespace-nowrap">
+                <button onclick="generateUserToken('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded text-[11px] font-medium transition">
+                  🔑 Get JWT
+                </button>
+                <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2 py-1 bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded text-[11px] font-medium transition">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // If no user token is loaded yet and users exist, auto-load the first user's token
+        if (!activeUserToken && users.length > 0) {
+          generateUserToken(users[0].id, users[0].username);
+        }
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      }
+    }
+
+    async function createUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const email = document.getElementById('newEmail').value.trim();
+      const phoneNumber = document.getElementById('newPhone').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const metaText = document.getElementById('newMetadata').value.trim();
+      const resultDiv = document.getElementById('createUserResult');
+
+      let metadata = {};
+      if (metaText) {
+        try {
+          metadata = JSON.parse(metaText);
+        } catch (e) {
+          resultDiv.className = 'text-xs font-mono text-red-400 p-2 rounded bg-red-950/50 border border-red-800/50';
+          resultDiv.innerText = 'Metadata must be valid JSON: ' + e.message;
+          resultDiv.classList.remove('hidden');
+          return;
+        }
+      }
+
+      try {
+        const resp = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            email: email,
+            phone_number: phoneNumber,
+            password: password,
+            metadata: metadata
+          })
+        });
+
+        const res = await resp.json();
+        if (resp.ok) {
+          resultDiv.className = 'text-xs font-mono text-emerald-400 p-2 rounded bg-emerald-950/50 border border-emerald-800/50';
+          resultDiv.innerText = `User "${username}" registered successfully!`;
+          resultDiv.classList.remove('hidden');
+          
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newEmail').value = '';
+          document.getElementById('newPhone').value = '';
+          document.getElementById('newPassword').value = '';
+          
+          fetchUsers();
+          if (res.data && res.data.token) {
+            setActiveToken(res.data.token, res.data.user);
+          }
+          setTimeout(() => resultDiv.classList.add('hidden'), 4000);
+        } else {
+          resultDiv.className = 'text-xs font-mono text-red-400 p-2 rounded bg-red-950/50 border border-red-800/50';
+          resultDiv.innerText = `Error (${resp.status}): ${res.message || 'Failed to create user'}`;
+          resultDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        resultDiv.className = 'text-xs font-mono text-red-400 p-2 rounded bg-red-950/50 border border-red-800/50';
+        resultDiv.innerText = 'Network error: ' + err.message;
+        resultDiv.classList.remove('hidden');
+      }
+    }
+
+    async function generateUserToken(userId, username) {
+      try {
+        const resp = await fetch(`/api/v1/users/${encodeURIComponent(userId)}/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ttl_hours: 24 })
+        });
+        const res = await resp.json();
+        if (resp.ok && res.data && res.data.token) {
+          setActiveToken(res.data.token, {
+            id: res.data.user_id,
+            username: res.data.username,
+            email: res.data.email,
+            phone_number: res.data.phone_number,
+            auth_level: res.data.auth_level,
+            metadata: res.data.metadata
+          });
+        }
+      } catch (e) {
+        console.error('Failed to generate user token', e);
+      }
+    }
+
+    function setActiveToken(token, user) {
+      activeUserToken = token;
+      activeUserData = user;
+
+      const tokenInput = document.getElementById('activeJwtToken');
+      if (tokenInput) tokenInput.value = token;
+
+      const badge = document.getElementById('activeUserBadge');
+      const lvlBadge = document.getElementById('claimsAuthLevelBadge');
+      const claimsView = document.getElementById('decodedClaimsView');
+
+      if (user && badge) {
+        const lvl = user.auth_level !== undefined ? user.auth_level : (user.metadata ? user.metadata.auth_level : 1);
+        badge.innerText = `Active User: ${user.username || user.id}`;
+        badge.className = 'text-xs px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono';
+
+        if (lvlBadge) {
+          lvlBadge.innerText = `Level: ${lvl}`;
+          lvlBadge.className = lvl >= 50 
+            ? 'text-[10px] px-1.5 py-0.5 rounded bg-purple-900 text-purple-200 font-mono'
+            : 'text-[10px] px-1.5 py-0.5 rounded bg-cyan-900 text-cyan-200 font-mono';
+        }
+      }
+
+      // Decode payload claims from base64
+      if (claimsView) {
+        try {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            claimsView.innerText = JSON.stringify(payload, null, 2);
+          } else {
+            claimsView.innerText = JSON.stringify(user, null, 2);
+          }
+        } catch (err) {
+          claimsView.innerText = JSON.stringify(user, null, 2);
+        }
+      }
+    }
+
+    function copyTokenToClipboard() {
+      const tokenInput = document.getElementById('activeJwtToken');
+      if (!tokenInput || !tokenInput.value) return;
+      navigator.clipboard.writeText(tokenInput.value).then(() => {
+        logEvent('AUTH', 'JWT Bearer token copied to clipboard');
+        alert('JWT Bearer token copied to clipboard!');
+      });
+    }
+
+    async function testProtectedEndpoint(endpoint) {
+      const probeBox = document.getElementById('probeResultBox');
+      const token = document.getElementById('activeJwtToken').value.trim();
+
+      if (!token) {
+        probeBox.innerHTML = '<span class="text-amber-400">Please load or enter a JWT token first.</span>';
+        return;
+      }
+
+      probeBox.innerHTML = `<span class="text-slate-400">Probing ${endpoint}...</span>`;
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        const data = await resp.json();
+
+        let statusColor = 'text-emerald-400';
+        if (resp.status === 401) statusColor = 'text-amber-400';
+        else if (resp.status === 403) statusColor = 'text-rose-400';
+        else if (!resp.ok) statusColor = 'text-red-400';
+
+        probeBox.innerHTML = `
+          <div class="flex items-center justify-between font-bold ${statusColor} mb-1">
+            <span>HTTP ${resp.status} ${resp.statusText || (resp.ok ? 'OK' : 'DENIED')}</span>
+            <span class="text-[10px] text-slate-500">${endpoint}</span>
+          </div>
+          <pre class="text-[10px] text-slate-300 overflow-x-auto">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+        `;
+      } catch (err) {
+        probeBox.innerHTML = `<span class="text-rose-400 font-bold">Error: ${escapeHtml(err.message)}</span>`;
+      }
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm(`Are you sure you want to delete user ${userId}?`)) return;
+      try {
+        const resp = await fetch(`/api/v1/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+        if (resp.ok) {
+          fetchUsers();
+          logEvent('AUTH', `Deleted user ${userId}`);
+        } else {
+          alert('Failed to delete user');
+        }
+      } catch (err) {
+        console.error('Delete error', err);
+      }
+    }
+
+    function fillAdminCredentials() {
+      document.getElementById('loginEmail').value = 'admin@hack-go-thon.local';
+      document.getElementById('loginPassword').value = 'Mp@tel98';
+    }
+
+    async function submitAdminLogin() {
+      const ident = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+      const errBox = document.getElementById('loginErrorAlert');
+      const btn = document.getElementById('btnLoginSubmit');
+
+      errBox.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerText = 'Verifying credentials...';
+
+      try {
+        const resp = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: ident, password: pass })
+        });
+        const result = await resp.json();
+
+        if (!resp.ok) {
+          errBox.innerText = result.message || 'Invalid email/username or password.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        const authLevel = result.data ? (result.data.auth_level !== undefined ? result.data.auth_level : (result.data.user && result.data.user.metadata ? result.data.user.metadata.auth_level : 0)) : 0;
+        if (authLevel < 10 || authLevel > 99) {
+          errBox.innerText = `Access Denied: Your account auth level is ${authLevel}. Level 10 to 99 is required for Admin Panel & simplysocket access.`;
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // Store session and apply
+        localStorage.setItem('admin_jwt_token', result.data.token);
+        currentAdminUser = result.data.user;
+
+        applyAuthenticatedState(result.data.token, result.data.user);
+      } catch (err) {
+        errBox.innerText = 'Network error: ' + err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Sign In to Admin Panel';
+      }
+    }
+
+    function applyAuthenticatedState(token, user) {
+      // Hide login modal
+      const modal = document.getElementById('loginModalOverlay');
+      if (modal) modal.classList.add('hidden');
+
+      // Update header
+      const profileHeader = document.getElementById('userProfileHeader');
+      const headerUsername = document.getElementById('headerUsername');
+      const headerLevel = document.getElementById('headerAuthLevelBadge');
+      if (profileHeader) profileHeader.classList.remove('hidden');
+      if (headerUsername && user) headerUsername.innerText = user.username || user.email;
+      if (headerLevel && user) {
+        const lvl = (user.metadata && user.metadata.auth_level !== undefined) ? user.metadata.auth_level : (user.auth_level || 99);
+        headerLevel.innerText = `Lvl ${lvl}`;
+      }
+
+      // Also populate the active token on the inspector bench
+      if (typeof setActiveToken === 'function') {
+        setActiveToken(token, user);
+      }
+
+      // Connect simplysocket WebSocket with the verified token
+      initWebSocket(token);
+
+      // Fetch initial state
+      if (typeof fetchUsers === 'function') fetchUsers();
+      if (typeof refreshSFURooms === 'function') refreshSFURooms();
+      if (typeof fetchJobs === 'function') fetchJobs();
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('admin_jwt_token');
+      currentAdminUser = null;
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+      const profileHeader = document.getElementById('userProfileHeader');
+      if (profileHeader) profileHeader.classList.add('hidden');
+      const modal = document.getElementById('loginModalOverlay');
+      if (modal) modal.classList.remove('hidden');
+      updateStatus(false, 'Disconnected (Logged Out)');
+      logEvent('AUTH', 'Logged out of admin console.');
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedToken = localStorage.getItem('admin_jwt_token');
+      if (savedToken) {
+        try {
+          const resp = await fetch('/api/v1/auth/me', {
+            headers: { 'Authorization': 'Bearer ' + savedToken }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            const lvl = data.data ? data.data.auth_level : 0;
+            if (lvl >= 10 && lvl <= 99) {
+              currentAdminUser = data.data.user || data.data;
+              applyAuthenticatedState(savedToken, currentAdminUser);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Session verification failed', e);
+        }
+      }
+
+      // No valid session, show login modal
+      const modal = document.getElementById('loginModalOverlay');
+      if (modal) modal.classList.remove('hidden');
     });
   </script>
 </body>

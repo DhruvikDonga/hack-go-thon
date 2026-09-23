@@ -11,9 +11,10 @@ import (
 // Clients establish a WebSocket connection once, while distinct business logic
 // is handled by pluggable RoomData interface implementations.
 type Manager struct {
-	server       simplysocket.MeshServer
-	handler      gin.HandlerFunc
-	adminHandler *AdminRoomHandler
+	server        simplysocket.MeshServer
+	handler       gin.HandlerFunc
+	adminHandler  *AdminRoomHandler
+	eventsHandler *EventsRoomHandler
 }
 
 // NewManager initializes the WebSocket mesh server with a default RoomData handler and optional AdminRoomHandler.
@@ -23,8 +24,12 @@ func NewManager(serverName string, defaultHandler simplysocket.RoomData, adminHa
 		admin = adminHandlers[0]
 	}
 
+	var events *EventsRoomHandler
 	if defaultHandler == nil {
-		defaultHandler = NewEventsRoomHandler("default-room", admin)
+		events = NewEventsRoomHandler("default-room", admin)
+		defaultHandler = events
+	} else if eh, ok := defaultHandler.(*EventsRoomHandler); ok {
+		events = eh
 	}
 
 	config := &simplysocket.MeshServerConfig{
@@ -36,9 +41,18 @@ func NewManager(serverName string, defaultHandler simplysocket.RoomData, adminHa
 	log.Info("Initialized simplysocket WebSocket manager", "server", serverName)
 
 	return &Manager{
-		server:       ms,
-		adminHandler: admin,
+		server:        ms,
+		adminHandler:  admin,
+		eventsHandler: events,
 		handler: func(c *gin.Context) {
+			token := c.Query("token")
+			if token == "" {
+				token = c.Query("access_token")
+			}
+			name := c.Query("name")
+			if token != "" && name != "" && events != nil {
+				events.SetClientToken(name, token)
+			}
 			simplysocket.ServeWs(ms, c.Writer, c.Request)
 		},
 	}
@@ -57,6 +71,18 @@ func (m *Manager) Server() simplysocket.MeshServer {
 // AdminHandler returns the attached AdminRoomHandler instance if registered.
 func (m *Manager) AdminHandler() *AdminRoomHandler {
 	return m.adminHandler
+}
+
+// EventsHandler returns the attached EventsRoomHandler instance if registered.
+func (m *Manager) EventsHandler() *EventsRoomHandler {
+	return m.eventsHandler
+}
+
+// SetJWTSecret configures the secret used to verify room-level access permissions on the events handler.
+func (m *Manager) SetJWTSecret(secret string) {
+	if m.eventsHandler != nil {
+		m.eventsHandler.SetJWTSecret(secret)
+	}
 }
 
 // Broadcast sends a server-initiated message to a room.
