@@ -132,21 +132,32 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 					continue
 				}
 
+				senderName := msg.Sender
+				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
+					senderName = fromUser
+				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
+					senderName = fromUser
+				}
+
 				announcement := &simplysocket.Message{
 					Action: "system-announcement",
 					Target: targetRoom,
 					MessageBody: map[string]any{
-						"announcement": text,
-						"from":         msg.Sender,
-						"time":         time.Now().UTC().Format(time.RFC3339),
+						"announcement":    text,
+						"message":         text,
+						"from":            senderName,
+						"sender":          senderName,
+						"sender_username": senderName,
+						"target_room":     targetRoom,
+						"time":            time.Now().UTC().Format(time.RFC3339),
 					},
-					Sender:         "admin",
+					Sender:         senderName,
 					IsTargetClient: false,
 				}
 
 				select {
 				case server.PushMessage() <- announcement:
-					log.Info("Admin broadcast sent", "target", targetRoom, "message", text)
+					log.Info("Admin broadcast sent", "target", targetRoom, "sender", senderName, "message", text)
 				default:
 					log.Warn("Failed to push admin announcement, channel full")
 				}
@@ -214,6 +225,16 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 
 			case "webrtc-join", "webrtc-offer", "webrtc-answer", "webrtc-ice", "webrtc-leave":
 				// Forward WebRTC signaling messages to peers in admin room
+				msg.IsTargetClient = false
+				room.BroadcastMessage(msg)
+
+			case "system-announcement", "chat-message", "broadcast", "send-chat", "message":
+				// Re-broadcast announcements or chat messages to all clients in this room
+				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				}
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)
 			}

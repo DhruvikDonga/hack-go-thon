@@ -899,7 +899,17 @@
           break;
 
         case 'system-announcement':
-          logEvent('ALERT', `[${msg.message_body.from} -> ${msg.target}]: ${msg.message_body.announcement}`);
+        case 'chat-message':
+        case 'broadcast':
+        case 'send-chat':
+        case 'message':
+          {
+            const b = msg.message_body || {};
+            const from = b.from || b.sender || b.sender_username || msg.sender || 'system';
+            const text = b.announcement || b.message || b.text || b.content || JSON.stringify(b);
+            const target = msg.target || b.target_room || 'room';
+            logEvent('MSG', `[${from} in ${target}]: ${text}`);
+          }
           break;
 
         case 'broadcast-ack':
@@ -1242,17 +1252,31 @@
       const text = input.value.trim();
       if (!text) return;
 
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
-          action: 'admin-broadcast',
-          target: 'admin',
-          message_body: {
-            target_room: target,
-            message: text
-          }
-        }));
-        input.value = '';
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if (target === 'admin' && myLevel <= 10) {
+        alert('Access Denied: Room "admin" requires Auth Level strictly above 10 (Level 11 to 99). Please select mesh-global or another active room.');
+        return;
       }
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert('WebSocket is not connected');
+        return;
+      }
+
+      const senderUsername = (currentAdminUser && (currentAdminUser.username || currentAdminUser.email)) ? (currentAdminUser.username || currentAdminUser.email) : (clientSlug || 'user');
+      const dispatchTarget = isAdminRoomJoined ? 'admin' : 'mesh-global';
+
+      socket.send(JSON.stringify({
+        action: 'admin-broadcast',
+        target: dispatchTarget,
+        message_body: {
+          target_room: target,
+          message: text,
+          sender_username: senderUsername,
+          from: senderUsername
+        }
+      }));
+      input.value = '';
     }
 
     function triggerLLMStream() {

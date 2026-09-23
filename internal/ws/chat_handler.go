@@ -44,12 +44,19 @@ func (c *ChatRoomHandler) HandleRoomData(room simplysocket.Room, server simplyso
 			}
 
 			switch msg.Action {
-			case "send-chat":
+			case "send-chat", "system-announcement", "chat-message", "broadcast", "message":
 				// Augment message with server timestamp
 				if msg.MessageBody == nil {
 					msg.MessageBody = make(map[string]any)
 				}
-				msg.MessageBody["server_time"] = time.Now().UTC().Format(time.RFC3339)
+				if _, ok := msg.MessageBody["server_time"]; !ok {
+					msg.MessageBody["server_time"] = time.Now().UTC().Format(time.RFC3339)
+				}
+				if fromUser, ok := msg.MessageBody["sender_username"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				} else if fromUser, ok := msg.MessageBody["from"].(string); ok && fromUser != "" {
+					msg.Sender = fromUser
+				}
 				msg.IsTargetClient = false
 
 				// Broadcast chat message to everyone in room
