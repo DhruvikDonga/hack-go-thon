@@ -160,6 +160,21 @@ func TestWebhookHandler_CRUDAndDispatch(t *testing.T) {
 		t.Fatalf("expected 200 OK on send, got %d: %s", w.Code, w.Body.String())
 	}
 
+	var sendResp struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Dispatched   bool   `json:"dispatched"`
+			TargetsCount int    `json:"targets_count"`
+			Event        string `json:"event"`
+			Timestamp    string `json:"timestamp"`
+			NotifiedRoom string `json:"notified_room"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &sendResp)
+	if sendResp.Data.NotifiedRoom != "webhooks" {
+		t.Errorf("expected notified_room to be 'webhooks', got '%s'", sendResp.Data.NotifiedRoom)
+	}
+
 	// Wait for asynchronous dispatch
 	select {
 	case <-receivedCh:

@@ -108,6 +108,8 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 					rd = h
 				case "chat":
 					rd = NewChatRoomHandler("chat")
+				case WebhooksRoom, WebhookJobsRoom:
+					rd = NewEventsRoomHandler(targetRoom, h)
 				default:
 					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {
 						rd = NewWebRTCRoomHandler(targetRoom)

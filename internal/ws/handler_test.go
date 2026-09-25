@@ -123,4 +123,48 @@ func TestWebSocketHandlers(t *testing.T) {
 			"sender":  "admin",
 		})
 	})
+
+	t.Run("Webhooks Room Auth Level strictly above 1 (Excludes User Level)", func(t *testing.T) {
+		secret := "test-secret"
+
+		// Level 1 (standard user) token -> rejected for webhooks room (requires > 1, i.e. 2 to 99)
+		userToken, err := middleware.GenerateTokenWithMetadata(secret, "user_demo_01", "demo_user", "user@test.local", "", "member", 1, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate user token: %v", err)
+		}
+		valid, _, err := middleware.VerifyTokenAuthLevel(secret, userToken, 2, 99)
+		if valid || err == nil {
+			t.Fatalf("expected level 1 (user level) to be denied entry to webhooks room")
+		}
+
+		// Level 10 (staff) token -> allowed for webhooks room
+		staffToken, err := middleware.GenerateTokenWithMetadata(secret, "user_staff_10", "staff", "staff@test.local", "", "staff", 10, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate staff token: %v", err)
+		}
+		valid, _, err = middleware.VerifyTokenAuthLevel(secret, staffToken, 2, 99)
+		if !valid || err != nil {
+			t.Fatalf("expected level 10 (staff) to be allowed in webhooks room, got err: %v", err)
+		}
+
+		// Level 99 (admin) token -> allowed for webhooks room
+		adminToken, err := middleware.GenerateTokenWithMetadata(secret, "user_admin_01", "admin", "admin@test.local", "", "admin", 99, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate admin token: %v", err)
+		}
+		valid, _, err = middleware.VerifyTokenAuthLevel(secret, adminToken, 2, 99)
+		if !valid || err != nil {
+			t.Fatalf("expected level 99 (admin) to be allowed in webhooks room, got err: %v", err)
+		}
+
+		// Verify broadcast to WebhooksRoom
+		adminHandler := NewAdminRoomHandler(nil)
+		eventsHandler := NewEventsRoomHandler(simplysocket.MeshGlobalRoom, adminHandler)
+		mgr := NewManager("test-mesh-server", eventsHandler, adminHandler)
+		mgr.Broadcast(WebhooksRoom, "webhook-notification", map[string]any{
+			"event":   "notification",
+			"title":   "Alert",
+			"message": "Webhook job event",
+		})
+	})
 }

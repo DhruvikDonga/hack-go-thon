@@ -821,7 +821,10 @@
         <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
             <span>Dispatch Notification / Alert</span>
-            <span class="text-[10px] text-indigo-400 font-mono">Syncs to Webhooks &amp; Mesh</span>
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="joinWebhooksRoom()" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition">🔔 Join 'webhooks' Room</button>
+              <span class="text-[10px] text-indigo-400 font-mono">Notifies 'webhooks' Room</span>
+            </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input id="notifTitleInput" type="text" placeholder="Notification Title..." value="System Announcement" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
@@ -1188,6 +1191,14 @@
           }
           break;
 
+        case 'webhook-notification':
+          if (msg.message_body) {
+            const b = msg.message_body;
+            const target = msg.target || 'webhooks';
+            logEvent('WEBHOOK', `[${b.event || 'notification'} in ${target}] ${b.title || ''}: ${b.message || ''}`);
+          }
+          break;
+
         default:
           if (msg.action === 'heartbeat') return;
           logEvent(msg.action.toUpperCase(), JSON.stringify(msg.message_body));
@@ -1314,6 +1325,10 @@
         alert(`Access Denied: The "${roomName}" room requires Auth Level strictly above 10 (Level 11 to 99). Your account has Auth Level ${myLevel} (view-only).`);
         return;
       }
+      if ((roomName === 'webhooks' || roomName === 'webhook-jobs') && myLevel <= 1) {
+        alert(`Access Denied: The "${roomName}" room excludes standard user-level accounts (requires Auth Level > 1, e.g. Staff Level 10 or Admin Level 99). Your account has Auth Level ${myLevel}.`);
+        return;
+      }
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         alert('WebSocket is not connected');
         return;
@@ -1328,6 +1343,15 @@
       if (document.getElementById('newRoomInput')) {
         document.getElementById('newRoomInput').value = '';
       }
+    }
+
+    function joinWebhooksRoom() {
+      const myLevel = (currentAdminUser && (currentAdminUser.auth_level !== undefined ? currentAdminUser.auth_level : (currentAdminUser.metadata ? currentAdminUser.metadata.auth_level : 0))) || 0;
+      if (myLevel <= 1) {
+        alert(`Access Denied: The "webhooks" room excludes standard user-level accounts (requires Auth Level > 1, e.g. Staff Level 10 or Admin Level 99). Your account has Auth Level ${myLevel}.`);
+        return;
+      }
+      joinCustomRoom('webhooks');
     }
 
     async function fetchMeshRoomsHTTP() {
@@ -1454,6 +1478,11 @@
             message_body: { room: 'admin', token: token }
           }));
           isAdminRoomJoined = true;
+        }
+      } else if (target === 'webhooks' || target === 'webhook-jobs') {
+        if (myLevel <= 1) {
+          alert('Access Denied: Room "' + target + '" excludes user-level accounts (requires Auth Level > 1, e.g. Staff or Admin). Please select mesh-global or another active room.');
+          return;
         }
       }
 

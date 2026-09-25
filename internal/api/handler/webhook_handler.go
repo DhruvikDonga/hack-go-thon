@@ -24,7 +24,6 @@ import (
 	"hack-go-thon/pkg/log"
 	"hack-go-thon/pkg/response"
 
-	"github.com/DhruvikDonga/simplysocket"
 	"github.com/gin-gonic/gin"
 )
 
@@ -448,9 +447,9 @@ func (h *WebhookHandler) Send(c *gin.Context) {
 		go h.dispatchSingle(sub, payload.Event, payloadBytes)
 	}
 
-	// 3. Mirror broadcast to WebSocket mesh if active
+	// 3. Mirror broadcast to dedicated WebSocket webhooks room if active
 	if h.wsManager != nil {
-		h.wsManager.Broadcast(simplysocket.MeshGlobalRoom, "webhook-notification", map[string]any{
+		h.wsManager.Broadcast(ws.WebhooksRoom, "webhook-notification", map[string]any{
 			"event":     payload.Event,
 			"title":     payload.Title,
 			"message":   payload.Message,
@@ -466,6 +465,7 @@ func (h *WebhookHandler) Send(c *gin.Context) {
 		"targets_count": len(targets),
 		"event":         payload.Event,
 		"timestamp":     payload.Timestamp,
+		"notified_room": ws.WebhooksRoom,
 	})
 }
 

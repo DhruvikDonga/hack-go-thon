@@ -12,6 +12,13 @@ import (
 	"github.com/DhruvikDonga/simplysocket"
 )
 
+const (
+	// WebhooksRoom is the dedicated WebSocket room for webhook notification jobs and alerts.
+	WebhooksRoom = "webhooks"
+	// WebhookJobsRoom is an alias for the webhooks notification room.
+	WebhookJobsRoom = "webhook-jobs"
+)
+
 // RoomHandler defines the interface for modular room business logic.
 // By implementing this, developers can write different logic handlers
 // while reusing a single established WebSocket connection.
@@ -147,6 +154,46 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					log.Info("Authorized client to join admin room", "client", msg.Sender, "auth_level", claims.AuthLevel)
 				}
 
+				// The "webhooks" (and "webhook-jobs") room excludes user-level accounts (auth_level <= 1).
+				// All other levels (Level 2 to 99, e.g. Staff Level 10 and Admin Level 99) can join!
+				if targetRoom == WebhooksRoom || targetRoom == WebhookJobsRoom {
+					tokenStr, _ := msg.MessageBody["token"].(string)
+					if tokenStr == "" {
+						tokenStr = h.GetClientToken(msg.Sender)
+					}
+
+					h.mu.RLock()
+					sec := h.jwtSecret
+					h.mu.RUnlock()
+
+					valid, claims, err := middleware.VerifyTokenAuthLevel(sec, tokenStr, 2, 99)
+					if !valid {
+						errMsg := "Unauthorized: webhooks room excludes user-level accounts (requires Auth Level > 1, e.g. staff or admin)"
+						if err != nil {
+							errMsg = fmt.Sprintf("Unauthorized: %v", err)
+						}
+						log.Warn("Denied client access to webhooks room", "client", msg.Sender, "error", errMsg)
+
+						// Acknowledge refusal specifically to the requesting client
+						room.BroadcastMessage(&simplysocket.Message{
+							Action: "joined-room-ack",
+							Target: msg.Sender,
+							MessageBody: map[string]any{
+								"status":      "error",
+								"error":       errMsg,
+								"joined_room": targetRoom,
+								"client_slug": msg.Sender,
+								"time":        time.Now().UTC().Format(time.RFC3339),
+							},
+							Sender:         "server",
+							IsTargetClient: true,
+						})
+						continue
+					}
+
+					log.Info("Authorized client to join webhooks room", "client", msg.Sender, "auth_level", claims.AuthLevel)
+				}
+
 				var rd simplysocket.RoomData
 				switch targetRoom {
 				case "admin":
@@ -157,6 +204,8 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					}
 				case "chat":
 					rd = NewChatRoomHandler("chat")
+				case WebhooksRoom, WebhookJobsRoom:
+					rd = NewEventsRoomHandler(targetRoom, h.adminHandler)
 				default:
 					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {
 						rd = NewWebRTCRoomHandler(targetRoom)
