@@ -932,9 +932,28 @@ curl -X POST http://localhost:8080/api/v1/webhooks/send \
 The dispatch pipeline:
 1. Filters active subscriptions matching the event topic.
 2. Dispatches asynchronous HTTP POST requests in parallel with an isolated 5-second timeout.
-3. Automatically broadcasts `action: "webhook-notification"` over the `simplysocket` mesh to `mesh-global`, updating connected web and mobile WebSocket listeners simultaneously.
+3. Automatically broadcasts `action: "webhook-notification"` over the `simplysocket` mesh to the dedicated `"webhooks"` room (rather than flooding `mesh-global`), notifying real-time worker nodes and staff dashboards.
 
-### 17.5 PostgreSQL Database Persistence & Delivery Logs
+### 17.5 Dedicated 'webhooks' WebSocket Room & Access Control
+
+Rather than broadcasting webhook job events across the public `mesh-global` channel, notifications are scoped strictly to the dedicated **`webhooks`** room (alias `webhook-jobs`):
+
+* **Access Restriction (Excludes User Level)**: Standard user-level accounts with **Auth Level $\le 1$** (such as regular mobile app users, demo members, and default registered users) are denied entry to the `webhooks` room.
+* **Allowed Accounts**: All roles above user level (**Auth Level $> 1$**, Levels 2 to 99 — including Staff Level 10, Moderators, Superadmins Level 99, and background worker services) are authorized to join the `webhooks` room.
+* **Joining via WebSocket**:
+  ```json
+  {
+    "action": "join-room",
+    "target": "mesh-global",
+    "message_body": {
+      "room": "webhooks",
+      "token": "<staff_or_admin_jwt>"
+    }
+  }
+  ```
+  If an unauthorized user-level client attempts to join, the server rejects the request with `joined-room-ack` error status: `"Unauthorized: webhooks room excludes user-level accounts (requires Auth Level > 1, e.g. staff or admin)"`.
+
+### 17.6 PostgreSQL Database Persistence & Delivery Logs
 
 When PostgreSQL is connected (`SERVICES_DATABASE=true`), webhooks and delivery metrics are persisted directly into PostgreSQL tables:
 
