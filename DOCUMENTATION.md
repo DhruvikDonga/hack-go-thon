@@ -934,6 +934,32 @@ The dispatch pipeline:
 2. Dispatches asynchronous HTTP POST requests in parallel with an isolated 5-second timeout.
 3. Automatically broadcasts `action: "webhook-notification"` over the `simplysocket` mesh to `mesh-global`, updating connected web and mobile WebSocket listeners simultaneously.
 
+### 17.5 PostgreSQL Database Persistence & Delivery Logs
+
+When PostgreSQL is connected (`SERVICES_DATABASE=true`), webhooks and delivery metrics are persisted directly into PostgreSQL tables:
+
+#### Database Schema
+* **`webhook_subscriptions`**:
+  * `id VARCHAR(64) PRIMARY KEY`: Unique identifier (`wh_<timestamp>_<hex>`).
+  * `url TEXT NOT NULL`: Target HTTP/HTTPS endpoint.
+  * `events JSONB NOT NULL`: Subscribed topic filters (e.g. `["notification", "system_alert"]` or `["*"]`).
+  * `secret TEXT`: Shared secret used for HMAC-SHA256 request signatures.
+  * `description TEXT`: Purpose or subscriber application label.
+  * `active BOOLEAN`: Enabled / disabled state (indexed via `idx_webhook_subscriptions_active`).
+  * `created_at TIMESTAMPTZ`, `updated_at TIMESTAMPTZ`: Auto-managed timestamps.
+* **`webhook_delivery_logs`**:
+  * `id VARCHAR(64) PRIMARY KEY`: Unique delivery attempt trace ID.
+  * `webhook_id VARCHAR(64)`: Associated subscription ID.
+  * `url TEXT`, `event VARCHAR(100)`: Target and event topic.
+  * `status_code INT`, `duration_ms BIGINT`: HTTP response metrics.
+  * `success BOOLEAN`, `error TEXT`: Status code `< 300` flag and error detail.
+  * `payload_preview TEXT`: Serialized JSON payload snapshot.
+  * `created_at TIMESTAMPTZ`: Indexed reverse-chronologically for real-time audit queries (`idx_webhook_logs_created_at`).
+
+#### Resilient Dual-Mode Operation
+* **Database Mode**: On startup, `pgstore.InitWebhookSchema(ctx, pgDB)` auto-migrates the tables and indexes. Subscriptions are loaded into memory for zero-overhead asynchronous dispatching, and all CRUD changes and delivery attempts are synchronized with PostgreSQL.
+* **Offline / Demo Mode**: If PostgreSQL is disabled (`SERVICES_DATABASE=false`) or unreachable, `WebhookHandler` gracefully switches to thread-safe in-memory maps and ring buffers, ensuring zero downtime and fully working local unit tests.
+
 ---
 
 ## 18. Multipart Form File Upload API

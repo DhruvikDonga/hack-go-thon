@@ -18,7 +18,7 @@ import (
 
 func TestWebhookHandler_CRUDAndDispatch(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewWebhookHandler(nil, 2*time.Second)
+	h := NewWebhookHandler(nil, nil, 2*time.Second)
 
 	r := gin.New()
 	r.POST("/webhooks", h.Register)

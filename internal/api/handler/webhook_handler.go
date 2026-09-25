@@ -2,11 +2,14 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	dbclient "hack-go-thon/internal/db_client"
+	pgstore "hack-go-thon/internal/store/pg_store"
 	"hack-go-thon/internal/ws"
 	"hack-go-thon/pkg/apperrors"
 	"hack-go-thon/pkg/log"
@@ -82,6 +87,7 @@ type WebhookTestResult struct {
 
 // WebhookHandler coordinates webhook subscriptions, notification dispatching, and delivery logs.
 type WebhookHandler struct {
+	db            *dbclient.PostgresDatabase
 	httpClient    *http.Client
 	wsManager     *ws.Manager
 	mu            sync.RWMutex
@@ -91,17 +97,45 @@ type WebhookHandler struct {
 }
 
 // NewWebhookHandler initializes the webhook notification handler.
-func NewWebhookHandler(wsManager *ws.Manager, timeout time.Duration) *WebhookHandler {
+// If db is provided and connected, webhook subscriptions and delivery logs are persisted in PostgreSQL.
+// Otherwise, it operates purely in-memory.
+func NewWebhookHandler(db *dbclient.PostgresDatabase, wsManager *ws.Manager, timeout time.Duration) *WebhookHandler {
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
-	return &WebhookHandler{
+	h := &WebhookHandler{
+		db:            db,
 		httpClient:    &http.Client{Timeout: timeout},
 		wsManager:     wsManager,
 		subscriptions: make(map[string]*WebhookSubscription),
 		logs:          make([]WebhookDeliveryLog, 0, 100),
 		maxLogs:       100,
 	}
+
+	if db != nil && db.Client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		dbSubs, err := pgstore.ListWebhookSubscriptions(ctx, db)
+		if err == nil {
+			for _, s := range dbSubs {
+				h.subscriptions[s.ID] = &WebhookSubscription{
+					ID:          s.ID,
+					URL:         s.URL,
+					Events:      s.Events,
+					Secret:      s.Secret,
+					Description: s.Description,
+					Active:      s.Active,
+					CreatedAt:   s.CreatedAt,
+					UpdatedAt:   s.UpdatedAt,
+				}
+			}
+			log.Info("Loaded webhook subscriptions from database", "count", len(dbSubs))
+		} else {
+			log.Warn("Failed to load initial webhook subscriptions from database", "error", err.Error())
+		}
+	}
+
+	return h
 }
 
 // Register creates a new webhook subscription.
@@ -150,6 +184,23 @@ func (h *WebhookHandler) Register(c *gin.Context) {
 		UpdatedAt:   now,
 	}
 
+	if h.db != nil && h.db.Client != nil {
+		dbModel := &pgstore.WebhookModel{
+			ID:          sub.ID,
+			URL:         sub.URL,
+			Events:      sub.Events,
+			Secret:      sub.Secret,
+			Description: sub.Description,
+			Active:      sub.Active,
+			CreatedAt:   sub.CreatedAt,
+			UpdatedAt:   sub.UpdatedAt,
+		}
+		if err := pgstore.CreateWebhookSubscription(c.Request.Context(), h.db, dbModel); err != nil {
+			response.Error(c, apperrors.NewInternal("Failed to persist webhook: "+err.Error()))
+			return
+		}
+	}
+
 	h.mu.Lock()
 	h.subscriptions[id] = sub
 	h.mu.Unlock()
@@ -161,6 +212,28 @@ func (h *WebhookHandler) Register(c *gin.Context) {
 // List returns all registered webhooks.
 // GET /api/v1/webhooks
 func (h *WebhookHandler) List(c *gin.Context) {
+	if h.db != nil && h.db.Client != nil {
+		dbSubs, err := pgstore.ListWebhookSubscriptions(c.Request.Context(), h.db)
+		if err == nil {
+			list := make([]*WebhookSubscription, 0, len(dbSubs))
+			for _, s := range dbSubs {
+				list = append(list, &WebhookSubscription{
+					ID:          s.ID,
+					URL:         s.URL,
+					Events:      s.Events,
+					Secret:      s.Secret,
+					Description: s.Description,
+					Active:      s.Active,
+					CreatedAt:   s.CreatedAt,
+					UpdatedAt:   s.UpdatedAt,
+				})
+			}
+			response.OK(c, list)
+			return
+		}
+		log.Warn("Failed to list webhooks from database, falling back to cache", "error", err.Error())
+	}
+
 	h.mu.RLock()
 	list := make([]*WebhookSubscription, 0, len(h.subscriptions))
 	for _, sub := range h.subscriptions {
@@ -175,6 +248,26 @@ func (h *WebhookHandler) List(c *gin.Context) {
 // GET /api/v1/webhooks/:id
 func (h *WebhookHandler) Get(c *gin.Context) {
 	id := c.Param("id")
+
+	if h.db != nil && h.db.Client != nil {
+		s, err := pgstore.GetWebhookSubscription(c.Request.Context(), h.db, id)
+		if err == nil && s != nil {
+			response.OK(c, &WebhookSubscription{
+				ID:          s.ID,
+				URL:         s.URL,
+				Events:      s.Events,
+				Secret:      s.Secret,
+				Description: s.Description,
+				Active:      s.Active,
+				CreatedAt:   s.CreatedAt,
+				UpdatedAt:   s.UpdatedAt,
+			})
+			return
+		}
+		if err != nil {
+			log.Warn("Failed to get webhook from database, checking cache", "id", id, "error", err.Error())
+		}
+	}
 
 	h.mu.RLock()
 	sub, exists := h.subscriptions[id]
@@ -210,6 +303,23 @@ func (h *WebhookHandler) Update(c *gin.Context) {
 	defer h.mu.Unlock()
 
 	sub, exists := h.subscriptions[id]
+	if !exists && h.db != nil && h.db.Client != nil {
+		dbSub, err := pgstore.GetWebhookSubscription(c.Request.Context(), h.db, id)
+		if err == nil && dbSub != nil {
+			sub = &WebhookSubscription{
+				ID:          dbSub.ID,
+				URL:         dbSub.URL,
+				Events:      dbSub.Events,
+				Secret:      dbSub.Secret,
+				Description: dbSub.Description,
+				Active:      dbSub.Active,
+				CreatedAt:   dbSub.CreatedAt,
+				UpdatedAt:   dbSub.UpdatedAt,
+			}
+			exists = true
+		}
+	}
+
 	if !exists {
 		response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
 		return
@@ -237,6 +347,24 @@ func (h *WebhookHandler) Update(c *gin.Context) {
 	}
 	sub.UpdatedAt = time.Now().UTC()
 
+	if h.db != nil && h.db.Client != nil {
+		dbModel := &pgstore.WebhookModel{
+			ID:          sub.ID,
+			URL:         sub.URL,
+			Events:      sub.Events,
+			Secret:      sub.Secret,
+			Description: sub.Description,
+			Active:      sub.Active,
+			CreatedAt:   sub.CreatedAt,
+			UpdatedAt:   sub.UpdatedAt,
+		}
+		if err := pgstore.UpdateWebhookSubscription(c.Request.Context(), h.db, dbModel); err != nil {
+			response.Error(c, apperrors.NewInternal("Failed to update webhook in database: "+err.Error()))
+			return
+		}
+	}
+
+	h.subscriptions[id] = sub
 	response.OK(c, sub)
 }
 
@@ -251,6 +379,22 @@ func (h *WebhookHandler) Delete(c *gin.Context) {
 		delete(h.subscriptions, id)
 	}
 	h.mu.Unlock()
+
+	if h.db != nil && h.db.Client != nil {
+		err := pgstore.DeleteWebhookSubscription(c.Request.Context(), h.db, id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) && !exists {
+				response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
+				return
+			}
+			if !errors.Is(err, sql.ErrNoRows) {
+				response.Error(c, apperrors.NewInternal("Failed to delete webhook from database: "+err.Error()))
+				return
+			}
+		} else {
+			exists = true
+		}
+	}
 
 	if !exists {
 		response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
@@ -459,6 +603,30 @@ func (h *WebhookHandler) Test(c *gin.Context) {
 // GetLogs returns recent webhook delivery logs.
 // GET /api/v1/webhooks/logs
 func (h *WebhookHandler) GetLogs(c *gin.Context) {
+	if h.db != nil && h.db.Client != nil {
+		dbLogs, err := pgstore.ListWebhookDeliveryLogs(c.Request.Context(), h.db, h.maxLogs)
+		if err == nil {
+			logs := make([]WebhookDeliveryLog, 0, len(dbLogs))
+			for _, l := range dbLogs {
+				logs = append(logs, WebhookDeliveryLog{
+					ID:             l.ID,
+					WebhookID:      l.WebhookID,
+					URL:            l.URL,
+					Event:          l.Event,
+					StatusCode:     l.StatusCode,
+					DurationMs:     l.DurationMs,
+					Success:        l.Success,
+					Error:          l.Error,
+					Timestamp:      l.CreatedAt,
+					PayloadPreview: l.PayloadPreview,
+				})
+			}
+			response.OK(c, logs)
+			return
+		}
+		log.Warn("Failed to query webhook delivery logs from database, falling back to memory", "error", err.Error())
+	}
+
 	h.mu.RLock()
 	logsCopy := make([]WebhookDeliveryLog, len(h.logs))
 	copy(logsCopy, h.logs)
@@ -528,15 +696,33 @@ func (h *WebhookHandler) dispatchSingle(sub *WebhookSubscription, event string, 
 	h.recordLog(logEntry)
 }
 
-// recordLog adds a delivery log entry to the ring buffer.
+// recordLog adds a delivery log entry to the ring buffer and writes to PostgreSQL if connected.
 func (h *WebhookHandler) recordLog(entry WebhookDeliveryLog) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	// Prepend for newest-first ordering
 	h.logs = append([]WebhookDeliveryLog{entry}, h.logs...)
 	if len(h.logs) > h.maxLogs {
 		h.logs = h.logs[:h.maxLogs]
+	}
+	h.mu.Unlock()
+
+	if h.db != nil && h.db.Client != nil {
+		go func(e WebhookDeliveryLog) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = pgstore.InsertWebhookDeliveryLog(ctx, h.db, &pgstore.WebhookDeliveryLogModel{
+				ID:             e.ID,
+				WebhookID:      e.WebhookID,
+				URL:            e.URL,
+				Event:          e.Event,
+				StatusCode:     e.StatusCode,
+				DurationMs:     e.DurationMs,
+				Success:        e.Success,
+				Error:          e.Error,
+				PayloadPreview: e.PayloadPreview,
+				CreatedAt:      e.Timestamp,
+			})
+		}(entry)
 	}
 }
 

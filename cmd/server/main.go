@@ -70,6 +70,9 @@ func main() {
 			if err := pgstore.InitUserSchema(ctx, pgDB); err != nil {
 				log.Warn("Failed to initialize users schema", "error", err.Error())
 			}
+			if err := pgstore.InitWebhookSchema(ctx, pgDB); err != nil {
+				log.Warn("Failed to initialize webhooks schema", "error", err.Error())
+			}
 		}
 	} else if !cfg.Services.Database {
 		log.Info("Database service disabled via services.json")
@@ -157,7 +160,7 @@ func main() {
 	// Initialize Webhook Notification Handler (if enabled)
 	var webhookHandler *handler.WebhookHandler
 	if cfg.Services.Webhook {
-		webhookHandler = handler.NewWebhookHandler(wsManager, cfg.WebhookTimeout)
+		webhookHandler = handler.NewWebhookHandler(pgDB, wsManager, cfg.WebhookTimeout)
 	} else {
 		log.Info("Webhook notification service disabled via services.json")
 	}

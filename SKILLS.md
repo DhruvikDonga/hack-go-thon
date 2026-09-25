@@ -44,7 +44,7 @@ hack-go-thon/
 │   │   └── postgres.go           # database/sql Postgres connection pool
 │   ├── store/
 │   │   ├── store.go              # Storage interfaces (DocumentStore, etc.)
-│   │   └── pg_store/             # PostgreSQL + pgvector + users implementations
+│   │   └── pg_store/             # PostgreSQL + pgvector + users + webhooks implementations
 │   ├── ws/
 │   │   ├── manager.go            # simplysocket Manager wrapper & broadcast safety
 │   │   ├── handler.go            # WebSocket connection upgrade & client registration
