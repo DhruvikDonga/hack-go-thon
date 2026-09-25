@@ -54,6 +54,12 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
     - **Demo Member (Level 1)**: `user@hackathon.local` / `user123` — standard member privileges.
   - **simplysocket Room-Level Security & Direct Broadcast**: The WebSocket connection endpoint (`/api/v1/ws`) is open to all clients. All connected users join `mesh-global` and can broadcast directly using `action: "broadcast"`. Admission to the special `"admin"` room strictly requires Auth Level $> 10$ (Level 11–99), where admins can broadcast directly to room `"admin"`.
 
+- 🔔 **Mobile Webhook Notification Subsystem (`/api/v1/webhooks/*`)**  
+  Built for mobile app push relays and third-party event consumers. Allows registering webhook URLs with topic filtering (`events: ["*"]` or `["notification", "alert"]`), cryptographic payload signing (`X-Webhook-Signature: sha256=<hmac>`), non-blocking asynchronous dispatch, live ping testing (`POST /api/v1/webhooks/test`), delivery logs, and automatic synchronization across the `simplysocket` WebSocket mesh.
+
+- 📁 **Multipart Form File Upload API (`/api/v1/upload` & `/api/v1/files/*`)**  
+  Production-ready file upload engine ingesting `multipart/form-data` for single or multiple files (images, audio notes, media attachments, documents). Features path traversal protection, magic-byte MIME type sniffing (`http.DetectContentType`), configurable size limits (`MAX_UPLOAD_SIZE_MB`), SHA256 integrity checksums, and streaming or attachment download serving (`GET /api/v1/files/:filename?download=true`).
+
 - 🔐 **Authentication & Security Middlewares**  
   Production-ready authentication middleware pipeline with JWT (`Bearer <token>`) validation/generation, custom claims RBAC verification, and database-backed API Key (`X-API-Key`) checking with master key bypass.
 

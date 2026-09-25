@@ -1,0 +1,565 @@
+package handler
+
+import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"hack-go-thon/internal/ws"
+	"hack-go-thon/pkg/apperrors"
+	"hack-go-thon/pkg/log"
+	"hack-go-thon/pkg/response"
+
+	"github.com/DhruvikDonga/simplysocket"
+	"github.com/gin-gonic/gin"
+)
+
+// WebhookSubscription represents a registered webhook endpoint.
+type WebhookSubscription struct {
+	ID          string    `json:"id"`
+	URL         string    `json:"url" binding:"required"`
+	Events      []string  `json:"events"`           // e.g. ["*"] or ["notification", "alert"]
+	Secret      string    `json:"secret,omitempty"` // Shared secret for HMAC-SHA256 signature
+	Description string    `json:"description,omitempty"`
+	Active      bool      `json:"active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// NotificationPayload defines the event notification sent to webhooks and mobile clients.
+type NotificationPayload struct {
+	Event     string         `json:"event"` // e.g. "notification", "system_announcement", "chat_message"
+	Title     string         `json:"title" binding:"required"`
+	Message   string         `json:"message" binding:"required"`
+	Data      map[string]any `json:"data,omitempty"`     // Custom JSON state for mobile client
+	Target    string         `json:"target,omitempty"`   // Device token, user ID, or audience tag
+	Priority  string         `json:"priority,omitempty"` // "normal" or "high"
+	Timestamp string         `json:"timestamp,omitempty"`
+}
+
+// WebhookDeliveryLog records the status of an HTTP delivery attempt.
+type WebhookDeliveryLog struct {
+	ID             string    `json:"id"`
+	WebhookID      string    `json:"webhook_id"`
+	URL            string    `json:"url"`
+	Event          string    `json:"event"`
+	StatusCode     int       `json:"status_code"`
+	DurationMs     int64     `json:"duration_ms"`
+	Success        bool      `json:"success"`
+	Error          string    `json:"error,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
+	PayloadPreview string    `json:"payload_preview,omitempty"`
+}
+
+// WebhookTestRequest is the input for testing webhook delivery.
+type WebhookTestRequest struct {
+	WebhookID string         `json:"webhook_id,omitempty"`
+	URL       string         `json:"url,omitempty"`
+	Secret    string         `json:"secret,omitempty"`
+	Event     string         `json:"event,omitempty"`
+	Title     string         `json:"title,omitempty"`
+	Message   string         `json:"message,omitempty"`
+	Data      map[string]any `json:"data,omitempty"`
+}
+
+// WebhookTestResult returns immediate delivery metrics from an on-demand ping test.
+type WebhookTestResult struct {
+	Success      bool   `json:"success"`
+	StatusCode   int    `json:"status_code"`
+	DurationMs   int64  `json:"duration_ms"`
+	ResponseBody string `json:"response_body,omitempty"`
+	Error        string `json:"error,omitempty"`
+}
+
+// WebhookHandler coordinates webhook subscriptions, notification dispatching, and delivery logs.
+type WebhookHandler struct {
+	httpClient    *http.Client
+	wsManager     *ws.Manager
+	mu            sync.RWMutex
+	subscriptions map[string]*WebhookSubscription
+	logs          []WebhookDeliveryLog
+	maxLogs       int
+}
+
+// NewWebhookHandler initializes the webhook notification handler.
+func NewWebhookHandler(wsManager *ws.Manager, timeout time.Duration) *WebhookHandler {
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	return &WebhookHandler{
+		httpClient:    &http.Client{Timeout: timeout},
+		wsManager:     wsManager,
+		subscriptions: make(map[string]*WebhookSubscription),
+		logs:          make([]WebhookDeliveryLog, 0, 100),
+		maxLogs:       100,
+	}
+}
+
+// Register creates a new webhook subscription.
+// POST /api/v1/webhooks
+func (h *WebhookHandler) Register(c *gin.Context) {
+	var input struct {
+		URL         string   `json:"url" binding:"required"`
+		Events      []string `json:"events"`
+		Secret      string   `json:"secret"`
+		Description string   `json:"description"`
+		Active      *bool    `json:"active"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.Error(c, apperrors.NewBadRequest("Invalid webhook registration payload: "+err.Error()))
+		return
+	}
+
+	trimmedURL := strings.TrimSpace(input.URL)
+	if !strings.HasPrefix(trimmedURL, "http://") && !strings.HasPrefix(trimmedURL, "https://") {
+		response.Error(c, apperrors.NewBadRequest("Webhook URL must start with http:// or https://"))
+		return
+	}
+
+	events := input.Events
+	if len(events) == 0 {
+		events = []string{"*"}
+	}
+
+	isActive := true
+	if input.Active != nil {
+		isActive = *input.Active
+	}
+
+	id := generateRandomID("wh")
+	now := time.Now().UTC()
+
+	sub := &WebhookSubscription{
+		ID:          id,
+		URL:         trimmedURL,
+		Events:      events,
+		Secret:      strings.TrimSpace(input.Secret),
+		Description: strings.TrimSpace(input.Description),
+		Active:      isActive,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	h.mu.Lock()
+	h.subscriptions[id] = sub
+	h.mu.Unlock()
+
+	log.Info("Registered new webhook subscription", "id", id, "url", trimmedURL, "events", events)
+	response.Created(c, sub)
+}
+
+// List returns all registered webhooks.
+// GET /api/v1/webhooks
+func (h *WebhookHandler) List(c *gin.Context) {
+	h.mu.RLock()
+	list := make([]*WebhookSubscription, 0, len(h.subscriptions))
+	for _, sub := range h.subscriptions {
+		list = append(list, sub)
+	}
+	h.mu.RUnlock()
+
+	response.OK(c, list)
+}
+
+// Get returns details for a specific webhook.
+// GET /api/v1/webhooks/:id
+func (h *WebhookHandler) Get(c *gin.Context) {
+	id := c.Param("id")
+
+	h.mu.RLock()
+	sub, exists := h.subscriptions[id]
+	h.mu.RUnlock()
+
+	if !exists {
+		response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
+		return
+	}
+
+	response.OK(c, sub)
+}
+
+// Update modifies an existing webhook subscription.
+// PUT /api/v1/webhooks/:id
+func (h *WebhookHandler) Update(c *gin.Context) {
+	id := c.Param("id")
+
+	var input struct {
+		URL         *string   `json:"url"`
+		Events      *[]string `json:"events"`
+		Secret      *string   `json:"secret"`
+		Description *string   `json:"description"`
+		Active      *bool     `json:"active"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.Error(c, apperrors.NewBadRequest("Invalid update payload: "+err.Error()))
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	sub, exists := h.subscriptions[id]
+	if !exists {
+		response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
+		return
+	}
+
+	if input.URL != nil {
+		trimmed := strings.TrimSpace(*input.URL)
+		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+			response.Error(c, apperrors.NewBadRequest("Webhook URL must start with http:// or https://"))
+			return
+		}
+		sub.URL = trimmed
+	}
+	if input.Events != nil {
+		sub.Events = *input.Events
+	}
+	if input.Secret != nil {
+		sub.Secret = strings.TrimSpace(*input.Secret)
+	}
+	if input.Description != nil {
+		sub.Description = strings.TrimSpace(*input.Description)
+	}
+	if input.Active != nil {
+		sub.Active = *input.Active
+	}
+	sub.UpdatedAt = time.Now().UTC()
+
+	response.OK(c, sub)
+}
+
+// Delete removes a webhook subscription.
+// DELETE /api/v1/webhooks/:id
+func (h *WebhookHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+
+	h.mu.Lock()
+	_, exists := h.subscriptions[id]
+	if exists {
+		delete(h.subscriptions, id)
+	}
+	h.mu.Unlock()
+
+	if !exists {
+		response.Error(c, apperrors.NewNotFound("Webhook subscription not found"))
+		return
+	}
+
+	response.OK(c, gin.H{"deleted": true, "id": id})
+}
+
+// Send dispatches a notification payload to all active webhooks that match the event.
+// Also broadcasts to simplysocket WebSocket mesh (MeshGlobalRoom).
+// POST /api/v1/webhooks/send
+func (h *WebhookHandler) Send(c *gin.Context) {
+	var payload NotificationPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		response.Error(c, apperrors.NewBadRequest("Invalid notification payload: "+err.Error()))
+		return
+	}
+
+	if payload.Event == "" {
+		payload.Event = "notification"
+	}
+	if payload.Timestamp == "" {
+		payload.Timestamp = time.Now().UTC().Format(time.RFC3339)
+	}
+	if payload.Priority == "" {
+		payload.Priority = "normal"
+	}
+
+	// 1. Find matching subscriptions
+	h.mu.RLock()
+	var targets []*WebhookSubscription
+	for _, sub := range h.subscriptions {
+		if !sub.Active {
+			continue
+		}
+		if matchesEvent(sub.Events, payload.Event) {
+			targets = append(targets, sub)
+		}
+	}
+	h.mu.RUnlock()
+
+	// 2. Dispatch to webhooks asynchronously
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		response.Error(c, apperrors.NewInternal("Failed to encode payload: "+err.Error()))
+		return
+	}
+
+	for _, sub := range targets {
+		go h.dispatchSingle(sub, payload.Event, payloadBytes)
+	}
+
+	// 3. Mirror broadcast to WebSocket mesh if active
+	if h.wsManager != nil {
+		h.wsManager.Broadcast(simplysocket.MeshGlobalRoom, "webhook-notification", map[string]any{
+			"event":     payload.Event,
+			"title":     payload.Title,
+			"message":   payload.Message,
+			"data":      payload.Data,
+			"target":    payload.Target,
+			"priority":  payload.Priority,
+			"timestamp": payload.Timestamp,
+		})
+	}
+
+	response.OK(c, gin.H{
+		"dispatched":    true,
+		"targets_count": len(targets),
+		"event":         payload.Event,
+		"timestamp":     payload.Timestamp,
+	})
+}
+
+// Test sends a live test payload to a target webhook or raw URL and reports immediate response metrics.
+// POST /api/v1/webhooks/test
+func (h *WebhookHandler) Test(c *gin.Context) {
+	var req WebhookTestRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, apperrors.NewBadRequest("Invalid test request: "+err.Error()))
+		return
+	}
+
+	targetURL := strings.TrimSpace(req.URL)
+	secret := strings.TrimSpace(req.Secret)
+
+	// If webhook_id specified, load URL and Secret from subscription
+	if req.WebhookID != "" {
+		h.mu.RLock()
+		sub, exists := h.subscriptions[req.WebhookID]
+		h.mu.RUnlock()
+		if !exists {
+			response.Error(c, apperrors.NewNotFound("Webhook subscription not found: "+req.WebhookID))
+			return
+		}
+		targetURL = sub.URL
+		if secret == "" {
+			secret = sub.Secret
+		}
+	}
+
+	if targetURL == "" {
+		response.Error(c, apperrors.NewBadRequest("Target URL or valid Webhook ID is required"))
+		return
+	}
+
+	event := req.Event
+	if event == "" {
+		event = "test.ping"
+	}
+	title := req.Title
+	if title == "" {
+		title = "Test Webhook Ping"
+	}
+	message := req.Message
+	if message == "" {
+		message = "Connectivity verification from Hack-Go-Thon backend."
+	}
+
+	testPayload := map[string]any{
+		"event":     event,
+		"title":     title,
+		"message":   message,
+		"data":      req.Data,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	payloadBytes, _ := json.Marshal(testPayload)
+	deliveryID := generateRandomID("del")
+
+	httpReq, err := http.NewRequestWithContext(c.Request.Context(), "POST", targetURL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		response.OK(c, WebhookTestResult{
+			Success: false,
+			Error:   "Failed to create HTTP request: " + err.Error(),
+		})
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Webhook-Event", event)
+	httpReq.Header.Set("X-Webhook-Delivery", deliveryID)
+	httpReq.Header.Set("X-Webhook-Timestamp", time.Now().UTC().Format(time.RFC3339))
+	httpReq.Header.Set("User-Agent", "Hack-Go-Thon-Webhook/1.0")
+
+	if secret != "" {
+		sig := computeHMAC(payloadBytes, secret)
+		httpReq.Header.Set("X-Webhook-Signature", "sha256="+sig)
+	}
+
+	start := time.Now()
+	resp, reqErr := h.httpClient.Do(httpReq)
+	duration := time.Since(start).Milliseconds()
+
+	if reqErr != nil {
+		result := WebhookTestResult{
+			Success:    false,
+			DurationMs: duration,
+			Error:      reqErr.Error(),
+		}
+		h.recordLog(WebhookDeliveryLog{
+			ID:             deliveryID,
+			WebhookID:      req.WebhookID,
+			URL:            targetURL,
+			Event:          event,
+			DurationMs:     duration,
+			Success:        false,
+			Error:          reqErr.Error(),
+			Timestamp:      time.Now().UTC(),
+			PayloadPreview: string(payloadBytes),
+		})
+		response.OK(c, result)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	success := resp.StatusCode >= 200 && resp.StatusCode < 300
+
+	result := WebhookTestResult{
+		Success:      success,
+		StatusCode:   resp.StatusCode,
+		DurationMs:   duration,
+		ResponseBody: string(respBody),
+	}
+	if !success {
+		result.Error = fmt.Sprintf("HTTP status %d", resp.StatusCode)
+	}
+
+	h.recordLog(WebhookDeliveryLog{
+		ID:             deliveryID,
+		WebhookID:      req.WebhookID,
+		URL:            targetURL,
+		Event:          event,
+		StatusCode:     resp.StatusCode,
+		DurationMs:     duration,
+		Success:        success,
+		Error:          result.Error,
+		Timestamp:      time.Now().UTC(),
+		PayloadPreview: string(payloadBytes),
+	})
+
+	response.OK(c, result)
+}
+
+// GetLogs returns recent webhook delivery logs.
+// GET /api/v1/webhooks/logs
+func (h *WebhookHandler) GetLogs(c *gin.Context) {
+	h.mu.RLock()
+	logsCopy := make([]WebhookDeliveryLog, len(h.logs))
+	copy(logsCopy, h.logs)
+	h.mu.RUnlock()
+
+	response.OK(c, logsCopy)
+}
+
+// dispatchSingle sends an HTTP POST request to a single subscriber and records the result.
+func (h *WebhookHandler) dispatchSingle(sub *WebhookSubscription, event string, payloadBytes []byte) {
+	deliveryID := generateRandomID("del")
+	nowStr := time.Now().UTC().Format(time.RFC3339)
+
+	req, err := http.NewRequest("POST", sub.URL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		h.recordLog(WebhookDeliveryLog{
+			ID:             deliveryID,
+			WebhookID:      sub.ID,
+			URL:            sub.URL,
+			Event:          event,
+			Success:        false,
+			Error:          err.Error(),
+			Timestamp:      time.Now().UTC(),
+			PayloadPreview: string(payloadBytes),
+		})
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Event", event)
+	req.Header.Set("X-Webhook-Delivery", deliveryID)
+	req.Header.Set("X-Webhook-Timestamp", nowStr)
+	req.Header.Set("User-Agent", "Hack-Go-Thon-Webhook/1.0")
+
+	if sub.Secret != "" {
+		sig := computeHMAC(payloadBytes, sub.Secret)
+		req.Header.Set("X-Webhook-Signature", "sha256="+sig)
+	}
+
+	start := time.Now()
+	resp, reqErr := h.httpClient.Do(req)
+	duration := time.Since(start).Milliseconds()
+
+	logEntry := WebhookDeliveryLog{
+		ID:             deliveryID,
+		WebhookID:      sub.ID,
+		URL:            sub.URL,
+		Event:          event,
+		DurationMs:     duration,
+		Timestamp:      time.Now().UTC(),
+		PayloadPreview: string(payloadBytes),
+	}
+
+	if reqErr != nil {
+		logEntry.Success = false
+		logEntry.Error = reqErr.Error()
+		log.Warn("Webhook delivery failed", "webhook_id", sub.ID, "url", sub.URL, "error", reqErr.Error())
+	} else {
+		_ = resp.Body.Close()
+		logEntry.StatusCode = resp.StatusCode
+		logEntry.Success = resp.StatusCode >= 200 && resp.StatusCode < 300
+		if !logEntry.Success {
+			logEntry.Error = fmt.Sprintf("HTTP status %d", resp.StatusCode)
+		}
+	}
+
+	h.recordLog(logEntry)
+}
+
+// recordLog adds a delivery log entry to the ring buffer.
+func (h *WebhookHandler) recordLog(entry WebhookDeliveryLog) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	// Prepend for newest-first ordering
+	h.logs = append([]WebhookDeliveryLog{entry}, h.logs...)
+	if len(h.logs) > h.maxLogs {
+		h.logs = h.logs[:h.maxLogs]
+	}
+}
+
+// matchesEvent checks if an event list matches the target event.
+func matchesEvent(events []string, target string) bool {
+	for _, e := range events {
+		if e == "*" || strings.EqualFold(e, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// computeHMAC calculates HMAC-SHA256 hex string.
+func computeHMAC(payload []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// generateRandomID generates a random prefixed string ID.
+func generateRandomID(prefix string) string {
+	b := make([]byte, 6)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%s_%d_%x", prefix, time.Now().Unix(), b)
+}

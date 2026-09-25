@@ -154,6 +154,22 @@ func main() {
 		log.Info("WebSocket mesh service disabled via services.json")
 	}
 
+	// Initialize Webhook Notification Handler (if enabled)
+	var webhookHandler *handler.WebhookHandler
+	if cfg.Services.Webhook {
+		webhookHandler = handler.NewWebhookHandler(wsManager, cfg.WebhookTimeout)
+	} else {
+		log.Info("Webhook notification service disabled via services.json")
+	}
+
+	// Initialize Multipart Form Upload Handler (if enabled)
+	var uploadHandler *handler.UploadHandler
+	if cfg.Services.Upload {
+		uploadHandler = handler.NewUploadHandler(cfg.UploadDir, cfg.MaxUploadSize)
+	} else {
+		log.Info("Upload service disabled via services.json")
+	}
+
 	router := api.SetupRouter(api.RouterConfig{
 		Config:         cfg,
 		HealthHandler:  healthHandler,
@@ -161,6 +177,8 @@ func main() {
 		RAGHandler:     ragHandler,
 		WebRTCHandler:  webrtcHandler,
 		UserHandler:    userHandler,
+		WebhookHandler: webhookHandler,
+		UploadHandler:  uploadHandler,
 		DB:             pgDB,
 		WSManager:      wsManager,
 		Scheduler:      scheduler,

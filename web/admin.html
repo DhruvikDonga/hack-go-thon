@@ -761,6 +761,165 @@
         </div>
       </div>
     </div>
+
+    <!-- 2 Column Layout: Mobile Webhooks (Left) & Multipart Form Uploads (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      
+      <!-- Mobile Webhook Notification Center -->
+      <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+              <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span>Mobile Webhooks & Notification Center</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Register mobile push endpoints, sign payloads with HMAC-SHA256, and dispatch live alerts.</p>
+          </div>
+          <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            Refresh
+          </button>
+        </div>
+
+        <!-- Register Webhook Form -->
+        <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Register Mobile Webhook URL</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="whUrlInput" type="url" placeholder="https://mobile-gateway/v1/notify" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <input id="whSecretInput" type="text" placeholder="HMAC Secret (optional)" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="whEventsInput" type="text" placeholder="Events (e.g. notification, alert or *)" value="*" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+            <input id="whDescInput" type="text" placeholder="Description (e.g. iOS Push Gateway)" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div class="flex justify-end">
+            <button onclick="registerWebhook()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+              <span>+ Register Webhook</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Registered Webhooks Table -->
+        <div class="overflow-x-auto max-h-48 overflow-y-auto border border-borderCol rounded-lg">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] sticky top-0 border-b border-borderCol">
+              <tr>
+                <th class="p-2">Target URL</th>
+                <th class="p-2">Events</th>
+                <th class="p-2">Secret</th>
+                <th class="p-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="webhooksTableBody" class="divide-y divide-borderCol/60 bg-slate-900/40 font-mono text-[11px]">
+              <tr><td colspan="4" class="p-3 text-center text-slate-500 italic font-sans">No webhooks registered.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Dispatch Notification Tool -->
+        <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>Dispatch Notification / Alert</span>
+            <span class="text-[10px] text-indigo-400 font-mono">Syncs to Webhooks &amp; Mesh</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="notifTitleInput" type="text" placeholder="Notification Title..." value="System Announcement" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <input id="notifEventInput" type="text" placeholder="Event Type (default: notification)" value="notification" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <textarea id="notifMessageInput" rows="2" placeholder="Notification message body..." class="w-full bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500">Scheduled server update will complete in 10 minutes.</textarea>
+          <div class="flex items-center justify-between">
+            <span id="notifStatusText" class="text-[11px] text-slate-400 font-mono"></span>
+            <button onclick="dispatchWebhookNotification()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+              <span>🚀 Dispatch Notification</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Delivery Logs -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <span>Recent Delivery History</span>
+            <button onclick="fetchWebhookLogs()" class="text-indigo-400 hover:underline">Refresh Logs</button>
+          </div>
+          <div id="webhookLogsContainer" class="h-28 overflow-y-auto bg-slate-950 border border-borderCol rounded-md p-2 font-mono text-[10px] space-y-1 text-slate-400">
+            <span class="text-slate-600 italic font-sans">No recent delivery attempts recorded.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multipart Form File Upload & Media Storage Hub -->
+      <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Multipart Form Upload &amp; Assets</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Upload photos, voice notes, media, and attachments via standard multipart/form-data.</p>
+          </div>
+          <button onclick="fetchUploadedFiles()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            Refresh
+          </button>
+        </div>
+
+        <!-- Upload Form -->
+        <form id="uploadForm" onsubmit="event.preventDefault(); submitFileUpload();" class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-3">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Upload Asset (multipart/form-data)</div>
+          
+          <div class="border-2 border-dashed border-borderCol hover:border-amber-500/50 rounded-lg p-4 text-center cursor-pointer transition bg-slate-900/30" onclick="document.getElementById('filePickerInput').click()">
+            <input id="filePickerInput" type="file" multiple class="hidden" onchange="handleFileSelect(this)" />
+            <svg class="w-7 h-7 mx-auto text-slate-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            <div id="filePickerLabel" class="text-xs text-slate-300 font-medium">Click to select file or drag &amp; drop</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">Images, Audio, Video, Documents up to 32MB</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] uppercase font-mono text-slate-400 mb-1">Category / Folder</label>
+              <select id="uploadCategoryInput" class="w-full bg-slate-900 border border-borderCol rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                <option value="avatars">avatars</option>
+                <option value="attachments">attachments</option>
+                <option value="documents">documents</option>
+                <option value="media">media</option>
+                <option value="general" selected>general</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-mono text-slate-400 mb-1">Description (Optional)</label>
+              <input id="uploadDescInput" type="text" placeholder="e.g. Mobile user avatar" class="w-full bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span id="uploadProgressText" class="text-[11px] text-slate-400 font-mono"></span>
+            <button type="submit" id="btnUploadSubmit" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+              <span>Upload to Server</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Uploaded Files Catalog Table -->
+        <div class="overflow-x-auto max-h-60 overflow-y-auto border border-borderCol rounded-lg">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] sticky top-0 border-b border-borderCol">
+              <tr>
+                <th class="p-2">Name</th>
+                <th class="p-2">Size</th>
+                <th class="p-2">Type</th>
+                <th class="p-2">Category</th>
+                <th class="p-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="filesTableBody" class="divide-y divide-borderCol/60 bg-slate-900/40 font-mono text-[11px]">
+              <tr><td colspan="5" class="p-3 text-center text-slate-500 italic font-sans">No uploaded assets found.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- Page Footer -->
@@ -2509,6 +2668,282 @@
       if (typeof fetchUsers === 'function') fetchUsers();
       if (typeof refreshSFURooms === 'function') refreshSFURooms();
       if (typeof fetchJobs === 'function') fetchJobs();
+      if (typeof fetchWebhooks === 'function') fetchWebhooks();
+      if (typeof fetchUploadedFiles === 'function') fetchUploadedFiles();
+    }
+
+    // ==========================================
+    // Mobile Webhooks & Notification Center Logic
+    // ==========================================
+    async function fetchWebhooks() {
+      try {
+        const resp = await fetch('/api/v1/webhooks');
+        const result = await resp.json();
+        const tbody = document.getElementById('webhooksTableBody');
+        if (!result.data || result.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-500 italic font-sans">No webhooks registered.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = result.data.map(w => {
+          const eventsBadges = (w.events || ['*']).map(e => 
+            `<span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[10px] mr-1">${escapeHtml(e)}</span>`
+          ).join('');
+          return `
+            <tr class="hover:bg-slate-900/60 transition">
+              <td class="p-2 text-slate-200 font-bold truncate max-w-xs" title="${escapeHtml(w.url)}">${escapeHtml(w.url)}</td>
+              <td class="p-2">${eventsBadges}</td>
+              <td class="p-2 text-slate-400">${w.secret ? '••••••••' : '<span class="text-slate-600 italic">none</span>'}</td>
+              <td class="p-2 text-right space-x-1 whitespace-nowrap">
+                <button onclick="testWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition text-[10px]">Ping</button>
+                <button onclick="deleteWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px]">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Failed to fetch webhooks', err);
+      }
+    }
+
+    async function registerWebhook() {
+      const url = document.getElementById('whUrlInput').value.trim();
+      const secret = document.getElementById('whSecretInput').value.trim();
+      const eventsStr = document.getElementById('whEventsInput').value.trim();
+      const desc = document.getElementById('whDescInput').value.trim();
+
+      if (!url) {
+        alert('Please enter a target webhook URL');
+        return;
+      }
+
+      const events = eventsStr ? eventsStr.split(',').map(e => e.trim()).filter(Boolean) : ['*'];
+
+      try {
+        const resp = await fetch('/api/v1/webhooks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, secret, events, description: desc })
+        });
+        const result = await resp.json();
+        if (resp.ok) {
+          logEvent('WEBHOOK', `Registered webhook: ${url}`);
+          document.getElementById('whUrlInput').value = '';
+          document.getElementById('whSecretInput').value = '';
+          fetchWebhooks();
+        } else {
+          alert('Registration failed: ' + (result.error ? result.error.message : 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Request failed: ' + err.message);
+      }
+    }
+
+    async function testWebhook(id) {
+      try {
+        logEvent('WEBHOOK', `Executing ping test for webhook: ${id}`);
+        const resp = await fetch('/api/v1/webhooks/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ webhook_id: id })
+        });
+        const result = await resp.json();
+        if (result.data) {
+          const status = result.data.status_code || (result.data.success ? 200 : 'ERR');
+          const dur = result.data.duration_ms + 'ms';
+          logEvent('WEBHOOK', `Ping test finished: HTTP ${status} in ${dur}`);
+          alert(`Webhook Ping Result:\nStatus: HTTP ${status}\nDuration: ${dur}\nSuccess: ${result.data.success}\nError: ${result.data.error || 'None'}`);
+        }
+        fetchWebhookLogs();
+      } catch (err) {
+        alert('Ping test failed: ' + err.message);
+      }
+    }
+
+    async function deleteWebhook(id) {
+      if (!confirm(`Delete webhook ${id}?`)) return;
+      try {
+        const resp = await fetch('/api/v1/webhooks/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (resp.ok) {
+          logEvent('WEBHOOK', `Deleted webhook: ${id}`);
+          fetchWebhooks();
+        }
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    }
+
+    async function dispatchWebhookNotification() {
+      const title = document.getElementById('notifTitleInput').value.trim();
+      const event = document.getElementById('notifEventInput').value.trim() || 'notification';
+      const message = document.getElementById('notifMessageInput').value.trim();
+      const statusEl = document.getElementById('notifStatusText');
+
+      if (!title || !message) {
+        alert('Please provide title and message');
+        return;
+      }
+
+      statusEl.innerText = 'Dispatching...';
+      try {
+        const resp = await fetch('/api/v1/webhooks/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, title, message })
+        });
+        const result = await resp.json();
+        if (resp.ok) {
+          statusEl.innerText = `Dispatched to ${result.data.targets_count} webhook(s)`;
+          logEvent('NOTIF', `Dispatched notification: "${title}" (Event: ${event})`);
+          setTimeout(fetchWebhookLogs, 600);
+        } else {
+          statusEl.innerText = 'Dispatch failed';
+        }
+      } catch (err) {
+        statusEl.innerText = 'Error: ' + err.message;
+      }
+    }
+
+    async function fetchWebhookLogs() {
+      try {
+        const resp = await fetch('/api/v1/webhooks/logs');
+        const result = await resp.json();
+        const container = document.getElementById('webhookLogsContainer');
+        if (!result.data || result.data.length === 0) {
+          container.innerHTML = '<span class="text-slate-600 italic font-sans">No recent delivery attempts recorded.</span>';
+          return;
+        }
+        container.innerHTML = result.data.map(l => {
+          const badgeClass = l.success ? 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40' : 'text-rose-400 bg-rose-950/60 border-rose-800/40';
+          const timeStr = new Date(l.timestamp).toLocaleTimeString();
+          return `
+            <div class="flex items-center justify-between p-1.5 rounded bg-slate-900/60 border border-borderCol/50">
+              <div class="flex items-center space-x-2 truncate">
+                <span class="px-1.5 py-0.5 rounded text-[9px] border ${badgeClass}">${l.status_code || 'ERR'}</span>
+                <span class="text-slate-300 font-semibold truncate max-w-xs">${escapeHtml(l.url)}</span>
+                <span class="text-slate-500 font-sans text-[10px]">(${escapeHtml(l.event)})</span>
+              </div>
+              <div class="flex items-center space-x-2 shrink-0">
+                <span class="text-slate-400">${l.duration_ms}ms</span>
+                <span class="text-slate-500 font-sans">${timeStr}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Failed to fetch webhook logs', err);
+      }
+    }
+
+    // ==========================================
+    // Multipart Form Upload & Media Logic
+    // ==========================================
+    function handleFileSelect(input) {
+      const label = document.getElementById('filePickerLabel');
+      if (input.files && input.files.length > 0) {
+        if (input.files.length === 1) {
+          label.innerText = `Selected: ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+        } else {
+          label.innerText = `Selected: ${input.files.length} files`;
+        }
+      } else {
+        label.innerText = 'Click to select file or drag & drop';
+      }
+    }
+
+    async function submitFileUpload() {
+      const fileInput = document.getElementById('filePickerInput');
+      const category = document.getElementById('uploadCategoryInput').value;
+      const desc = document.getElementById('uploadDescInput').value.trim();
+      const progressText = document.getElementById('uploadProgressText');
+      const submitBtn = document.getElementById('btnUploadSubmit');
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please choose a file to upload');
+        return;
+      }
+
+      const formData = new FormData();
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append('file', fileInput.files[i]);
+      }
+      formData.append('category', category);
+      if (desc) formData.append('description', desc);
+
+      progressText.innerText = 'Uploading...';
+      submitBtn.disabled = true;
+
+      try {
+        const resp = await fetch('/api/v1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await resp.json();
+        if (resp.ok) {
+          progressText.innerText = 'Upload complete!';
+          logEvent('UPLOAD', `Successfully uploaded asset(s) to /uploads`);
+          fileInput.value = '';
+          document.getElementById('filePickerLabel').innerText = 'Click to select file or drag & drop';
+          document.getElementById('uploadDescInput').value = '';
+          fetchUploadedFiles();
+        } else {
+          progressText.innerText = 'Upload failed';
+          alert('Upload failed: ' + (result.error ? result.error.message : 'Unknown error'));
+        }
+      } catch (err) {
+        progressText.innerText = 'Error: ' + err.message;
+        alert('Upload failed: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        setTimeout(() => { progressText.innerText = ''; }, 3000);
+      }
+    }
+
+    async function fetchUploadedFiles() {
+      try {
+        const resp = await fetch('/api/v1/files');
+        const result = await resp.json();
+        const tbody = document.getElementById('filesTableBody');
+        const files = (result.data && result.data.files) ? result.data.files : [];
+        if (files.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-500 italic font-sans">No uploaded assets found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = files.map(f => {
+          return `
+            <tr class="hover:bg-slate-900/60 transition">
+              <td class="p-2 font-bold text-slate-200 truncate max-w-xs" title="${escapeHtml(f.original_name)}">
+                <a href="${escapeHtml(f.url)}" target="_blank" class="hover:text-amber-400 hover:underline flex items-center space-x-1">
+                  <span>${escapeHtml(f.original_name)}</span>
+                </a>
+              </td>
+              <td class="p-2 text-slate-400">${escapeHtml(f.size_formatted)}</td>
+              <td class="p-2 text-slate-400 truncate max-w-[120px]" title="${escapeHtml(f.mime_type)}">${escapeHtml(f.mime_type)}</td>
+              <td class="p-2">
+                <span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px]">${escapeHtml(f.category || 'general')}</span>
+              </td>
+              <td class="p-2 text-right space-x-1 whitespace-nowrap">
+                <a href="${escapeHtml(f.download_url)}" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition text-[10px] inline-block">Download</a>
+                <button onclick="deleteUploadedFile('${escapeHtml(f.stored_name)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px]">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Failed to fetch files', err);
+      }
+    }
+
+    async function deleteUploadedFile(filename) {
+      if (!confirm(`Delete file "${filename}"?`)) return;
+      try {
+        const resp = await fetch('/api/v1/files/' + encodeURIComponent(filename), { method: 'DELETE' });
+        if (resp.ok) {
+          logEvent('UPLOAD', `Deleted file: ${filename}`);
+          fetchUploadedFiles();
+        }
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
     }
 
     function logoutAdmin() {
@@ -2529,6 +2964,8 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       fetchMeshRoomsHTTP();
+      fetchWebhooks();
+      fetchUploadedFiles();
       const savedToken = localStorage.getItem('admin_jwt_token');
       if (savedToken) {
         try {

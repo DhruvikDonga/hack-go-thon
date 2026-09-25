@@ -24,6 +24,9 @@ type Config struct {
 	TURNServerURL   string
 	TURNUsername    string
 	TURNCredential  string
+	UploadDir       string
+	MaxUploadSize   int64
+	WebhookTimeout  time.Duration
 	Services        ServicesConfig
 }
 
@@ -80,6 +83,11 @@ func Load() *Config {
 	turnURL := getEnv("TURN_SERVER_URL", "")
 	turnUser := getEnv("TURN_USERNAME", "")
 	turnCred := getEnv("TURN_CREDENTIAL", "")
+	uploadDir := getEnv("UPLOAD_DIR", "./uploads")
+	maxUploadSizeMB := getEnvAsInt("MAX_UPLOAD_SIZE_MB", 32)
+	maxUploadSize := int64(maxUploadSizeMB) << 20
+	webhookTimeoutSec := getEnvAsInt("WEBHOOK_TIMEOUT_SECONDS", 5)
+	webhookTimeout := time.Duration(webhookTimeoutSec) * time.Second
 	servicesCfg := LoadServicesConfig("")
 
 	return &Config{
@@ -98,6 +106,9 @@ func Load() *Config {
 		TURNServerURL:   turnURL,
 		TURNUsername:    turnUser,
 		TURNCredential:  turnCred,
+		UploadDir:       uploadDir,
+		MaxUploadSize:   maxUploadSize,
+		WebhookTimeout:  webhookTimeout,
 		Services:        servicesCfg,
 	}
 }

@@ -22,6 +22,8 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 14. [Docker & Containerization](#14-docker--containerization)
 15. [Recipes & Common Extensions](#15-recipes--common-extensions)
 16. [WebRTC Real-Time Media & Pion DataChannels](#16-webrtc-real-time-media--pion-datachannels)
+17. [Mobile Webhook Notification System](#17-mobile-webhook-notification-system)
+18. [Multipart Form File Upload API](#18-multipart-form-file-upload-api)
 
 ---
 
@@ -853,6 +855,140 @@ When scaling beyond 2 participants, P2P mesh requires $N-1$ uplinks per peer, qu
 
 #### Periodic RTCP Keyframe Recovery
 To ensure subscribers receive instantaneous video upon joining an already-streaming room, the SFU runs a dedicated RTCP routine emitting `rtcp.PictureLossIndication` (PLI) packets to publishers every 3 seconds, triggering video encoders to emit instantaneous I-frames.
+
+---
+
+## 17. Mobile Webhook Notification System
+
+The built-in webhook subsystem enables mobile teams and third-party services to subscribe to real-time backend events (system announcements, alerts, chat messages, user updates) and receive reliable, signed HTTP POST notifications.
+
+### 17.1 Webhook Wire Protocol & Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/webhooks` | Register a new mobile webhook subscription |
+| `GET` | `/api/v1/webhooks` | List all active webhook endpoints |
+| `GET` | `/api/v1/webhooks/:id` | Retrieve subscription details by ID |
+| `PUT` | `/api/v1/webhooks/:id` | Update target URL, event filters, secret, or active state |
+| `DELETE`| `/api/v1/webhooks/:id` | Remove a webhook subscription |
+| `POST` | `/api/v1/webhooks/send` | Dispatch a notification payload to all matching webhooks & WebSocket mesh |
+| `POST` | `/api/v1/webhooks/test` | Execute an on-demand test ping and report immediate latency and HTTP status |
+| `GET` | `/api/v1/webhooks/logs` | View recent delivery history, duration, and status codes |
+
+### 17.2 Registering a Mobile Webhook
+```bash
+curl -X POST http://localhost:8080/api/v1/webhooks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://push-gateway.my-app.com/v1/notifications",
+    "events": ["notification", "system_alert"],
+    "secret": "my-mobile-hmac-secret-key",
+    "description": "Mobile Push Notification Relay"
+  }'
+```
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "wh_1727245800_a1b2c3d4",
+    "url": "https://push-gateway.my-app.com/v1/notifications",
+    "events": ["notification", "system_alert"],
+    "description": "Mobile Push Notification Relay",
+    "active": true,
+    "created_at": "2026-09-25T11:50:00Z"
+  }
+}
+```
+
+### 17.3 HMAC-SHA256 Payload Signature Verification
+When a webhook specifies a `secret`, outgoing HTTP requests include cryptographic authentication headers:
+- `X-Webhook-Signature`: `sha256=<hex_hmac>` computed over the raw JSON body using the shared secret.
+- `X-Webhook-Event`: The event category (e.g. `notification`, `chat_message`).
+- `X-Webhook-Delivery`: Unique delivery trace ID.
+- `X-Webhook-Timestamp`: RFC3339 dispatch timestamp.
+
+Verifying the signature in Go:
+```go
+mac := hmac.New(sha256.New, []byte(secret))
+mac.Write(rawBody)
+expectedSig := hex.EncodeToString(mac.Sum(nil))
+isValid := hmac.Equal([]byte(receivedSig), []byte(expectedSig))
+```
+
+### 17.4 Dispatching Notifications & WebSocket Synchronization
+```bash
+curl -X POST http://localhost:8080/api/v1/webhooks/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "notification",
+    "title": "Maintenance Alert",
+    "message": "Scheduled maintenance starting in 15 minutes.",
+    "target": "mobile_group_all",
+    "priority": "high",
+    "data": { "deep_link": "/settings/maintenance" }
+  }'
+```
+The dispatch pipeline:
+1. Filters active subscriptions matching the event topic.
+2. Dispatches asynchronous HTTP POST requests in parallel with an isolated 5-second timeout.
+3. Automatically broadcasts `action: "webhook-notification"` over the `simplysocket` mesh to `mesh-global`, updating connected web and mobile WebSocket listeners simultaneously.
+
+---
+
+## 18. Multipart Form File Upload API
+
+The file upload subsystem provides standard HTTP `multipart/form-data` processing for mobile applications uploading user avatars, voice recordings, media attachments, and documents.
+
+### 18.1 Upload Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/upload` | Ingest `multipart/form-data` containing `file` or `files` |
+| `GET` | `/api/v1/files` | Catalog listing of uploaded assets with metadata |
+| `GET` | `/api/v1/files/:filename` | Stream or view file with MIME type headers |
+| `GET` | `/api/v1/files/:filename?download=true` | Download file with attachment `Content-Disposition` |
+| `DELETE`| `/api/v1/files/:filename` | Safely remove file from storage and catalog |
+
+### 18.2 Uploading Files via Multipart Form
+Mobile clients upload files using standard HTTP multipart form data:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/upload \
+  -F "file=@avatar.png" \
+  -F "category=avatars" \
+  -F "description=User profile photo"
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "file_1727245800_f4a1",
+    "original_name": "avatar.png",
+    "stored_name": "1727245800_f4a1_avatar.png",
+    "size_bytes": 1048576,
+    "size_formatted": "1.00 MB",
+    "mime_type": "image/png",
+    "category": "avatars",
+    "description": "User profile photo",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "url": "/api/v1/files/1727245800_f4a1_avatar.png",
+    "download_url": "/api/v1/files/1727245800_f4a1_avatar.png?download=true",
+    "uploaded_at": "2026-09-25T11:55:00Z"
+  }
+}
+```
+
+Multiple files can be uploaded concurrently in a single multipart request by providing multiple `files` fields.
+
+### 18.3 Security & Safety Invariants
+1. **Path Traversal Protection**: All filenames are passed through `filepath.Base` and strictly sanitized to prevent directory traversal (`../`).
+2. **Magic Byte MIME Sniffing**: Inspects the first 512 bytes via `http.DetectContentType` before falling back to extension matching, blocking extension-spoofing attacks.
+3. **Configurable File Size Limits**: Enforced via `MAX_UPLOAD_SIZE_MB` (default `32 MB`). Payloads exceeding this threshold are immediately rejected with `400 Bad Request`.
+4. **Storage Isolation**: Assets are stored in `UPLOAD_DIR` (default `./uploads`) with directory creation permissions `0755`.
+
 
 
 

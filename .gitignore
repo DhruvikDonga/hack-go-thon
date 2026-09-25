@@ -21,3 +21,6 @@ hack-go-thon-server
 .DS_Store
 Thumbs.db
 
+# Uploaded media assets
+uploads/
+

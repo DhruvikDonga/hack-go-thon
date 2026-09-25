@@ -15,6 +15,8 @@ type ServicesConfig struct {
 	JobScheduler bool `json:"job_scheduler"`
 	WebSocket    bool `json:"websocket"`
 	WebRTC       bool `json:"webrtc"`
+	Webhook      bool `json:"webhook"`
+	Upload       bool `json:"upload"`
 }
 
 // DefaultServicesConfig returns a ServicesConfig with all subsystems enabled.
@@ -26,6 +28,8 @@ func DefaultServicesConfig() ServicesConfig {
 		JobScheduler: true,
 		WebSocket:    true,
 		WebRTC:       true,
+		Webhook:      true,
+		Upload:       true,
 	}
 }
 
@@ -84,6 +88,12 @@ func LoadServicesConfig(filePath string) ServicesConfig {
 	}
 	if val, ok := checkBool("webrtc", "webrtc_server", "sfu"); ok {
 		cfg.WebRTC = val
+	}
+	if val, ok := checkBool("webhook", "webhooks", "notifications"); ok {
+		cfg.Webhook = val
+	}
+	if val, ok := checkBool("upload", "uploads", "file_upload", "files"); ok {
+		cfg.Upload = val
 	}
 
 	return cfg

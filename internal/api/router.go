@@ -23,6 +23,8 @@ type RouterConfig struct {
 	RAGHandler     *handler.RAGHandler
 	WebRTCHandler  *handler.WebRTCHandler
 	UserHandler    *handler.UserHandler
+	WebhookHandler *handler.WebhookHandler
+	UploadHandler  *handler.UploadHandler
 	DB             *dbclient.PostgresDatabase
 	WSManager      *ws.Manager
 	Scheduler      *jobs.Scheduler
@@ -236,6 +238,29 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 					"metadata":   c.MustGet("metadata"),
 				})
 			})
+		}
+
+		// Webhook Notification Endpoints (Mobile Push & Integrations)
+		if rc.WebhookHandler != nil {
+			webhooks := v1.Group("/webhooks")
+			{
+				webhooks.POST("", rc.WebhookHandler.Register)
+				webhooks.GET("", rc.WebhookHandler.List)
+				webhooks.GET("/:id", rc.WebhookHandler.Get)
+				webhooks.PUT("/:id", rc.WebhookHandler.Update)
+				webhooks.DELETE("/:id", rc.WebhookHandler.Delete)
+				webhooks.POST("/send", rc.WebhookHandler.Send)
+				webhooks.POST("/test", rc.WebhookHandler.Test)
+				webhooks.GET("/logs", rc.WebhookHandler.GetLogs)
+			}
+		}
+
+		// Multipart Form File Upload & Retrieval Endpoints
+		if rc.UploadHandler != nil {
+			v1.POST("/upload", rc.UploadHandler.Upload)
+			v1.GET("/files", rc.UploadHandler.ListFiles)
+			v1.GET("/files/:filename", rc.UploadHandler.GetFile)
+			v1.DELETE("/files/:filename", rc.UploadHandler.DeleteFile)
 		}
 
 		// API Key Protected Routes Example
