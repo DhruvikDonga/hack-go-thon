@@ -714,6 +714,35 @@ docker compose logs -f
 docker compose down
 ```
 
+### Kamal 2 Ops Setup (`config/deploy.yml` & `.kamal/`)
+Production-grade, zero-downtime container orchestration and bare-metal/VPS deployment using [Kamal](https://kamal-deploy.org/):
+
+* **Configuration (`config/deploy.yml`)**:
+  * **Zero-Downtime Proxy**: Built-in Kamal proxy with automatic Let's Encrypt SSL termination, domain routing, and health check validation (`/api/v1/health/live`).
+  * **GHCR Integration**: Automated image builds and pushes to GitHub Container Registry (`ghcr.io/dhruvikdonga/hack-go-thon`).
+  * **Persistent Media Storage**: Binds `hack-go-thon-uploads` volume to `/home/appuser/uploads` so user uploads persist across rolling deployments.
+  * **Built-in Aliases**: Shorthand commands for container inspection (`kamal shell`, `kamal logs`, `kamal logsf`, `kamal restart`).
+* **Secrets Management (`.kamal/secrets`)**: Safely maps local environment variables (`PG_URI`, `OPENAI_API_KEY`, `JWT_SECRET`, `MASTER_API_KEY`, etc.) into remote container secrets without committing sensitive values to git.
+* **Lifecycle Hooks (`.kamal/hooks/`)**: Pre-deploy, post-deploy, and docker setup hooks for automated CI/CD gating and status notifications.
+
+#### Common Kamal Commands:
+```bash
+# Verify deployment configuration
+kamal config
+
+# Initial setup on a new server (provisions Docker, sets up proxy, and deploys)
+kamal setup
+
+# Deploy a new release with zero downtime
+kamal deploy
+
+# Tail live production logs
+kamal logsf
+
+# Open an interactive shell inside the running container
+kamal shell
+```
+
 ---
 
 ## 15. Recipes & Common Extensions

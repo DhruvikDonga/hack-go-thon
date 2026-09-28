@@ -67,10 +67,16 @@ func Load() *Config {
 		openAIKey = getEnv("OPEN_AI_KEY", "")
 	}
 
-	jwtSecret := getEnv("JWT_SECRET", "default-dev-jwt-secret")
+	jwtSecret := getEnv("JWT_SECRET", "")
+	if jwtSecret == "" {
+		jwtSecret = getEnv("SUPABASE_JWT_SECRET", "default-dev-jwt-secret")
+	}
 	jwtTTLHours := getEnvAsInt("JWT_TTL_HOURS", 24)
 	tokenTTL := time.Duration(jwtTTLHours) * time.Hour
 	masterAPIKey := getEnv("MASTER_API_KEY", "")
+	if masterAPIKey == "" {
+		masterAPIKey = getEnv("SAFETY_KEY", "")
+	}
 
 	stunStr := getEnv("STUN_SERVERS", "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302")
 	var stunServers []string

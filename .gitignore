@@ -9,7 +9,12 @@ hack-go-thon-server
 
 # Environment configuration
 .env
+.env.*
+!.env.example
 *.local
+.kamal/secrets
+.kamal/secrets*
+!.kamal/secrets.example
 
 # IDE & Editor
 .vscode/

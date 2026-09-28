@@ -22,10 +22,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/bin/
 # ==========================================
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates tzdata curl
+RUN apk add --no-cache ca-certificates tzdata curl bash
 
-# Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create non-root user and persistent uploads directory
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    mkdir -p /home/appuser/uploads && \
+    chown -R appuser:appgroup /home/appuser/uploads
 
 WORKDIR /home/appuser
 

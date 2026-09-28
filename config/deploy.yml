@@ -1,0 +1,92 @@
+# Name of your application. Used to uniquely configure containers.
+service: hack-go-thon
+
+# Name of the container image.
+image: dhruvikdonga/hack-go-thon
+
+# Deploy to these servers.
+servers:
+  web:
+    - 51.38.114.53
+  # job:
+  #   hosts:
+  #     - 192.168.0.1
+  #   cmd: bin/jobs
+
+# Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
+# Remove this section when using multiple web servers and ensure you terminate SSL at your load balancer.
+#
+# Note: If using Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
+proxy:
+  ssl: true
+  hosts:
+    - api.hack-go-thon.local
+  # Proxy connects to your container on port 8080 (the default server port).
+  app_port: 8080
+  healthcheck:
+    interval: 3
+    path: /api/v1/health/live
+    timeout: 3
+
+# Credentials for your image host.
+registry:
+  server: ghcr.io
+  username: DhruvikDonga
+
+  # Always use an access token rather than real password (pulled from .kamal/secrets).
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# Configure builder setup.
+builder:
+  arch: amd64
+  # Pass in additional build args needed for your Dockerfile if needed.
+
+# Inject ENV variables into containers (secrets come from .kamal/secrets).
+env:
+  clear:
+    PORT: "8080"
+    ENV: "production"
+    LOG_LEVEL: "info"
+    APP_NAME: "hack-go-thon"
+    CORS_ALLOWED_ORIGINS: "*"
+    UPLOAD_DIR: "/home/appuser/uploads"
+  secret:
+    - PG_URI
+    - OPENAI_API_KEY
+    - JWT_SECRET
+    - MASTER_API_KEY
+    - TURN_SERVER_URL
+    - TURN_USERNAME
+    - TURN_CREDENTIAL
+
+# Aliases are triggered with "kamal <alias>". You can overwrite arguments on invocation:
+# "kamal logs -f" or "kamal restart"
+aliases:
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs
+  logsf: app logs --follow
+  restart: app restart
+
+# Use a different ssh user than root
+ssh:
+  user: ubuntu
+
+# Persistent storage volume for uploaded media/attachments
+volumes:
+  - "hack-go-thon-uploads:/home/appuser/uploads"
+
+# Optional: Accessory services (e.g. pgvector database if self-hosting PostgreSQL on the node)
+# accessories:
+#   db:
+#     image: pgvector/pgvector:pg16
+#     host: 51.38.114.53
+#     port: 5432
+#     env:
+#       clear:
+#         POSTGRES_DB: hack_db
+#         POSTGRES_USER: postgres
+#       secret:
+#         - POSTGRES_PASSWORD
+#     directories:
+#       - data:/var/lib/postgresql/data

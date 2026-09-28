@@ -72,6 +72,9 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
 - 🐳 **Docker & Container Ready**  
   Multi-stage minimal Alpine `Dockerfile` and local `docker-compose.yml` pre-configured with `pgvector/pgvector:pg16` and health check dependencies.
 
+- 🚀 **Kamal 2 Ops & Zero-Downtime Deployment (`config/deploy.yml` & `.kamal/`)**  
+  Production-grade container deployment on bare-metal / cloud VPS servers with automated Kamal proxy, Let's Encrypt SSL, GitHub Container Registry (`ghcr.io`) integration, persistent upload volumes, and environment secret injection.
+
 ---
 
 ## ⚡ Quick Start

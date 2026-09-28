@@ -31,10 +31,14 @@ This document is the authoritative guide for AI coding agents and developers wor
 
 ```text
 hack-go-thon/
+├── .kamal/
+│   ├── secrets                   # Secret mappings for Kamal deployments
+│   └── hooks/                    # Kamal deployment lifecycle automation hooks
 ├── cmd/server/main.go            # Application entrypoint & conditional dependency injection
 ├── config/
 │   ├── config.go                 # Environment variable loading & defaults (w/ STUN/TURN)
-│   └── services.go               # Subsystem feature flags loader (services.json)
+│   ├── services.go               # Subsystem feature flags loader (services.json)
+│   └── deploy.yml                # Kamal 2 deployment & proxy configuration
 ├── services.json                 # Optional JSON config to selectively toggle subsystems
 ├── internal/
 │   ├── api/
