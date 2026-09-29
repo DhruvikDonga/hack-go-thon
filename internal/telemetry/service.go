@@ -232,11 +232,11 @@ func (s *Service) SimulateLog(level, message string, fields map[string]any) {
 		// NOTE: log.Fatal usually calls os.Exit(1).
 		// For simulation, we bypass the logger to prevent crashing the server and directly inject a LogEntry.
 		entry := log.LogEntry{
-			Level:   "fatal",
+			Level:     "fatal",
 			Timestamp: time.Now().UTC(),
-			Message: message,
-			Caller:  "simulated/admin_trigger.go:1",
-			Fields:  fields,
+			Message:   message,
+			Caller:    "simulated/admin_trigger.go:1",
+			Fields:    fields,
 		}
 		s.handleLogEntry(entry)
 	default:

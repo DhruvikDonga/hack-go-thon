@@ -1586,7 +1586,7 @@
             </div>
             
             <div class="flex justify-between items-center mb-1 z-10 px-2">
-              <span class="text-[10px] font-bold text-slate-400 tracking-wider">EVENTS OVER TIME (LAST 5 MINS)</span>
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">EVENTS OVER TIME (LAST 1 MINUTE)</span>
               <div class="flex space-x-3 text-[10px] font-mono">
                 <span class="flex items-center text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400 mr-1"></span>Warn</span>
                 <span class="flex items-center text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-400 mr-1"></span>Error</span>
@@ -5545,8 +5545,8 @@ function simulateTelemetryLogPrompt() {
         // Generate data for the log severity graph diff
         let diff = {warn: 0, error: 0, fatal: 0};
         if (lastLogTotals) {
-          diff.warn = Math.max(0, data.totals.warn - lastLogTotals.warn);
-          diff.error = Math.max(0, data.totals.error - lastLogTotals.error);
+          diff.warn = Math.max(0, data.totals.warnings - lastLogTotals.warnings);
+          diff.error = Math.max(0, data.totals.errors - lastLogTotals.errors);
           diff.fatal = Math.max(0, data.totals.fatal - lastLogTotals.fatal);
         }
         telemetryLogHistory.push(diff);
@@ -5794,8 +5794,8 @@ function simulateTelemetryLogPrompt() {
 
         // Instantly update the graph spike
         if (telemetryLogHistory.length > 0 && lastLogTotals) {
-          const diffWarn = Math.max(0, payload.totals.warn - lastLogTotals.warn);
-          const diffError = Math.max(0, payload.totals.error - lastLogTotals.error);
+          const diffWarn = Math.max(0, payload.totals.warnings - lastLogTotals.warnings);
+          const diffError = Math.max(0, payload.totals.errors - lastLogTotals.errors);
           const diffFatal = Math.max(0, payload.totals.fatal - lastLogTotals.fatal);
           
           let lastPt = telemetryLogHistory[telemetryLogHistory.length - 1];
