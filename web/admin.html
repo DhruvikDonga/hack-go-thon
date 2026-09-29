@@ -31,6 +31,8 @@
       50% { opacity: 0.5; transform: scale(1.05); }
     }
     .pulse-dot { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
@@ -118,6 +120,36 @@
           <span class="font-mono text-amber-400 font-semibold">admin</span>
         </div>
 
+        <!-- Live Telemetry Alert Notification Bell -->
+        <div class="relative">
+          <button id="telemetryBellBtn" onclick="toggleTelemetryNotifDropdown(event)" title="Live Telemetry Alerts" class="relative p-1.5 rounded-md bg-slate-900/60 border border-borderCol hover:border-amber-500/50 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center justify-center cursor-pointer">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="telemetryAlertBadge" class="hidden absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono bg-rose-600 text-white shadow-lg shadow-rose-600/50 border border-slate-900 animate-pulse">0</span>
+          </button>
+
+          <!-- Notification Bell Dropdown -->
+          <div id="telemetryNotifDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-cardBg/95 backdrop-blur-md border border-borderCol rounded-xl shadow-2xl p-3 space-y-2 z-50">
+            <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-sm">🔔</span>
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Telementry Alerts</span>
+                <span id="telemetryAlertTotal" class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-mono">0 alerts</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <button onclick="clearTelemetryAlerts()" class="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer">Clear</button>
+                <button onclick="focusSection('telemetry'); toggleTelemetryNotifDropdown();" class="text-[10px] px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium transition cursor-pointer">Open Hub</button>
+              </div>
+            </div>
+
+            <!-- List of recent high-severity logs -->
+            <div id="telemetryNotifList" class="max-h-60 overflow-y-auto space-y-1.5 text-xs no-scrollbar">
+              <div class="p-3 text-center text-slate-500 italic text-[11px]">No warning or error alerts recorded yet.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Authenticated User Profile & Sign Out -->
         <div id="userProfileHeader" class="hidden flex items-center space-x-2 text-xs border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span class="text-slate-400">User:</span>
@@ -129,36 +161,153 @@
     </div>
   </header>
 
+  <!-- Sticky Section Navigation & Button Focus Bar -->
+  <nav id="sectionNavBar" class="border-b border-borderCol bg-slate-900/95 backdrop-blur-md sticky top-16 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+      <div class="flex items-center justify-between gap-3">
+        
+        <!-- Scrollable Section Buttons -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 no-scrollbar scroll-smooth">
+          <!-- All Overview -->
+          <button id="btnFocusAll" data-section="all" onclick="focusSection('all')" class="section-focus-btn group flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/20 ring-2 ring-brand-400/50 transition whitespace-nowrap cursor-pointer">
+            <span>📊</span>
+            <span>All Overview</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/30 text-white/90">10 Modules</span>
+          </button>
+
+          <div class="h-4 w-px bg-borderCol mx-1 flex-shrink-0"></div>
+
+          <!-- 1. Mesh -->
+          <button id="btnFocusMesh" data-section="mesh" onclick="focusSection('mesh')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-brand-500"></span>
+            <span>Mesh Rooms</span>
+            <span id="navMeshCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
+          </button>
+
+          <!-- 2. LLM -->
+          <button id="btnFocusLLM" data-section="llm" onclick="focusSection('llm')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span>LLM Stream</span>
+          </button>
+
+          <!-- 3. Jobs -->
+          <button id="btnFocusJobs" data-section="jobs" onclick="focusSection('jobs')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-purple-400"></span>
+            <span>Background Jobs</span>
+            <span id="navJobsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
+          </button>
+
+          <!-- 4. RAG -->
+          <button id="btnFocusRAG" data-section="rag" onclick="focusSection('rag')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+            <span>pgvector RAG</span>
+          </button>
+
+          <!-- 5. WebRTC -->
+          <button id="btnFocusWebRTC" data-section="webrtc" onclick="focusSection('webrtc')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+            <span>WebRTC Lab</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-rose-950/60 text-rose-300 border border-rose-800/40">SFU</span>
+          </button>
+
+          <!-- 6. Users -->
+          <button id="btnFocusUsers" data-section="users" onclick="focusSection('users')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+            <span>Users &amp; RBAC</span>
+            <span id="navUsersCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
+          </button>
+
+          <!-- 7. Webhooks -->
+          <button id="btnFocusWebhooks" data-section="webhooks" onclick="focusSection('webhooks')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+            <span>Mobile Webhooks</span>
+            <span id="navWebhooksCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
+          </button>
+
+          <!-- 8. Uploads -->
+          <button id="btnFocusUploads" data-section="uploads" onclick="focusSection('uploads')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+            <span>Multipart Assets</span>
+            <span id="navUploadsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
+          </button>
+
+          <!-- 9. APIs Test Bench -->
+          <button id="btnFocusAPIs" data-section="apis" onclick="focusSection('apis')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span>API Test Bench</span>
+            <span id="navAPIsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">50</span>
+          </button>
+
+          <!-- 10. Telementry -->
+          <button id="btnFocusTelemetry" data-section="telemetry" onclick="focusSection('telemetry')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
+            <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+            <span>Telementry</span>
+            <span id="navTelemetryCadence" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-cyan-400 border border-slate-800">30s</span>
+          </button>
+        </div>
+
+        <!-- Mode Indicator / Shortcut Hint -->
+        <div class="hidden lg:flex items-center space-x-2.5 text-[11px] text-slate-400 flex-shrink-0">
+          <span class="text-slate-500 font-mono hidden xl:inline">Hotkeys: [1-9, T Focus | 0 All]</span>
+          <span id="activeSectionIndicator" class="font-mono text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded">View: All Overview</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
   <!-- Main Grid Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
     
-    <!-- Top Stats Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Active Mesh Rooms</div>
-        <div id="statRoomsCount" class="text-3xl font-bold text-white">-</div>
-      </div>
-      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Total Mesh Clients</div>
-        <div id="statClientsCount" class="text-3xl font-bold text-brand-500">-</div>
-      </div>
-      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Active in 'Admin' Room</div>
-        <div id="statAdminCount" class="text-3xl font-bold text-amber-400">-</div>
-      </div>
-      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
-        <div class="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Scheduled Background Jobs</div>
-        <div id="statJobsCount" class="text-3xl font-bold text-purple-400 flex items-center space-x-2">
-          <span>-</span>
+    <!-- Hidden Telemetry Hooks (Preserves legacy element ID references) -->
+    <div class="hidden" aria-hidden="true">
+      <span id="statRoomsCount">-</span>
+      <span id="statClientsCount">-</span>
+      <span id="statAdminCount">-</span>
+      <span id="statJobsCount">-</span>
+    </div>
+
+    <!-- Top Stats Row (Dynamically Updated per Section with Multi-Value Metrics) -->
+    <div id="dashboardStatsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Dynamically populated by updateDashboardBoxes() based on focused section -->
+    </div>
+
+    <!-- Focus Mode Top Banner -->
+    <div id="focusBanner" class="hidden rounded-xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border border-brand-500/40 p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+      <div class="flex items-center space-x-3.5">
+        <div id="focusBannerIcon" class="h-11 w-11 rounded-xl bg-slate-800/90 border border-borderCol flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+          🎯
         </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 id="focusBannerTitle" class="text-sm font-bold text-white tracking-tight">Active Section</h2>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/30">Focused View</span>
+            <span id="focusBannerCount" class="text-[10px] font-mono text-slate-500">1 of 8</span>
+          </div>
+          <p id="focusBannerSubtitle" class="text-xs text-slate-400 mt-0.5">Section description and feature tools</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 self-end sm:self-center flex-shrink-0">
+        <!-- Prev Section -->
+        <button id="btnFocusPrev" onclick="focusPrevSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Previous section (← arrow)">
+          <span>← Prev</span>
+        </button>
+        <!-- Next Section -->
+        <button id="btnFocusNext" onclick="focusNextSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Next section (→ arrow)">
+          <span>Next →</span>
+        </button>
+        <!-- Return to All Overview -->
+        <button onclick="focusSection('all')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-500/20 transition flex items-center space-x-1" title="Show all sections together (Esc or 0)">
+          <span>✕ Show All Overview</span>
+        </button>
       </div>
     </div>
 
     <!-- 2 Column Layout: Mesh Rooms (Left) & LLM Streaming (Right) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div id="rowMeshLLM" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
       <!-- Left: Mesh Server Rooms & Connected Clients (7 cols) -->
-      <div class="lg:col-span-7 flex flex-col space-y-6">
+      <div id="section-mesh" class="lg:col-span-7 flex flex-col space-y-6 section-card transition-all">
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <div>
@@ -170,12 +319,18 @@
               </h2>
               <p class="text-xs text-slate-400 mt-0.5">Live view from <code class="text-emerald-400">MeshServer.GetClientsInRoom()</code></p>
             </div>
-            <button onclick="requestStateRefresh()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-              </svg>
-              <span>Refresh</span>
-            </button>
+            <div class="flex items-center space-x-2">
+              <button data-target="mesh" onclick="focusSection('mesh')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+                <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                <span class="focus-btn-label">Focus</span>
+              </button>
+              <button onclick="requestStateRefresh()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           <!-- Join / Create Room Toolbar -->
@@ -230,7 +385,7 @@
       </div>
 
       <!-- Right: simplysocket LLM Token Streaming Tester (5 cols) -->
-      <div class="lg:col-span-5 flex flex-col space-y-6">
+      <div id="section-llm" class="lg:col-span-5 flex flex-col space-y-6 section-card transition-all">
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm flex-1 flex flex-col">
           <div class="flex items-center justify-between mb-3">
             <div>
@@ -242,7 +397,13 @@
               </h2>
               <p class="text-xs text-slate-400 mt-0.5">Stream tokens via WebSocket mesh in real-time</p>
             </div>
-            <span id="streamStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400">Idle</span>
+            <div class="flex items-center space-x-2">
+              <button data-target="llm" onclick="focusSection('llm')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                <span class="focus-btn-label">Focus</span>
+              </button>
+              <span id="streamStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400">Idle</span>
+            </div>
           </div>
 
           <!-- Prompt Input -->
@@ -284,7 +445,7 @@
     </div>
 
     <!-- NEW SECTION: Scheduled Background Jobs Observability -->
-    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+    <div id="section-jobs" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -295,12 +456,18 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">In-process periodic task scheduler (<code class="text-purple-400">jobs.Scheduler</code>) with panic recovery & live metrics</p>
         </div>
-        <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
-          <span>Refresh Jobs</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <button data-target="jobs" onclick="focusSection('jobs')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
+          <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Refresh Jobs</span>
+          </button>
+        </div>
       </div>
 
       <!-- Jobs Table Container -->
@@ -326,7 +493,7 @@
     </div>
 
     <!-- Bottom: Postgres pgvector RAG Explorer -->
-    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+    <div id="section-rag" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -337,7 +504,13 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">Semantic vector similarity search & question answering with in-database vector embeddings</p>
         </div>
-        <span class="text-xs px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">pgvector:pg16</span>
+        <div class="flex items-center space-x-2">
+          <button data-target="rag" onclick="focusSection('rag')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
+          <span class="text-xs px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">pgvector:pg16</span>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -373,7 +546,7 @@
     </div>
 
     <!-- NEW SECTION: WebRTC Lab & Real-Time Media Playground -->
-    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+    <div id="section-webrtc" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -385,6 +558,10 @@
           <p class="text-xs text-slate-400 mt-0.5">P2P Audio/Video calls via simplysocket signaling + Ultra-low latency UDP DataChannel via Pion WebRTC</p>
         </div>
         <div class="flex items-center space-x-2">
+          <button data-target="webrtc" onclick="focusSection('webrtc')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
           <span id="webrtcIceStatus" class="text-xs px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">P2P + Pion WebRTC</span>
           <button onclick="fetchICEServers()" class="px-3 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Inspect ICE</button>
         </div>
@@ -593,7 +770,7 @@
     </div>
 
     <!-- User Base & Multi-Level Auth Management (RBAC) -->
-    <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
+    <div id="section-users" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -605,6 +782,10 @@
           <p class="text-xs text-slate-400 mt-0.5">Pre-setup user store with contact info, credentials, and custom JSONB metadata embedding <code class="text-cyan-400">auth_level</code> directly into JWT token claims</p>
         </div>
         <div class="flex items-center space-x-2">
+          <button data-target="users" onclick="focusSection('users')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
           <span class="text-xs px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">JWT Claims RBAC</span>
           <button onclick="fetchUsers()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -763,10 +944,10 @@
     </div>
 
     <!-- 2 Column Layout: Mobile Webhooks (Left) & Multipart Form Uploads (Right) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div id="rowWebhooksUploads" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
       <!-- Mobile Webhook Notification Center -->
-      <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4">
+      <div id="section-webhooks" class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4 section-card transition-all">
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -777,9 +958,15 @@
             </h2>
             <p class="text-xs text-slate-400 mt-0.5">Register mobile push endpoints, sign payloads with HMAC-SHA256, and dispatch live alerts.</p>
           </div>
-          <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
-            Refresh
-          </button>
+          <div class="flex items-center space-x-2">
+            <button data-target="webhooks" onclick="focusSection('webhooks')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+              <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+              <span class="focus-btn-label">Focus</span>
+            </button>
+            <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+              Refresh
+            </button>
+          </div>
         </div>
 
         <!-- Register Webhook Form -->
@@ -852,7 +1039,7 @@
       </div>
 
       <!-- Multipart Form File Upload & Media Storage Hub -->
-      <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4">
+      <div id="section-uploads" class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4 section-card transition-all">
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-base font-semibold text-white flex items-center space-x-2">
@@ -863,9 +1050,15 @@
             </h2>
             <p class="text-xs text-slate-400 mt-0.5">Upload photos, voice notes, media, and attachments via standard multipart/form-data.</p>
           </div>
-          <button onclick="fetchUploadedFiles()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
-            Refresh
-          </button>
+          <div class="flex items-center space-x-2">
+            <button data-target="uploads" onclick="focusSection('uploads')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+              <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+              <span class="focus-btn-label">Focus</span>
+            </button>
+            <button onclick="fetchUploadedFiles()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+              Refresh
+            </button>
+          </div>
         </div>
 
         <!-- Upload Form -->
@@ -923,7 +1116,438 @@
         </div>
       </div>
     </div>
-  </main>
+
+    <!-- ========================================== -->
+    <!-- 9. Dynamic Router API Explorer & Live Test Bench -->
+    <!-- ========================================== -->
+    <div id="section-apis" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-borderCol/60 gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
+            ⚡
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="text-sm font-bold text-white tracking-wide">Router API Explorer &amp; Live Test Bench</h3>
+              <span id="apiCatalogCountBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/40">Loading...</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Dynamically synchronized from router code &amp; doc comments via <code class="text-emerald-300 font-mono text-[11px]">./generate-apis-for-admin</code></p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 self-start sm:self-center">
+          <button onclick="fetchAdminAPIs()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Reload generated API catalog">
+            <span>↻ Refresh Catalog</span>
+          </button>
+          <button data-target="apis" onclick="focusSection('apis')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <span class="focus-btn-label">Focus</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search & Filters Toolbar -->
+      <div class="mt-4 p-3 bg-slate-950/60 border border-borderCol/60 rounded-xl flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <!-- Search Input -->
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-xs">🔍</span>
+          <input id="apiSearchInput" oninput="filterAPIs()" type="text" placeholder="Search by route path, summary, or category (e.g. /users, sfu, token, uploads)..." class="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-borderCol rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition" />
+        </div>
+
+        <!-- Method Filters -->
+        <div class="flex items-center space-x-1 overflow-x-auto pb-1 md:pb-0" id="apiMethodFilters">
+          <button onclick="setMethodFilter('ALL')" data-method="ALL" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white border border-slate-700">ALL</button>
+          <button onclick="setMethodFilter('GET')" data-method="GET" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-sky-400 hover:bg-slate-800 border border-borderCol">GET</button>
+          <button onclick="setMethodFilter('POST')" data-method="POST" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-emerald-400 hover:bg-slate-800 border border-borderCol">POST</button>
+          <button onclick="setMethodFilter('PUT')" data-method="PUT" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-amber-400 hover:bg-slate-800 border border-borderCol">PUT</button>
+          <button onclick="setMethodFilter('DELETE')" data-method="DELETE" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-rose-400 hover:bg-slate-800 border border-borderCol">DELETE</button>
+        </div>
+
+        <!-- Auth Filters -->
+        <div class="flex items-center space-x-1 overflow-x-auto" id="apiAuthFilters">
+          <button onclick="setAuthFilter('ALL')" data-auth="ALL" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-800 text-white border border-slate-700">All Auth</button>
+          <button onclick="setAuthFilter('open')" data-auth="open" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-slate-300 hover:bg-slate-800 border border-borderCol">🟢 Open</button>
+          <button onclick="setAuthFilter('token')" data-auth="token" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-purple-300 hover:bg-slate-800 border border-borderCol">🟣 Bearer JWT</button>
+          <button onclick="setAuthFilter('api_key')" data-auth="api_key" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-amber-300 hover:bg-slate-800 border border-borderCol">🔑 API Key</button>
+        </div>
+      </div>
+
+      <!-- Main Workbench Split Screen -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+        
+        <!-- Left Column: API Catalog List (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col space-y-3">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-medium px-1">
+            <span id="apiFilterCountLabel">Loading catalog...</span>
+            <span class="text-[11px] text-slate-500 font-mono">Select route to test</span>
+          </div>
+
+          <div id="apiListContainer" class="max-h-[640px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+            <!-- Dynamically populated by renderAPIList() -->
+          </div>
+        </div>
+
+        <!-- Right Column: Live API Request Runner & Inspector (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
+          <div id="apiWorkbenchEmpty" class="h-[640px] rounded-xl border border-dashed border-borderCol bg-slate-950/40 flex flex-col items-center justify-center p-8 text-center">
+            <div class="text-4xl mb-3">⚡</div>
+            <div class="text-sm font-bold text-slate-300">Select an API Route to Test</div>
+            <p class="text-xs text-slate-500 max-w-sm mt-1">Choose any endpoint from the left catalog. The test runner will automatically configure path parameters, authorization headers, and sample payloads.</p>
+          </div>
+
+          <div id="apiWorkbenchActive" class="hidden flex flex-col space-y-4">
+            <!-- Selected Route Header Box -->
+            <div class="p-4 rounded-xl bg-slate-950 border border-borderCol flex flex-col space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 truncate">
+                  <span id="benchMethodBadge" class="px-2 py-0.5 rounded font-mono font-bold text-xs uppercase bg-sky-500/20 text-sky-400 border border-sky-500/30">GET</span>
+                  <span id="benchPathText" class="font-mono text-sm font-bold text-white truncate">/api/v1/health/live</span>
+                </div>
+                <span id="benchAuthBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-800 text-slate-300">🟢 OPEN</span>
+              </div>
+              <p id="benchSummaryText" class="text-xs text-slate-300">Check service liveness</p>
+              <p id="benchDescText" class="text-[11px] text-slate-500 font-mono"></p>
+            </div>
+
+            <!-- Parameters & Auth Configuration -->
+            <div class="p-4 rounded-xl bg-slate-900/60 border border-borderCol space-y-4">
+              <!-- Auth Credentials Bar -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                  <span>Authentication</span>
+                  <span id="benchAuthDesc" class="text-[10px] font-normal text-slate-400">No auth required</span>
+                </label>
+                <div id="benchAuthControls">
+                  <!-- Dynamically rendered based on selected endpoint auth type -->
+                </div>
+              </div>
+
+              <!-- Path Parameters (if any :param in path) -->
+              <div id="benchPathParamsGroup" class="hidden space-y-2 pt-2 border-t border-borderCol/60">
+                <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                  <span>URL Path Parameters</span>
+                  <span class="text-[10px] text-slate-500 font-mono">Replaces :param in URL</span>
+                </label>
+                <div id="benchPathParamsInputs" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+              </div>
+
+              <!-- Query Parameters -->
+              <div id="benchQueryParamsGroup" class="space-y-2 pt-2 border-t border-borderCol/60">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-300">Query Parameters (URL ?key=value)</span>
+                  <button type="button" onclick="addQueryParamRow()" class="text-[10px] text-brand-400 hover:text-brand-300 font-mono">+ Add Param</button>
+                </div>
+                <div id="benchQueryParamsInputs" class="space-y-1.5"></div>
+              </div>
+
+              <!-- Request Body (For POST / PUT / PATCH) -->
+              <div id="benchBodyGroup" class="hidden space-y-2 pt-2 border-t border-borderCol/60">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-semibold text-slate-300">Request Body (<span id="benchContentTypeLabel">application/json</span>)</label>
+                  <div class="space-x-1" id="benchBodyActionBtns">
+                    <button type="button" onclick="formatBenchJSON()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition">Format JSON</button>
+                    <button type="button" onclick="resetBenchBody()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition">Reset</button>
+                  </div>
+                </div>
+                <div id="benchBodyContainer">
+                  <textarea id="benchBodyInput" oninput="updateBenchResolvedUrl()" rows="5" class="w-full bg-slate-950 border border-borderCol rounded-lg p-2.5 font-mono text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+              </div>
+
+              <!-- Send Button & Resolved URL Preview -->
+              <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-borderCol/60">
+                <div class="text-[11px] font-mono text-slate-400 truncate flex items-center space-x-1.5">
+                  <span class="text-slate-500">Request URL:</span>
+                  <span id="benchResolvedUrl" class="text-emerald-400 font-bold truncate">/api/v1/health/live</span>
+                </div>
+                <button id="btnExecuteAPI" onclick="executeSelectedAPI()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/20 cursor-pointer flex-shrink-0">
+                  <span id="btnExecuteSpinner" class="hidden animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                  <span id="btnExecuteLabel">▶ Send Request</span>
+                  <span class="text-[10px] opacity-75 font-mono hidden sm:inline">[Ctrl+↵]</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Generated cURL Command Box -->
+            <div id="benchCurlBox" class="p-4 rounded-xl bg-slate-950 border border-borderCol space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+                  <span class="text-emerald-400 font-mono text-sm font-bold">$</span>
+                  <span>Generated cURL Command</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">Terminal Ready</span>
+                </div>
+                <button type="button" onclick="copyBenchCurl()" class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-borderCol transition flex items-center space-x-1.5 cursor-pointer shadow-sm">
+                  <span>📋</span>
+                  <span id="copyCurlBtnText">Copy cURL</span>
+                </button>
+              </div>
+              <div class="relative">
+                <pre id="benchCurlCommand" class="p-3 rounded-lg bg-slate-900 border border-slate-800/80 text-[11px] font-mono text-emerald-300 overflow-x-auto whitespace-pre-wrap select-all max-h-36 custom-scrollbar"></pre>
+              </div>
+            </div>
+
+            <!-- Live Response Panel -->
+            <div id="benchResponsePanel" class="hidden p-4 rounded-xl bg-slate-950 border border-borderCol space-y-3">
+              <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span id="benchResStatusBadge" class="px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-950 text-emerald-400 border border-emerald-800">200 OK</span>
+                  <span id="benchResTime" class="text-[11px] font-mono text-slate-400">12 ms</span>
+                  <span id="benchResSize" class="text-[11px] font-mono text-slate-500">1.2 KB</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button onclick="copyBenchResponse()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1">
+                    <span id="copyBenchBtnText">Copy Response</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="relative">
+                <pre id="benchResponseBody" class="max-h-72 overflow-y-auto p-3 rounded-lg bg-slate-900/90 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap select-all"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Module: Live Telementry & Real-Time System Monitor -->
+    <div id="section-telemetry" class="w-full flex flex-col space-y-6 section-card transition-all mt-8">
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        
+        <!-- Header & Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-borderCol gap-3">
+          <div class="flex items-center space-x-3">
+            <span class="p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-400 text-xl font-bold flex items-center justify-center">📈</span>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="font-bold text-white text-base">Telementry</h3>
+                <span id="telemetryRoomStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">Waiting WebSocket...</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">30s Cadence</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">auth_level &gt; 1</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Non-blocking Zap logger sink (Warn/Error/Fatal) streamed to <code class="text-cyan-300">live telementry</code> room with 10-point rolling Linux VM RAM &amp; Go memory metrics.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="fetchTelemetryMetrics()" title="Refresh telemetry metrics from REST API" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer">
+              <span>🔄</span>
+              <span>Refresh Metrics</span>
+            </button>
+            <button onclick="simulateTelemetryLogPrompt()" title="Inject simulated high-severity log entry" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition flex items-center space-x-1 cursor-pointer">
+              <span>⚡</span>
+              <span>Simulate Spike</span>
+            </button>
+            <button class="section-expand-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer" data-target="telemetry">
+              <span>⛶</span>
+              <span class="focus-btn-label">Focus</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Upper Grid: Metrics Display & 10-Point Interactive Graph -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+          
+          <!-- Left: 10-Point Rolling Graph & Metrics (8 cols) -->
+          <div class="lg:col-span-8 flex flex-col space-y-4">
+            
+            <!-- Live RAM & Go Memory Stat Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>System RAM</span>
+                  <span class="text-[10px] text-cyan-400 font-mono">Linux VM</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatRamPct" class="text-xl sm:text-2xl font-extrabold text-cyan-300 font-mono">--%</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  <span id="telemetryStatRamUsed">--</span> / <span id="telemetryStatRamTotal">--</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Free Memory</span>
+                  <span class="text-[10px] text-emerald-400 font-mono">Available</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatRamFree" class="text-xl sm:text-2xl font-extrabold text-emerald-300 font-mono">-- MB</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  Unused / buffer cache
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Go Heap Alloc</span>
+                  <span class="text-[10px] text-purple-400 font-mono">Runtime</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatGoAlloc" class="text-xl sm:text-2xl font-extrabold text-purple-300 font-mono">-- MB</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  Sys: <span id="telemetryStatGoSys">--</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Concurrency</span>
+                  <span class="text-[10px] text-amber-400 font-mono">Threads</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatGoroutines" class="text-xl sm:text-2xl font-extrabold text-amber-300 font-mono">--</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  GC Cycles: <span id="telemetryStatNumGC">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SVG 10-Point Rolling Chart Box -->
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-semibold text-slate-300">System RAM &amp; Heap Memory Timeline</span>
+                  <span id="telemetryGraphCadenceLabel" class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono border border-borderCol">Rolling 10 data points (every 30s)</span>
+                </div>
+                <div class="flex items-center space-x-3 text-[11px] font-mono">
+                  <span class="flex items-center space-x-1 text-cyan-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>
+                    <span>System RAM %</span>
+                  </span>
+                  <span class="flex items-center space-x-1 text-purple-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>
+                    <span>Go Heap (MB)</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Interactive SVG Canvas Container -->
+              <div class="relative w-full h-56 bg-slate-900/60 rounded-lg border border-borderCol/60 p-2 flex flex-col justify-between overflow-hidden">
+                <div id="telemetryChartEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs">
+                  <div class="animate-spin text-xl mb-1">⏳</div>
+                  <span>Waiting for telemetry metrics data points...</span>
+                </div>
+                <svg id="telemetrySvgGraph" class="w-full h-full overflow-visible" viewBox="0 0 700 200" preserveAspectRatio="none">
+                  <!-- Generated dynamically by renderTelemetryGraph() -->
+                </svg>
+              </div>
+
+              <!-- Time axis labels container -->
+              <div id="telemetryTimeAxis" class="flex items-center justify-between text-[10px] font-mono text-slate-500 px-2 pt-1 border-t border-borderCol/40">
+                <span>-4m30s</span>
+                <span>-3m30s</span>
+                <span>-2m30s</span>
+                <span>-1m30s</span>
+                <span>-30s</span>
+                <span class="text-cyan-400 font-bold">Now (live)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Telemetry Core Info & Spike Injection Simulator (4 cols) -->
+          <div class="lg:col-span-4 flex flex-col space-y-4">
+            
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Telemetry Core Sink</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Active</span>
+              </div>
+
+              <div class="space-y-2 text-xs">
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                  <span class="text-emerald-400 text-base">🛡️</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Non-Blocking Log Worker</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Application logging never blocks. High-severity logs are tapped via <code class="text-emerald-300">zapcore.NewTee</code> into a non-blocking buffered channel.</div>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                  <span class="text-amber-400 text-base">🔍</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Strict Log Exclusion Filter</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5"><span class="text-rose-400 font-semibold">Excludes Debug &amp; Info</span> logs. Captures exclusively <span class="text-amber-300 font-semibold">Warn</span>, <span class="text-rose-400 font-semibold">Error</span>, and <span class="text-purple-400 font-semibold">Fatal</span> events.</div>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                  <span class="text-purple-400 text-base">🔒</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Elevated Room Access</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Room <code class="text-cyan-300">live telementry</code> admits only accounts with <code class="text-purple-300 font-mono">auth_level &gt; 1</code> (Staff &amp; Admins). Normal users are barred.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Spike Simulation Card -->
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Test Log Generator</span>
+                <span class="text-[10px] text-slate-500 font-mono">Zap Core Probe</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Trigger real high-severity logs into the Zap telemetry pipeline to test live room broadcast &amp; bell notifications:</p>
+              
+              <div class="grid grid-cols-3 gap-2">
+                <button onclick="triggerSimulatedLog('warn')" class="px-2 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+                  <span>⚠️</span>
+                  <span>Warn</span>
+                </button>
+                <button onclick="triggerSimulatedLog('error')" class="px-2 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+                  <span>❌</span>
+                  <span>Error</span>
+                </button>
+                <button onclick="triggerSimulatedLog('fatal')" class="px-2 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+                  <span>💥</span>
+                  <span>Fatal</span>
+                </button>
+              </div>
+              <div id="simLogFeedback" class="text-[11px] font-mono text-slate-500 italic text-center min-h-[16px]"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Lower Section: Time-Based High-Severity Log Feed -->
+        <div class="mt-8 border-t border-borderCol/80 pt-6 flex flex-col space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+              <h4 class="font-bold text-white text-sm">Time-Based High-Severity Log Stream</h4>
+              <span id="telemetryLogCountBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-800 text-slate-300 border border-borderCol">0 events</span>
+              <span class="text-[10px] text-slate-500 font-mono">(Warn, Error, Fatal)</span>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <!-- Severity Filter -->
+              <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-borderCol text-xs">
+                <button onclick="setTelemetryLogLevelFilter('ALL')" id="btnLogFilterALL" class="px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white cursor-pointer">ALL</button>
+                <button onclick="setTelemetryLogLevelFilter('warn')" id="btnLogFilterWarn" class="px-2 py-1 rounded text-[11px] font-medium text-amber-400 hover:bg-slate-800 cursor-pointer">WARN</button>
+                <button onclick="setTelemetryLogLevelFilter('error')" id="btnLogFilterError" class="px-2 py-1 rounded text-[11px] font-medium text-rose-400 hover:bg-slate-800 cursor-pointer">ERROR</button>
+                <button onclick="setTelemetryLogLevelFilter('fatal')" id="btnLogFilterFatal" class="px-2 py-1 rounded text-[11px] font-medium text-purple-400 hover:bg-slate-800 cursor-pointer">FATAL</button>
+              </div>
+
+              <!-- Search -->
+              <input type="text" id="telemetryLogSearchInput" oninput="renderTelemetryLogs()" placeholder="Search logs..." class="w-36 sm:w-48 px-2.5 py-1 bg-slate-900 border border-borderCol rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+
+              <!-- Clear -->
+              <button onclick="clearTelemetryLogs()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-borderCol transition cursor-pointer">Clear</button>
+            </div>
+          </div>
+
+          <!-- Log stream list table/container -->
+          <div class="rounded-xl border border-borderCol bg-slate-950 overflow-hidden">
+            <div class="max-h-80 overflow-y-auto custom-scrollbar font-mono text-xs divide-y divide-borderCol/40" id="telemetryLogStreamContainer">
+              <div class="p-8 text-center text-slate-500 italic font-sans">
+                <span>Listening for high-severity logs on room <code class="text-cyan-400 font-mono">live telementry</code>... (Debug &amp; Info filtered out)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
   <!-- Page Footer -->
   <footer class="border-t border-borderCol bg-cardBg/40 py-6 mt-12">
@@ -947,6 +1571,976 @@
     let streamTokenCount = 0;
     let currentAdminUser = null;
     let isAdminRoomJoined = false;
+
+    // --- Section Focus & Navigation System ---
+    let currentFocusedSection = 'all';
+
+    const SECTION_METADATA = {
+      'all': {
+        name: 'All Overview',
+        icon: '📊',
+        desc: 'Comprehensive live control center showing all 8 real-time modules, microservices, and metrics.',
+        accent: 'brand'
+      },
+      'mesh': {
+        name: 'Active Mesh Rooms & Clients',
+        icon: '🌐',
+        desc: 'Live mesh WebSocket rooms, peer presence, global broadcasts & telemetry activity feed.',
+        accent: 'brand'
+      },
+      'llm': {
+        name: 'simplysocket LLM Streaming',
+        icon: '🤖',
+        desc: 'Real-time AI token streaming over WebSocket mesh channels with live chunk metrics.',
+        accent: 'emerald'
+      },
+      'jobs': {
+        name: 'Scheduled Background Jobs & Workers',
+        icon: '⏱️',
+        desc: 'In-process periodic task scheduler (jobs.Scheduler) with panic recovery, run counts & execution metrics.',
+        accent: 'purple'
+      },
+      'rag': {
+        name: 'Postgres pgvector & RAG Explorer',
+        icon: '🧠',
+        desc: 'Vector embedding generation, pgvector cosine search, semantic retrieval & question answering.',
+        accent: 'indigo'
+      },
+      'webrtc': {
+        name: 'WebRTC Lab & Media Playground',
+        icon: '🎥',
+        desc: 'Multi-party SFU conference router + 1:1 P2P video calls via simplysocket signaling + Pion UDP DataChannel.',
+        accent: 'rose'
+      },
+      'users': {
+        name: 'User Base & Multi-Level Auth (RBAC)',
+        icon: '👥',
+        desc: 'Account management, JSONB user metadata & auth_level token claims verification with protected route probes.',
+        accent: 'cyan'
+      },
+      'webhooks': {
+        name: 'Mobile Webhooks & Push Notification Center',
+        icon: '🔔',
+        desc: 'Register mobile push endpoints, sign payloads with HMAC-SHA256, dispatch alerts & track delivery history.',
+        accent: 'indigo'
+      },
+      'uploads': {
+        name: 'Multipart Form Upload & Media Assets',
+        icon: '📁',
+        desc: 'Multi-file multipart/form-data upload manager, category tagging, and file storage catalog.',
+        accent: 'amber'
+      },
+      'apis': {
+        name: 'Router API Test Bench & Dynamic Explorer',
+        icon: '⚡',
+        desc: 'Dynamic interactive API playground generated from router comments. Test Open, JWT Bearer Token, and API Key protected routes live with prefilled payloads.',
+        accent: 'emerald'
+      },
+      'telemetry': {
+        name: 'Live Telementry & Real-Time System Monitor',
+        icon: '📈',
+        desc: 'Non-blocking Zap logger sink streaming Warn/Error/Fatal logs, 30s Linux RAM & Go memory metrics with 10-point rolling graph.',
+        accent: 'cyan'
+      }
+    };
+
+    const SECTION_KEYS = ['mesh', 'llm', 'jobs', 'rag', 'webrtc', 'users', 'webhooks', 'uploads', 'apis', 'telemetry'];
+
+    let lastMeshState = null;
+    let lastJobsList = [];
+    let lastUsersList = [];
+    let lastWebhooksList = [];
+    let lastWebhookLogs = [];
+    let lastFilesList = [];
+    let lastRAGDocs = [];
+    let lastRAGQueryText = '';
+    let lastRAGMatchesCount = 0;
+    let lastRAGTopScore = '';
+    let lastAPIsCatalog = [];
+    let selectedAPI = null;
+    let lastApiTestResult = null;
+    let totalLoggedEvents = 1;
+
+    // Telemetry State
+    let telemetryMetrics = {
+      system_ram_total: 0,
+      system_ram_used: 0,
+      system_ram_free: 0,
+      system_ram_percent: 0,
+      go_alloc_bytes: 0,
+      go_sys_bytes: 0,
+      go_num_gc: 0,
+      goroutines: 0,
+      history: []
+    };
+    let telemetryTotals = { warn: 0, error: 0, fatal: 0 };
+    let telemetryLogs = [];
+    let telemetryAlertCount = 0;
+    let isTelemetryRoomJoined = false;
+    let telemetryLogLevelFilter = 'ALL';
+
+    function formatBytes(bytes, decimals = 1) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function getDashboardBoxesConfig(sectionId) {
+      const meshRooms = (lastMeshState && lastMeshState.rooms) ? lastMeshState.rooms : [];
+      const meshClientsCount = (lastMeshState && lastMeshState.total_clients !== undefined) ? lastMeshState.total_clients : 0;
+      const meshRoomsCount = (lastMeshState && lastMeshState.total_rooms !== undefined) ? lastMeshState.total_rooms : meshRooms.length;
+      const adminDetail = (lastMeshState && lastMeshState.rooms_detail && lastMeshState.rooms_detail['admin']) ? lastMeshState.rooms_detail['admin'] : { count: 0 };
+      
+      const jobsCount = lastJobsList ? lastJobsList.length : 0;
+      const jobsRunning = lastJobsList ? lastJobsList.filter(j => j.status === 'running').length : 0;
+      const jobsSuccess = lastJobsList ? lastJobsList.filter(j => j.status === 'success').length : 0;
+
+      const usersCount = lastUsersList ? lastUsersList.length : 0;
+      const adminUsersCount = lastUsersList ? lastUsersList.filter(u => ((u.metadata && u.metadata.auth_level) || 0) >= 50).length : 0;
+      const memberUsersCount = lastUsersList ? lastUsersList.filter(u => ((u.metadata && u.metadata.auth_level) || 0) < 50).length : 0;
+
+      const webhooksCount = lastWebhooksList ? lastWebhooksList.length : 0;
+      const filesCount = lastFilesList ? lastFilesList.length : 0;
+      const totalFileSize = lastFilesList ? lastFilesList.reduce((acc, f) => acc + (f.size || 0), 0) : 0;
+      const formattedTotalSize = formatBytes(totalFileSize);
+
+      switch (sectionId) {
+        case 'mesh':
+          return [
+            {
+              icon: '🌐',
+              title: 'Active Mesh Rooms',
+              value: meshRoomsCount,
+              unit: 'rooms',
+              color: 'text-white',
+              badge: 'simplysocket',
+              subvalues: [
+                { label: 'Global', val: meshRooms.includes('mesh-global') ? 'mesh-global' : 'none', color: 'text-brand-400' },
+                { label: 'Admin Room', val: `${adminDetail.count} active`, color: 'text-amber-400' },
+                { label: 'Custom', val: `${Math.max(0, meshRoomsCount - (meshRooms.includes('mesh-global') ? 1 : 0) - (meshRooms.includes('admin') ? 1 : 0))}`, color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '👥',
+              title: 'Connected Clients',
+              value: meshClientsCount,
+              unit: 'sockets',
+              color: 'text-brand-500',
+              badge: clientSlug ? clientSlug.substring(0, 10) : 'Connecting',
+              subvalues: [
+                { label: 'Client Slug', val: clientSlug || 'waiting...', color: 'text-emerald-400' },
+                { label: 'Transport', val: 'WebSocket Mesh', color: 'text-slate-300' },
+                { label: 'Heartbeat', val: 'Active (30s)', color: 'text-brand-400' }
+              ]
+            },
+            {
+              icon: '⚡',
+              title: 'Live Activity Logs',
+              value: totalLoggedEvents,
+              unit: 'events',
+              color: 'text-sky-400',
+              badge: 'Event Logger',
+              subvalues: [
+                { label: 'Feed Status', val: 'Capturing', color: 'text-emerald-400' },
+                { label: 'Auto-Reconnect', val: '3s backoff', color: 'text-slate-300' },
+                { label: 'Protocol', val: window.location.protocol === 'https:' ? 'WSS' : 'WS', color: 'text-purple-300' }
+              ]
+            }
+          ];
+
+        case 'llm': {
+          const streamBadge = document.getElementById('streamStatusBadge');
+          const streamStatus = streamBadge ? streamBadge.innerText : 'Idle';
+          const promptEl = document.getElementById('llmPrompt');
+          const promptLength = promptEl ? promptEl.value.length : 0;
+          const streamOutputEl = document.getElementById('streamOutput');
+          const outputChars = streamOutputEl ? streamOutputEl.innerText.length : 0;
+
+          return [
+            {
+              icon: '🤖',
+              title: 'LLM Stream Status',
+              value: streamStatus,
+              unit: '',
+              color: streamStatus === 'Streaming' ? 'text-emerald-400' : 'text-slate-200',
+              badge: streamStatus === 'Streaming' ? 'Active' : 'Standby',
+              subvalues: [
+                { label: 'Channel', val: 'WebSocket Token Stream', color: 'text-brand-400' },
+                { label: 'Stream ID', val: currentStreamID ? currentStreamID.substring(0, 10) : 'none', color: 'text-slate-300' },
+                { label: 'Transport', val: 'Multiplexed', color: 'text-cyan-300' }
+              ]
+            },
+            {
+              icon: '💬',
+              title: 'Stream Tokens Count',
+              value: streamTokenCount,
+              unit: 'tokens',
+              color: 'text-emerald-400',
+              badge: 'Real-time',
+              subvalues: [
+                { label: 'Flush Mode', val: 'Zero-buffer Push', color: 'text-emerald-300' },
+                { label: 'TPS', val: streamStatus === 'Streaming' ? '~25 tok/s' : '0', color: 'text-slate-300' },
+                { label: 'Chunks', val: `${streamTokenCount} delivered`, color: 'text-indigo-300' }
+              ]
+            },
+            {
+              icon: '📝',
+              title: 'Prompt & Output Size',
+              value: promptLength,
+              unit: 'chars input',
+              color: 'text-amber-400',
+              badge: 'Buffer',
+              subvalues: [
+                { label: 'Response', val: `${outputChars} chars`, color: 'text-amber-300' },
+                { label: 'Format', val: 'Raw Text / Markdown', color: 'text-slate-300' },
+                { label: 'Auto-Scroll', val: 'Enabled', color: 'text-emerald-400' }
+              ]
+            }
+          ];
+        }
+
+        case 'jobs':
+          return [
+            {
+              icon: '⏱️',
+              title: 'Scheduled Tasks',
+              value: jobsCount,
+              unit: 'tasks',
+              color: 'text-purple-400',
+              badge: 'Scheduler',
+              subvalues: [
+                { label: 'Engine', val: 'jobs.Scheduler', color: 'text-purple-300' },
+                { label: 'Worker Pool', val: 'Goroutine Tasks', color: 'text-slate-300' },
+                { label: 'Concurrency', val: 'Mutex Guarded', color: 'text-brand-400' }
+              ]
+            },
+            {
+              icon: '✅',
+              title: 'Execution Success',
+              value: jobsSuccess || jobsCount,
+              unit: 'passed',
+              color: 'text-emerald-400',
+              badge: 'Panic Recovery',
+              subvalues: [
+                { label: 'Panics Caught', val: '0 (Guarded)', color: 'text-emerald-300' },
+                { label: 'Health', val: '100% Operational', color: 'text-emerald-400' },
+                { label: 'Errors', val: '0 logged', color: 'text-slate-400' }
+              ]
+            },
+            {
+              icon: '🏃',
+              title: 'Active Workers',
+              value: jobsRunning > 0 ? jobsRunning : 'Idle',
+              unit: '',
+              color: jobsRunning > 0 ? 'text-sky-400' : 'text-slate-300',
+              badge: 'Periodic Tickers',
+              subvalues: [
+                { label: 'Intervals', val: '5s / 10s / 60s', color: 'text-sky-300' },
+                { label: 'Scheduler', val: 'time.NewTicker', color: 'text-slate-300' },
+                { label: 'Sync Push', val: 'admin-state broadcast', color: 'text-purple-300' }
+              ]
+            }
+          ];
+
+        case 'rag': {
+          const ragDocsCount = lastRAGDocs ? lastRAGDocs.length : 0;
+          const lastIndexedTitle = (lastRAGDocs && lastRAGDocs.length > 0) ? (lastRAGDocs[lastRAGDocs.length - 1].title || 'Untitled') : 'None';
+          const totalDocChars = lastRAGDocs ? lastRAGDocs.reduce((acc, d) => acc + ((d.content || '').length), 0) : 0;
+          const searchStatus = lastRAGMatchesCount > 0 ? `${lastRAGMatchesCount} matches` : (lastRAGQueryText ? '0 matches' : 'Ready');
+
+          return [
+            {
+              icon: '📚',
+              title: 'Indexed Knowledge Docs',
+              value: ragDocsCount,
+              unit: 'documents',
+              color: 'text-indigo-400',
+              badge: 'pgvector Store',
+              subvalues: [
+                { label: 'Latest Doc', val: lastIndexedTitle.length > 18 ? lastIndexedTitle.substring(0, 16) + '...' : lastIndexedTitle, color: 'text-indigo-300' },
+                { label: 'Embedding', val: '1536-d vectors', color: 'text-cyan-300' },
+                { label: 'Storage', val: 'PostgreSQL 16', color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '🔍',
+              title: 'Semantic Search Telemetry',
+              value: searchStatus,
+              unit: '',
+              color: lastRAGMatchesCount > 0 ? 'text-emerald-400' : 'text-brand-400',
+              badge: 'KNN Cosine',
+              subvalues: [
+                { label: 'Last Query', val: lastRAGQueryText ? (lastRAGQueryText.length > 18 ? lastRAGQueryText.substring(0, 16) + '...' : lastRAGQueryText) : 'None', color: 'text-brand-300' },
+                { label: 'Top Score', val: lastRAGTopScore || 'None', color: 'text-emerald-300' },
+                { label: 'Context State', val: lastRAGMatchesCount > 0 ? 'Injected in Prompt' : 'Standby', color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '💾',
+              title: 'Knowledge Base Volume',
+              value: totalDocChars,
+              unit: 'chars',
+              color: 'text-purple-400',
+              badge: formatBytes(totalDocChars),
+              subvalues: [
+                { label: 'Total Docs', val: `${ragDocsCount} indexed`, color: 'text-purple-300' },
+                { label: 'Avg Size', val: ragDocsCount > 0 ? `${Math.round(totalDocChars / ragDocsCount)} chars` : '0 chars', color: 'text-cyan-300' },
+                { label: 'Indexing Mode', val: 'Real-time Vectorized', color: 'text-slate-300' }
+              ]
+            }
+          ];
+        }
+
+        case 'webrtc': {
+          const rttEl = document.getElementById('rttDisplay');
+          const rttText = rttEl ? rttEl.innerText : '- ms';
+          const sfuStatsEl = document.getElementById('sfuClusterStats');
+          const sfuStatsText = sfuStatsEl ? sfuStatsEl.innerText : '0 Active Rooms';
+          const dcStatusEl = document.getElementById('serverDCStatus');
+          const dcStatusText = dcStatusEl ? dcStatusEl.innerText : 'Disconnected';
+          const p2pCallStatusEl = document.getElementById('p2pCallStatus');
+          const p2pStatusText = p2pCallStatusEl ? p2pCallStatusEl.innerText : 'Idle';
+
+          return [
+            {
+              icon: '🌟',
+              title: 'Pion SFU Conference Hub',
+              value: 'Pion SFU',
+              unit: 'RTP Router',
+              color: 'text-rose-500',
+              badge: 'Selective Fwd',
+              subvalues: [
+                { label: 'Active Rooms', val: sfuStatsText, color: 'text-rose-300' },
+                { label: 'Keyframes', val: 'Periodic PLI (3s)', color: 'text-emerald-400' },
+                { label: 'Media Routing', val: 'Zero Transcode RTP', color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '📡',
+              title: '1:1 P2P Video Mesh',
+              value: p2pStatusText,
+              unit: '',
+              color: 'text-brand-500',
+              badge: 'WS Signaling',
+              subvalues: [
+                { label: 'Signaling', val: 'simplysocket Mesh', color: 'text-emerald-400' },
+                { label: 'Codecs', val: 'VP8 Video / Opus Audio', color: 'text-slate-300' },
+                { label: 'Negotiation', val: 'Offer / Answer / ICE', color: 'text-sky-300' }
+              ]
+            },
+            {
+              icon: '⚡',
+              title: 'UDP DataChannel Benchmark',
+              value: rttText,
+              unit: '',
+              color: 'text-emerald-400',
+              badge: dcStatusText,
+              subvalues: [
+                { label: 'Protocol', val: 'SCTP over UDP (Pion)', color: 'text-emerald-300' },
+                { label: 'Latency', val: 'Sub-millisecond RTT', color: 'text-slate-300' },
+                { label: 'Reliability', val: 'Ordered & Reliable', color: 'text-purple-300' }
+              ]
+            }
+          ];
+        }
+
+        case 'users': {
+          const authBadgeEl = document.getElementById('headerAuthLevelBadge');
+          const userAuthBadge = authBadgeEl ? authBadgeEl.innerText : 'Lvl 99';
+          return [
+            {
+              icon: '👥',
+              title: 'Registered Accounts',
+              value: usersCount,
+              unit: 'accounts',
+              color: 'text-cyan-400',
+              badge: 'Accounts',
+              subvalues: [
+                { label: 'Admins (≥50)', val: `${adminUsersCount}`, color: 'text-purple-400' },
+                { label: 'Members (<50)', val: `${memberUsersCount}`, color: 'text-cyan-300' },
+                { label: 'DB Table', val: 'users (JSONB meta)', color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '🔑',
+              title: 'Session RBAC Auth Level',
+              value: userAuthBadge,
+              unit: '',
+              color: 'text-purple-400',
+              badge: 'Active Token',
+              subvalues: [
+                { label: 'User', val: currentAdminUser ? currentAdminUser.username : 'admin', color: 'text-purple-300' },
+                { label: 'Token Type', val: 'Bearer JWT Claims', color: 'text-slate-300' },
+                { label: 'Room Access', val: 'Admin room unlocked', color: 'text-emerald-400' }
+              ]
+            }
+          ];
+        }
+
+        case 'webhooks': {
+          const logsCount = lastWebhookLogs ? lastWebhookLogs.length : 0;
+          const successfulLogs = lastWebhookLogs ? lastWebhookLogs.filter(l => l.success).length : 0;
+          const failedLogs = lastWebhookLogs ? lastWebhookLogs.filter(l => !l.success).length : 0;
+          const lastLog = (lastWebhookLogs && lastWebhookLogs.length > 0) ? lastWebhookLogs[0] : null;
+
+          return [
+            {
+              icon: '🔔',
+              title: 'Mobile Webhook Gateways',
+              value: webhooksCount,
+              unit: 'endpoints',
+              color: 'text-indigo-400',
+              badge: 'Endpoints',
+              subvalues: [
+                { label: 'Registered', val: `${webhooksCount} URLs`, color: 'text-indigo-300' },
+                { label: 'Wildcard (*)', val: 'All Push Events', color: 'text-slate-300' },
+                { label: 'Storage', val: 'webhooks table', color: 'text-emerald-400' }
+              ]
+            },
+            {
+              icon: '📊',
+              title: 'Delivery Attempts Logged',
+              value: logsCount,
+              unit: 'deliveries',
+              color: logsCount > 0 ? (lastLog && lastLog.success ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-300',
+              badge: logsCount > 0 ? (lastLog && lastLog.success ? `Last HTTP ${lastLog.status_code || 200}` : 'Last Failed') : 'No History',
+              subvalues: [
+                { label: 'Successful', val: `${successfulLogs} sent`, color: 'text-emerald-300' },
+                { label: 'Failed', val: `${failedLogs} failed`, color: 'text-rose-300' },
+                { label: 'Last Latency', val: lastLog ? `${lastLog.duration_ms}ms` : 'None', color: 'text-cyan-300' }
+              ]
+            }
+          ];
+        }
+
+        case 'uploads':
+          return [
+            {
+              icon: '📁',
+              title: 'Stored Media Assets',
+              value: filesCount,
+              unit: 'assets',
+              color: 'text-amber-400',
+              badge: 'Local Disk',
+              subvalues: [
+                { label: 'Asset Dir', val: './uploads/assets', color: 'text-amber-300' },
+                { label: 'Catalog DB', val: 'uploaded_files table', color: 'text-slate-300' },
+                { label: 'Public URLs', val: '/api/v1/files/*', color: 'text-emerald-400' }
+              ]
+            },
+            {
+              icon: '💾',
+              title: 'Cumulative Storage Size',
+              value: formattedTotalSize,
+              unit: '',
+              color: 'text-cyan-400',
+              badge: 'Capacity',
+              subvalues: [
+                { label: 'Max File Limit', val: '32 MB per asset', color: 'text-cyan-300' },
+                { label: 'Buffer Stream', val: 'Go io.Copy buffer', color: 'text-slate-300' },
+                { label: 'Total Files', val: `${filesCount} tracked`, color: 'text-purple-300' }
+              ]
+            }
+          ];
+
+        case 'apis': {
+          const totalApis = lastAPIsCatalog ? lastAPIsCatalog.length : 0;
+          const openApis = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.auth === 'open').length : 0;
+          const tokenApis = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.auth === 'token').length : 0;
+          const apiKeyApis = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.auth === 'api_key').length : 0;
+
+          const getCount = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.method === 'GET').length : 0;
+          const postCount = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.method === 'POST').length : 0;
+          const putCount = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.method === 'PUT').length : 0;
+          const delCount = lastAPIsCatalog ? lastAPIsCatalog.filter(a => a.method === 'DELETE').length : 0;
+
+          const lastStatus = lastApiTestResult ? `${lastApiTestResult.status} ${lastApiTestResult.statusText || ''}` : 'Ready';
+          const lastLatency = lastApiTestResult ? `${lastApiTestResult.durationMs} ms` : 'None';
+          const lastEndpoint = lastApiTestResult ? (lastApiTestResult.path.length > 20 ? lastApiTestResult.path.substring(0, 18) + '...' : lastApiTestResult.path) : 'None';
+
+          const currentToken = localStorage.getItem('admin_jwt_token');
+          const hasToken = !!currentToken;
+
+          return [
+            {
+              icon: '⚡',
+              title: 'Discovered Router Endpoints',
+              value: totalApis,
+              unit: 'routes',
+              color: 'text-emerald-400',
+              badge: 'AST Extracted',
+              subvalues: [
+                { label: '🟢 Open', val: `${openApis} routes`, color: 'text-emerald-300' },
+                { label: '🟣 Bearer JWT', val: `${tokenApis} routes`, color: 'text-purple-300' },
+                { label: '🔑 API Key', val: `${apiKeyApis} routes`, color: 'text-amber-300' }
+              ]
+            },
+            {
+              icon: '🔀',
+              title: 'HTTP Methods Split',
+              value: `${getCount} GET / ${postCount} POST`,
+              unit: '',
+              color: 'text-sky-400',
+              badge: 'REST Coverage',
+              subvalues: [
+                { label: 'GET', val: `${getCount}`, color: 'text-sky-300' },
+                { label: 'POST', val: `${postCount}`, color: 'text-emerald-300' },
+                { label: 'PUT', val: `${putCount}`, color: 'text-amber-300' },
+                { label: 'DELETE', val: `${delCount}`, color: 'text-rose-300' }
+              ]
+            },
+            {
+              icon: '🛡️',
+              title: 'Active Workbench Auth',
+              value: hasToken ? 'JWT Loaded' : 'No Token',
+              unit: '',
+              color: hasToken ? 'text-purple-400' : 'text-slate-400',
+              badge: 'Auto-Injected',
+              subvalues: [
+                { label: 'Admin Bearer', val: hasToken ? 'Active Session' : 'Unauthenticated', color: hasToken ? 'text-emerald-400' : 'text-slate-400' },
+                { label: 'API Key Header', val: 'X-API-Key', color: 'text-amber-300' },
+                { label: 'CORS / Preflight', val: 'Auto Handled', color: 'text-slate-300' }
+              ]
+            },
+            {
+              icon: '🧪',
+              title: 'Live Test Telemetry',
+              value: lastStatus,
+              unit: '',
+              color: lastApiTestResult ? (lastApiTestResult.ok ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-300',
+              badge: lastLatency,
+              subvalues: [
+                { label: 'Latency', val: lastLatency, color: 'text-cyan-300' },
+                { label: 'Last Tested', val: lastEndpoint, color: 'text-slate-300' },
+                { label: 'Payload Format', val: 'JSON Inspector', color: 'text-indigo-300' }
+              ]
+            }
+          ];
+        }
+
+        case 'telemetry': {
+          const ramPct = (telemetryMetrics.system_ram_percent || 0).toFixed(1);
+          const ramUsed = formatBytes(telemetryMetrics.system_ram_used || 0);
+          const ramTotal = formatBytes(telemetryMetrics.system_ram_total || 0);
+          const ramFree = formatBytes(telemetryMetrics.system_ram_free || 0);
+          const goAlloc = formatBytes(telemetryMetrics.go_alloc_bytes || 0);
+          const goSys = formatBytes(telemetryMetrics.go_sys_bytes || 0);
+          const goroutines = telemetryMetrics.goroutines || 0;
+          const gcRuns = telemetryMetrics.go_num_gc || 0;
+          const pointsCount = (telemetryMetrics.history || []).length;
+          const warnCount = telemetryTotals.warn || 0;
+          const errCount = (telemetryTotals.error || 0) + (telemetryTotals.fatal || 0);
+
+          return [
+            {
+              icon: '📈',
+              title: 'System RAM Usage',
+              value: `${ramPct}%`,
+              unit: 'used',
+              color: telemetryMetrics.system_ram_percent > 85 ? 'text-rose-400' : (telemetryMetrics.system_ram_percent > 65 ? 'text-amber-400' : 'text-cyan-400'),
+              badge: 'Linux /proc/meminfo',
+              subvalues: [
+                { label: 'Used', val: ramUsed, color: 'text-cyan-300' },
+                { label: 'Total', val: ramTotal, color: 'text-slate-300' },
+                { label: 'Available', val: ramFree, color: 'text-emerald-300' }
+              ]
+            },
+            {
+              icon: '⚡',
+              title: 'Go Runtime Memory',
+              value: goAlloc,
+              unit: 'heap alloc',
+              color: 'text-purple-400',
+              badge: 'runtime.MemStats',
+              subvalues: [
+                { label: 'Sys Reserved', val: goSys, color: 'text-purple-300' },
+                { label: 'Goroutines', val: `${goroutines}`, color: 'text-amber-300' },
+                { label: 'GC Cycles', val: `${gcRuns}`, color: 'text-emerald-300' }
+              ]
+            },
+            {
+              icon: '🔔',
+              title: 'Telemetry Log Alerts',
+              value: telemetryLogs.length,
+              unit: 'captured',
+              color: errCount > 0 ? 'text-rose-400' : (warnCount > 0 ? 'text-amber-400' : 'text-emerald-400'),
+              badge: 'Non-blocking Zap Sink',
+              subvalues: [
+                { label: 'Warn', val: `${warnCount}`, color: 'text-amber-300' },
+                { label: 'Error/Fatal', val: `${errCount}`, color: 'text-rose-300' },
+                { label: 'Filter', val: 'Excludes Debug/Info', color: 'text-slate-400' }
+              ]
+            },
+            {
+              icon: '🌐',
+              title: 'Live Telemetry Room',
+              value: isTelemetryRoomJoined ? 'Connected' : 'auth_level > 1',
+              unit: '',
+              color: isTelemetryRoomJoined ? 'text-emerald-400' : 'text-amber-400',
+              badge: 'live telementry',
+              subvalues: [
+                { label: 'Cadence', val: '30s VM metrics', color: 'text-cyan-300' },
+                { label: 'Window', val: `${pointsCount} / 10 points`, color: 'text-indigo-300' },
+                { label: 'Access', val: 'auth_level > 1', color: 'text-purple-300' }
+              ]
+            }
+          ];
+        }
+
+        case 'all':
+        default:
+          return [
+            {
+              icon: '🌐',
+              title: 'Active Mesh Rooms',
+              value: meshRoomsCount,
+              unit: 'rooms',
+              color: 'text-white',
+              badge: 'simplysocket',
+              subvalues: [
+                { label: 'mesh-global', val: 'Lobby', color: 'text-brand-400' },
+                { label: 'admin room', val: `${adminDetail.count} active`, color: 'text-amber-400' },
+                { label: 'Live Mesh', val: 'Peer WebSocket', color: 'text-slate-300' }
+              ],
+              clickTarget: 'mesh'
+            },
+            {
+              icon: '👥',
+              title: 'Total Mesh Clients',
+              value: meshClientsCount,
+              unit: 'connected',
+              color: 'text-brand-500',
+              badge: clientSlug ? clientSlug.substring(0, 10) : 'Connecting',
+              subvalues: [
+                { label: 'Client Slug', val: clientSlug ? clientSlug.substring(0, 12) : 'waiting...', color: 'text-emerald-400' },
+                { label: 'Mesh Router', val: 'Broadcast Hub', color: 'text-slate-300' },
+                { label: 'Events Logged', val: `${totalLoggedEvents} logged`, color: 'text-sky-300' }
+              ],
+              clickTarget: 'mesh'
+            },
+            {
+              icon: '⏱️',
+              title: 'Scheduled Background Jobs',
+              value: jobsCount,
+              unit: 'tasks',
+              color: 'text-purple-400',
+              badge: 'Scheduler',
+              subvalues: [
+                { label: 'Panic Guard', val: 'Guarded & Safe', color: 'text-emerald-400' },
+                { label: 'Cron Cadence', val: 'Periodic Tickers', color: 'text-purple-300' },
+                { label: 'Success Runs', val: `${jobsSuccess || jobsCount} passed`, color: 'text-slate-300' }
+              ],
+              clickTarget: 'jobs'
+            },
+            {
+              icon: '🚀',
+              title: 'Real-Time Services & Assets',
+              value: usersCount + webhooksCount + filesCount,
+              unit: 'entities',
+              color: 'text-amber-400',
+              badge: 'Microservices',
+              subvalues: [
+                { label: 'Users', val: `${usersCount} accounts`, color: 'text-cyan-300' },
+                { label: 'Webhooks', val: `${webhooksCount} push`, color: 'text-indigo-300' },
+                { label: 'Assets', val: `${filesCount} files`, color: 'text-amber-300' }
+              ],
+              clickTarget: 'users'
+            }
+          ];
+      }
+    }
+
+    function updateDashboardBoxes(sectionId) {
+      if (!sectionId) sectionId = currentFocusedSection || 'all';
+      const container = document.getElementById('dashboardStatsContainer');
+      if (!container) return;
+
+      const boxes = getDashboardBoxesConfig(sectionId);
+      if (!boxes || boxes.length === 0) return;
+
+      // Dynamically adjust grid columns so there are never empty gaps
+      if (boxes.length === 1) {
+        container.className = 'grid grid-cols-1 gap-4';
+      } else if (boxes.length === 2) {
+        container.className = 'grid grid-cols-1 sm:grid-cols-2 gap-4';
+      } else if (boxes.length === 3) {
+        container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
+      } else {
+        container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
+      }
+
+      container.innerHTML = boxes.map(box => `
+        <div ${box.clickTarget ? `onclick="focusSection('${box.clickTarget}')"` : ''} class="bg-cardBg border border-borderCol hover:border-brand-500/50 hover:bg-slate-900/60 rounded-xl p-4 sm:p-5 shadow-sm transition-all duration-200 flex flex-col justify-between group ${box.clickTarget ? 'cursor-pointer transform hover:-translate-y-0.5' : ''}">
+          <div>
+            <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+              <span class="flex items-center space-x-1.5 truncate">
+                <span class="text-base">${box.icon}</span>
+                <span class="font-semibold text-slate-300 group-hover:text-white transition">${box.title}</span>
+              </span>
+              ${box.badge ? `<span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-slate-800/60 text-slate-400 group-hover:text-slate-300 transition">${box.badge}</span>` : ''}
+            </div>
+
+            <div class="flex items-baseline space-x-2 my-1">
+              <div class="text-2xl sm:text-3xl font-extrabold tracking-tight ${box.color}">${box.value}</div>
+              ${box.unit ? `<span class="text-xs font-mono text-slate-400">${box.unit}</span>` : ''}
+            </div>
+          </div>
+
+          <div class="mt-2.5 pt-2 border-t border-borderCol/40 flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            ${(box.subvalues || []).map(sub => `
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-800/40 text-slate-300">
+                <span class="text-slate-400 mr-1">${sub.label}:</span>
+                <span class="font-medium ${sub.color || 'text-slate-200'}">${sub.val}</span>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function focusSection(sectionId, smoothScroll = true) {
+      if (!sectionId || (!SECTION_METADATA[sectionId] && sectionId !== 'all')) {
+        sectionId = 'all';
+      }
+
+      currentFocusedSection = sectionId;
+
+      // Update URL hash without causing a page jump
+      if (window.location.hash !== '#' + sectionId) {
+        history.replaceState(null, null, '#' + sectionId);
+      }
+
+      // Update Navigation Buttons Style
+      document.querySelectorAll('.section-focus-btn').forEach(btn => {
+        const btnSec = btn.getAttribute('data-section');
+        if (btnSec === sectionId) {
+          btn.className = 'section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-400/60 transition whitespace-nowrap cursor-pointer';
+        } else {
+          btn.className = 'section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer';
+        }
+      });
+
+      // Update indicator text in navbar
+      const indicator = document.getElementById('activeSectionIndicator');
+      if (indicator) {
+        indicator.innerText = 'View: ' + SECTION_METADATA[sectionId].name;
+      }
+
+      // Update Focus Banner
+      const focusBanner = document.getElementById('focusBanner');
+      if (focusBanner) {
+        if (sectionId === 'all') {
+          focusBanner.classList.add('hidden');
+        } else {
+          focusBanner.classList.remove('hidden');
+          const meta = SECTION_METADATA[sectionId];
+          const iconEl = document.getElementById('focusBannerIcon');
+          const titleEl = document.getElementById('focusBannerTitle');
+          const subEl = document.getElementById('focusBannerSubtitle');
+          const countEl = document.getElementById('focusBannerCount');
+          if (iconEl) iconEl.innerText = meta.icon;
+          if (titleEl) titleEl.innerText = meta.name;
+          if (subEl) subEl.innerText = meta.desc;
+
+          const idx = SECTION_KEYS.indexOf(sectionId);
+          if (countEl) countEl.innerText = `${idx + 1} of ${SECTION_KEYS.length}`;
+
+          const prevSec = idx > 0 ? SECTION_KEYS[idx - 1] : SECTION_KEYS[SECTION_KEYS.length - 1];
+          const nextSec = idx < SECTION_KEYS.length - 1 ? SECTION_KEYS[idx + 1] : SECTION_KEYS[0];
+          const btnPrev = document.getElementById('btnFocusPrev');
+          const btnNext = document.getElementById('btnFocusNext');
+          if (btnPrev) btnPrev.setAttribute('data-target', prevSec);
+          if (btnNext) btnNext.setAttribute('data-target', nextSec);
+        }
+      }
+
+      // Containers
+      const rowMeshLLM = document.getElementById('rowMeshLLM');
+      const secMesh = document.getElementById('section-mesh');
+      const secLLM = document.getElementById('section-llm');
+      const secJobs = document.getElementById('section-jobs');
+      const secRAG = document.getElementById('section-rag');
+      const secWebRTC = document.getElementById('section-webrtc');
+      const secUsers = document.getElementById('section-users');
+      const rowWebhooksUploads = document.getElementById('rowWebhooksUploads');
+      const secWebhooks = document.getElementById('section-webhooks');
+      const secUploads = document.getElementById('section-uploads');
+      const secAPIs = document.getElementById('section-apis');
+      const secTelemetry = document.getElementById('section-telemetry');
+
+      if (sectionId === 'all') {
+        // Show everything
+        if (rowMeshLLM) {
+          rowMeshLLM.classList.remove('hidden');
+          rowMeshLLM.className = 'grid grid-cols-1 lg:grid-cols-12 gap-8';
+        }
+        if (secMesh) {
+          secMesh.classList.remove('hidden');
+          secMesh.className = 'lg:col-span-7 flex flex-col space-y-6 section-card transition-all';
+        }
+        if (secLLM) {
+          secLLM.classList.remove('hidden');
+          secLLM.className = 'lg:col-span-5 flex flex-col space-y-6 section-card transition-all';
+        }
+        if (secJobs) secJobs.classList.remove('hidden');
+        if (secRAG) secRAG.classList.remove('hidden');
+        if (secWebRTC) secWebRTC.classList.remove('hidden');
+        if (secUsers) secUsers.classList.remove('hidden');
+        if (rowWebhooksUploads) {
+          rowWebhooksUploads.classList.remove('hidden');
+          rowWebhooksUploads.className = 'grid grid-cols-1 lg:grid-cols-2 gap-8';
+        }
+        if (secWebhooks) secWebhooks.classList.remove('hidden');
+        if (secUploads) secUploads.classList.remove('hidden');
+        if (secAPIs) secAPIs.classList.remove('hidden');
+        if (secTelemetry) secTelemetry.classList.remove('hidden');
+
+        // Reset card focus buttons
+        document.querySelectorAll('.section-expand-btn').forEach(b => {
+          const target = b.getAttribute('data-target');
+          const label = b.querySelector('.focus-btn-label');
+          if (label) label.innerText = 'Focus';
+          b.onclick = () => focusSection(target);
+        });
+      } else {
+        // Hide all rows first
+        if (rowMeshLLM) rowMeshLLM.classList.add('hidden');
+        if (secMesh) secMesh.classList.add('hidden');
+        if (secLLM) secLLM.classList.add('hidden');
+        if (secJobs) secJobs.classList.add('hidden');
+        if (secRAG) secRAG.classList.add('hidden');
+        if (secWebRTC) secWebRTC.classList.add('hidden');
+        if (secUsers) secUsers.classList.add('hidden');
+        if (rowWebhooksUploads) rowWebhooksUploads.classList.add('hidden');
+        if (secWebhooks) secWebhooks.classList.add('hidden');
+        if (secUploads) secUploads.classList.add('hidden');
+        if (secAPIs) secAPIs.classList.add('hidden');
+        if (secTelemetry) secTelemetry.classList.add('hidden');
+
+        // Show selected section in full width
+        if (sectionId === 'mesh') {
+          if (rowMeshLLM) {
+            rowMeshLLM.classList.remove('hidden');
+            rowMeshLLM.className = 'grid grid-cols-1 gap-8';
+          }
+          if (secMesh) {
+            secMesh.classList.remove('hidden');
+            secMesh.className = 'w-full flex flex-col space-y-6 section-card transition-all';
+          }
+        } else if (sectionId === 'llm') {
+          if (rowMeshLLM) {
+            rowMeshLLM.classList.remove('hidden');
+            rowMeshLLM.className = 'grid grid-cols-1 gap-8';
+          }
+          if (secLLM) {
+            secLLM.classList.remove('hidden');
+            secLLM.className = 'w-full flex flex-col space-y-6 section-card transition-all';
+          }
+        } else if (sectionId === 'jobs') {
+          if (secJobs) secJobs.classList.remove('hidden');
+        } else if (sectionId === 'rag') {
+          if (secRAG) secRAG.classList.remove('hidden');
+        } else if (sectionId === 'webrtc') {
+          if (secWebRTC) secWebRTC.classList.remove('hidden');
+        } else if (sectionId === 'users') {
+          if (secUsers) secUsers.classList.remove('hidden');
+        } else if (sectionId === 'webhooks') {
+          if (rowWebhooksUploads) {
+            rowWebhooksUploads.classList.remove('hidden');
+            rowWebhooksUploads.className = 'grid grid-cols-1 gap-8';
+          }
+          if (secWebhooks) secWebhooks.classList.remove('hidden');
+        } else if (sectionId === 'uploads') {
+          if (rowWebhooksUploads) {
+            rowWebhooksUploads.classList.remove('hidden');
+            rowWebhooksUploads.className = 'grid grid-cols-1 gap-8';
+          }
+          if (secUploads) secUploads.classList.remove('hidden');
+        } else if (sectionId === 'apis') {
+          if (secAPIs) secAPIs.classList.remove('hidden');
+        } else if (sectionId === 'telemetry') {
+          if (secTelemetry) secTelemetry.classList.remove('hidden');
+        }
+
+        // Update card header button to show '✕ Overview'
+        document.querySelectorAll('.section-expand-btn').forEach(b => {
+          const target = b.getAttribute('data-target');
+          const label = b.querySelector('.focus-btn-label');
+          if (target === sectionId) {
+            if (label) label.innerText = '✕ Overview';
+            b.onclick = () => focusSection('all');
+          } else {
+            if (label) label.innerText = 'Focus';
+            b.onclick = () => focusSection(target);
+          }
+        });
+      }
+
+      // Update top dashboard boxes with multi-values tailored for this section
+      updateDashboardBoxes(sectionId);
+
+      // Highlight target section
+      const targetEl = document.getElementById('section-' + sectionId);
+      if (targetEl) {
+        targetEl.classList.add('ring-2', 'ring-brand-500/70', 'shadow-2xl');
+        setTimeout(() => {
+          targetEl.classList.remove('ring-2', 'ring-brand-500/70', 'shadow-2xl');
+        }, 1200);
+
+        if (smoothScroll) {
+          const headerOffset = 135;
+          const elPos = targetEl.getBoundingClientRect().top + window.pageYOffset;
+          window.scrollTo({
+            top: Math.max(0, elPos - headerOffset),
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+
+    function focusPrevSection() {
+      const btn = document.getElementById('btnFocusPrev');
+      if (btn) {
+        const target = btn.getAttribute('data-target') || 'mesh';
+        focusSection(target);
+      }
+    }
+
+    function focusNextSection() {
+      const btn = document.getElementById('btnFocusNext');
+      if (btn) {
+        const target = btn.getAttribute('data-target') || 'mesh';
+        focusSection(target);
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if (e.key === '0' || e.key === 'Escape') {
+        focusSection('all');
+      } else if (e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx >= 0 && idx < SECTION_KEYS.length) {
+          focusSection(SECTION_KEYS[idx]);
+        }
+      } else if (e.key === 'ArrowRight' && currentFocusedSection !== 'all') {
+        focusNextSection();
+      } else if (e.key === 'ArrowLeft' && currentFocusedSection !== 'all') {
+        focusPrevSection();
+      }
+    });
+
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash ? window.location.hash.replace('#', '') : 'all';
+      if (hash !== currentFocusedSection) {
+        focusSection(hash, true);
+      }
+    });
 
     function initWebSocket(token) {
       if (!token) {
@@ -990,10 +2584,22 @@
           logEvent('SOCKET', `WebSocket connected as "${clientName}" (Level ${userLevel}). Note: admin chat room requires Level > 10 (View-only mode).`);
         }
 
+        // Live Telemetry room requires elevated access (auth_level > 1)
+        if (userLevel > 1) {
+          logEvent('SOCKET', `WebSocket joining "live-telemetry" room (Level ${userLevel}).`);
+          const joinTelemetryMsg = {
+            action: 'join-room',
+            target: 'mesh-global',
+            message_body: { room: 'live-telemetry', token: token }
+          };
+          socket.send(JSON.stringify(joinTelemetryMsg));
+        }
+
         // Request initial admin state
         setTimeout(() => {
           requestStateRefresh();
           fetchJobs();
+          fetchTelemetryMetrics();
         }, 300);
       };
 
@@ -1012,6 +2618,8 @@
 
       socket.onclose = (ev) => {
         isAdminRoomJoined = false;
+        isTelemetryRoomJoined = false;
+        updateTelemetryRoomStatus(false);
         updateStatus(false, 'Disconnected');
         if (localStorage.getItem('admin_jwt_token')) {
           logEvent('SOCKET', 'WebSocket disconnected. Retrying in 3s...');
@@ -1042,11 +2650,21 @@
             if (joinedRoom === 'admin') {
               isAdminRoomJoined = false;
             }
+            if (joinedRoom === 'live-telemetry' || joinedRoom === 'live telementry' || joinedRoom === 'telemetry') {
+              isTelemetryRoomJoined = false;
+              updateTelemetryRoomStatus(false);
+            }
             return;
           }
 
           if (joinedRoom === 'admin') {
             isAdminRoomJoined = true;
+          }
+
+          if (joinedRoom === 'live-telemetry' || joinedRoom === 'live telementry' || joinedRoom === 'telemetry') {
+            isTelemetryRoomJoined = true;
+            updateTelemetryRoomStatus(true);
+            if (currentFocusedSection === 'telemetry') updateDashboardBoxes('telemetry');
           }
 
           // Protect client slug: set on initial connect and never overwrite from other clients
@@ -1113,6 +2731,7 @@
           document.getElementById('streamStatusBadge').innerText = 'Streaming';
           document.getElementById('streamOutput').innerHTML = '';
           logEvent('LLM', `Stream started (${currentStreamID})`);
+          if (currentFocusedSection === 'llm') updateDashboardBoxes('llm');
           break;
 
         case 'llm-stream-chunk':
@@ -1122,6 +2741,9 @@
             const box = document.getElementById('streamOutput');
             box.innerText += msg.message_body.chunk;
             box.scrollTop = box.scrollHeight;
+            if (currentFocusedSection === 'llm' && (streamTokenCount % 5 === 0)) {
+              updateDashboardBoxes('llm');
+            }
           }
           break;
 
@@ -1131,6 +2753,7 @@
             document.getElementById('streamStatusBadge').innerText = 'Completed';
             logEvent('LLM', `Stream finished (${streamTokenCount} tokens)`);
             document.getElementById('streamBtn').disabled = false;
+            if (currentFocusedSection === 'llm') updateDashboardBoxes('llm');
           }
           break;
 
@@ -1140,6 +2763,7 @@
           document.getElementById('streamOutput').innerHTML += `\n[Error]: ${msg.message_body.error}`;
           logEvent('ERROR', `Stream error: ${msg.message_body.error}`);
           document.getElementById('streamBtn').disabled = false;
+          if (currentFocusedSection === 'llm') updateDashboardBoxes('llm');
           break;
 
         // WebRTC Signaling Actions
@@ -1152,12 +2776,14 @@
               logEvent('WEBRTC', `Initiating P2P call with peer: ${targetPeer}`);
               createPeerConnection(targetPeer, true);
             }
+            if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
           }
           break;
 
         case 'webrtc-peer-joined':
           logEvent('WEBRTC', `New peer joined room: ${msg.message_body.peer_id}`);
           document.getElementById('p2pCallStatus').innerText = `Peer present: ${msg.message_body.peer_id}`;
+          if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
           break;
 
         case 'webrtc-offer':
@@ -1183,6 +2809,7 @@
           document.getElementById('remoteVideo').classList.add('hidden');
           document.getElementById('remoteVideoPlaceholder').classList.remove('hidden');
           document.getElementById('p2pCallStatus').innerText = 'Peer disconnected';
+          if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
           break;
 
         case 'sfu-track-published':
@@ -1199,6 +2826,18 @@
           }
           break;
 
+        case 'telemetry-metrics':
+          if (msg.message_body) {
+            handleTelemetryMetrics(msg.message_body);
+          }
+          break;
+
+        case 'telemetry-log':
+          if (msg.message_body) {
+            handleTelemetryLog(msg.message_body);
+          }
+          break;
+
         default:
           if (msg.action === 'heartbeat') return;
           logEvent(msg.action.toUpperCase(), JSON.stringify(msg.message_body));
@@ -1212,12 +2851,21 @@
 
     function renderMeshState(state) {
       if (!state) return;
+      lastMeshState = state;
 
-      document.getElementById('statRoomsCount').innerText = state.total_rooms || (state.rooms ? state.rooms.length : 0);
-      document.getElementById('statClientsCount').innerText = state.total_clients || 0;
+      const totalRooms = state.total_rooms || (state.rooms ? state.rooms.length : 0);
+      const statRoomsEl = document.getElementById('statRoomsCount');
+      if (statRoomsEl) statRoomsEl.innerText = totalRooms;
+      const navMeshCount = document.getElementById('navMeshCount');
+      if (navMeshCount) navMeshCount.innerText = totalRooms;
+      const statClientsEl = document.getElementById('statClientsCount');
+      if (statClientsEl) statClientsEl.innerText = state.total_clients || 0;
 
       const adminDetail = state.rooms_detail && state.rooms_detail['admin'];
-      document.getElementById('statAdminCount').innerText = adminDetail ? adminDetail.count : '0';
+      const statAdminEl = document.getElementById('statAdminCount');
+      if (statAdminEl) statAdminEl.innerText = adminDetail ? adminDetail.count : '0';
+
+      updateDashboardBoxes(currentFocusedSection);
 
       const container = document.getElementById('roomsContainer');
       container.innerHTML = '';
@@ -1383,8 +3031,14 @@
 
     // Render Scheduled Background Jobs
     function renderJobs(tasks) {
+      lastJobsList = tasks || [];
       const tbody = document.getElementById('jobsTableBody');
       const countEl = document.getElementById('statJobsCount');
+
+      const navJobsCount = document.getElementById('navJobsCount');
+      if (navJobsCount) navJobsCount.innerText = (!tasks || tasks.length === 0) ? '0' : tasks.length;
+
+      updateDashboardBoxes(currentFocusedSection);
 
       if (!tasks || tasks.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500 italic">No scheduled tasks registered.</td></tr>';
@@ -1528,6 +3182,21 @@
     }
 
     // RAG HTTP API integration
+    async function fetchRAGDocuments() {
+      try {
+        const resp = await fetch('/api/v1/rag/documents');
+        if (resp.ok) {
+          const res = await resp.json();
+          lastRAGDocs = (res.data !== undefined ? res.data : res) || [];
+          if (currentFocusedSection === 'rag' || currentFocusedSection === 'all') {
+            updateDashboardBoxes(currentFocusedSection);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch RAG documents:', e);
+      }
+    }
+
     async function indexDocument() {
       const title = document.getElementById('docTitle').value.trim();
       const content = document.getElementById('docContent').value.trim();
@@ -1553,6 +3222,7 @@
           resBox.innerText = `✓ Indexed doc "${data.data.id}" (${data.data.dimensions} dims)`;
           document.getElementById('docTitle').value = '';
           document.getElementById('docContent').value = '';
+          fetchRAGDocuments();
         } else {
           resBox.className = 'text-xs font-mono text-red-400 block';
           resBox.innerText = `Error: ${data.error ? data.error.message : 'Failed'}`;
@@ -1578,7 +3248,12 @@
         });
         const data = await resp.json();
         if (data.success) {
-          const citations = (data.data.citations || []).map(c => `
+          const citations = (data.data.citations || []);
+          lastRAGQueryText = question;
+          lastRAGMatchesCount = citations.length;
+          lastRAGTopScore = citations.length > 0 ? ((citations[0].similarity * 100).toFixed(1) + '%') : '0%';
+
+          const renderedCitations = citations.map(c => `
             <div class="mt-2 p-2 rounded bg-slate-900 border border-borderCol">
               <div class="text-[11px] font-semibold text-emerald-400">${c.title} (Sim: ${(c.similarity * 100).toFixed(1)}%)</div>
               <div class="text-[11px] text-slate-300 mt-1">${c.content}</div>
@@ -1590,8 +3265,9 @@
               <span class="text-amber-400 font-semibold">Answer:</span>
               <div class="text-slate-100 mt-1 whitespace-pre-wrap">${data.data.answer}</div>
             </div>
-            ${citations ? `<div class="mt-3 text-[10px] uppercase font-bold text-slate-500">pgvector Retrieved Context:</div>${citations}` : ''}
+            ${renderedCitations ? `<div class="mt-3 text-[10px] uppercase font-bold text-slate-500">pgvector Retrieved Context:</div>${renderedCitations}` : ''}
           `;
+          if (currentFocusedSection === 'rag') updateDashboardBoxes('rag');
         } else {
           out.innerHTML = `<span class="text-red-400">Error: ${data.error ? data.error.message : 'Query failed'}</span>`;
         }
@@ -1614,15 +3290,94 @@
     }
 
     function logEvent(type, text) {
+      totalLoggedEvents++;
       const logs = document.getElementById('eventLogs');
-      const time = new Date().toLocaleTimeString();
-      const div = document.createElement('div');
-      div.className = 'leading-relaxed';
-      div.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="text-sky-400 font-semibold">[${type}]</span> <span>${escapeHtml(text)}</span>`;
-      logs.appendChild(div);
-      logs.scrollTop = logs.scrollHeight;
+      if (logs) {
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement('div');
+        div.className = 'leading-relaxed';
+        div.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="text-sky-400 font-semibold">[${type}]</span> <span>${escapeHtml(text)}</span>`;
+        logs.appendChild(div);
+        logs.scrollTop = logs.scrollHeight;
+      }
+      if (currentFocusedSection === 'mesh' || currentFocusedSection === 'all') {
+        updateDashboardBoxes(currentFocusedSection);
+      }
     }
 
+    function updateTelemetryRoomStatus(joined) {
+    const status = document.getElementById("telemetry-room-status");
+
+    if (!status) return;
+
+    status.textContent = joined ? "Connected" : "Disconnected";
+    status.classList.toggle("connected", joined);
+    status.classList.toggle("disconnected", !joined);
+}
+
+async function fetchTelemetryMetrics() {
+    try {
+        const response = await fetch("/api/v1/telemetry/metrics");
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const metrics = await response.json();
+
+        // Update these selectors to match your dashboard's HTML.
+        const total = document.getElementById("telemetry-total");
+        const errors = document.getElementById("telemetry-errors");
+        const warnings = document.getElementById("telemetry-warnings");
+
+        if (total) total.textContent = metrics.total ?? 0;
+        if (errors) errors.textContent = metrics.errors ?? 0;
+        if (warnings) warnings.textContent = metrics.warnings ?? 0;
+
+        return metrics;
+    } catch (error) {
+        console.error("Failed to fetch telemetry metrics:", error);
+        return null;
+    }
+}
+
+function triggerSimulatedLog(level) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.error("WebSocket is not connected");
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        type: "simulate-telemetry-log",
+        level: level
+    }));
+}
+
+function simulateTelemetryLogPrompt() {
+    const input = prompt(
+        "Enter the number of logs to simulate:",
+        "100"
+    );
+
+    if (input === null) return;
+
+    const count = Number.parseInt(input, 10);
+
+    if (!Number.isInteger(count) || count < 1 || count > 10000) {
+        alert("Enter a number between 1 and 10000.");
+        return;
+    }
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.error("WebSocket is not connected");
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        type: "simulate-telemetry-spike",
+        count: count
+    }));
+}
     function clearEventLogs() {
       document.getElementById('eventLogs').innerHTML = '';
     }
@@ -1813,6 +3568,7 @@
       document.getElementById('btnHangup').disabled = true;
       document.getElementById('btnHangup').classList.add('opacity-50', 'cursor-not-allowed');
       logEvent('WEBRTC', 'Call hung up');
+      if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
     }
 
     // Server-Side Pion WebRTC DataChannel
@@ -1831,6 +3587,7 @@
         document.getElementById('btnSendDC').disabled = false;
         document.getElementById('btnPingDC').disabled = false;
         appendDCOutput('System', 'Pion WebRTC DataChannel connected over UDP!');
+        if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
       };
 
       serverDataChannel.onmessage = (event) => {
@@ -1840,6 +3597,7 @@
           const rtt = Date.now() - sentTime;
           document.getElementById('rttDisplay').innerText = `${rtt} ms`;
           appendDCOutput('PONG', `Latency: ${rtt} ms`);
+          if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
           return;
         }
         appendDCOutput('Server', text);
@@ -1848,6 +3606,7 @@
       serverDataChannel.onclose = () => {
         statusEl.innerText = 'Closed';
         statusEl.className = 'text-[11px] font-mono text-slate-400';
+        if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
       };
 
       const offer = await serverPeerConnection.createOffer();
@@ -2221,10 +3980,12 @@
         if (!result.data || result.data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No active SFU conference rooms. Join above to start routing.</td></tr>`;
           stats.innerText = '0 Active Rooms';
+          if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
           return;
         }
 
         stats.innerText = `${result.data.length} Active Room${result.data.length > 1 ? 's' : ''}`;
+        if (currentFocusedSection === 'webrtc') updateDashboardBoxes('webrtc');
         tbody.innerHTML = result.data.map(r => {
           const peersBadges = (r.peers || []).map(p => 
             `<span class="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 text-[10px] mr-1">${escapeHtml(p)}</span>`
@@ -2306,7 +4067,11 @@
         }
 
         const users = res.data;
+        lastUsersList = users;
+        updateDashboardBoxes(currentFocusedSection);
         badge.innerText = `${users.length} User${users.length !== 1 ? 's' : ''}`;
+        const navUsersCount = document.getElementById('navUsersCount');
+        if (navUsersCount) navUsersCount.innerText = users.length;
 
         if (users.length === 0) {
           tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">No users found. Register one on the right.</td></tr>`;
@@ -2708,12 +4473,22 @@
       try {
         const resp = await fetch('/api/v1/webhooks');
         const result = await resp.json();
+        const webhooks = result.data || [];
+        lastWebhooksList = webhooks;
+        updateDashboardBoxes(currentFocusedSection);
+
+        const count = webhooks.length;
+        const navWebhooksCount = document.getElementById('navWebhooksCount');
+        if (navWebhooksCount) navWebhooksCount.innerText = count;
+
         const tbody = document.getElementById('webhooksTableBody');
-        if (!result.data || result.data.length === 0) {
+        if (!tbody) return;
+
+        if (webhooks.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-500 italic font-sans">No webhooks registered.</td></tr>';
           return;
         }
-        tbody.innerHTML = result.data.map(w => {
+        tbody.innerHTML = webhooks.map(w => {
           const eventsBadges = (w.events || ['*']).map(e => 
             `<span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[10px] mr-1">${escapeHtml(e)}</span>`
           ).join('');
@@ -2836,12 +4611,17 @@
       try {
         const resp = await fetch('/api/v1/webhooks/logs');
         const result = await resp.json();
+        const logs = result.data || [];
+        lastWebhookLogs = logs;
+        if (currentFocusedSection === 'webhooks' || currentFocusedSection === 'all') {
+          updateDashboardBoxes(currentFocusedSection);
+        }
         const container = document.getElementById('webhookLogsContainer');
-        if (!result.data || result.data.length === 0) {
+        if (!logs || logs.length === 0) {
           container.innerHTML = '<span class="text-slate-600 italic font-sans">No recent delivery attempts recorded.</span>';
           return;
         }
-        container.innerHTML = result.data.map(l => {
+        container.innerHTML = logs.map(l => {
           const badgeClass = l.success ? 'text-emerald-400 bg-emerald-950/60 border-emerald-800/40' : 'text-rose-400 bg-rose-950/60 border-rose-800/40';
           const timeStr = new Date(l.timestamp).toLocaleTimeString();
           return `
@@ -2933,6 +4713,12 @@
         const result = await resp.json();
         const tbody = document.getElementById('filesTableBody');
         const files = (result.data && result.data.files) ? result.data.files : [];
+        lastFilesList = files;
+        updateDashboardBoxes(currentFocusedSection);
+        const count = files.length;
+        const navUploadsCount = document.getElementById('navUploadsCount');
+        if (navUploadsCount) navUploadsCount.innerText = count;
+
         if (files.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-500 italic font-sans">No uploaded assets found.</td></tr>';
           return;
@@ -2975,6 +4761,1139 @@
       }
     }
 
+    // ==========================================
+    // Dynamic Router API Explorer & Live Test Bench
+    // ==========================================
+    let apiMethodFilter = 'ALL';
+    let apiAuthFilter = 'ALL';
+    let apiSearchQuery = '';
+
+    async function fetchAdminAPIs() {
+      const badge = document.getElementById('apiCatalogCountBadge');
+      const navCount = document.getElementById('navAPIsCount');
+      if (badge) badge.innerText = 'Syncing...';
+
+      try {
+        const resp = await fetch('/api/v1/admin/apis');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const list = Array.isArray(data) ? data : (data.data || []);
+        lastAPIsCatalog = list;
+
+        if (badge) badge.innerText = `${list.length} Endpoints`;
+        if (navCount) navCount.innerText = list.length;
+
+        renderAPIList();
+        updateDashboardBoxes('apis');
+
+        // If no selected API yet, or previous selection no longer exists, select first endpoint
+        if (!selectedAPI && list.length > 0) {
+          selectAPI(list[0].id);
+        } else if (selectedAPI) {
+          const stillExists = list.find(a => a.id === selectedAPI.id);
+          if (stillExists) {
+            selectAPI(stillExists.id);
+          } else if (list.length > 0) {
+            selectAPI(list[0].id);
+          }
+        }
+        logEvent('SYSTEM', `Loaded ${list.length} API routes generated from router comments.`);
+      } catch (err) {
+        console.error('Failed to fetch admin API catalog:', err);
+        if (badge) badge.innerText = 'Failed';
+        const container = document.getElementById('apiListContainer');
+        if (container) {
+          container.innerHTML = `
+            <div class="p-4 rounded-lg bg-red-950/30 border border-red-800/50 text-red-300 text-xs">
+              <p class="font-semibold">Failed to load API catalog</p>
+              <p class="text-[11px] text-red-400/80 mt-1">${escapeHtml(err.message)}</p>
+              <button onclick="fetchAdminAPIs()" class="mt-2 px-2 py-1 rounded bg-red-900/60 hover:bg-red-800 text-white text-[10px]">Retry</button>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function getMethodBadgeClass(method) {
+      switch ((method || '').toUpperCase()) {
+        case 'GET':
+          return 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
+        case 'POST':
+          return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        case 'PUT':
+          return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        case 'DELETE':
+          return 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+        case 'PATCH':
+          return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
+        default:
+          return 'bg-slate-800 text-slate-300 border border-slate-700';
+      }
+    }
+
+    function getAuthBadgeHtml(api) {
+      if (api.auth === 'open') {
+        return '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/40">🟢 Open</span>';
+      }
+      if (api.auth === 'token') {
+        const lvlStr = api.auth_level ? ` ≥${api.auth_level}` : '';
+        return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950/80 text-purple-300 border border-purple-800/40">🟣 Token${lvlStr}</span>`;
+      }
+      if (api.auth === 'api_key') {
+        return '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950/80 text-amber-300 border border-amber-800/40">🔑 API Key</span>';
+      }
+      return '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">Auth</span>';
+    }
+
+    function filterAPIs() {
+      const searchInput = document.getElementById('apiSearchInput');
+      apiSearchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      renderAPIList();
+    }
+
+    function setMethodFilter(method) {
+      apiMethodFilter = method;
+      document.querySelectorAll('#apiMethodFilters .api-method-filter').forEach(btn => {
+        const m = btn.getAttribute('data-method');
+        if (m === method) {
+          btn.className = 'api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white border border-slate-700 shadow-sm';
+        } else {
+          btn.className = 'api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-borderCol';
+        }
+      });
+      renderAPIList();
+    }
+
+    function setAuthFilter(auth) {
+      apiAuthFilter = auth;
+      document.querySelectorAll('#apiAuthFilters .api-auth-filter').forEach(btn => {
+        const a = btn.getAttribute('data-auth');
+        if (a === auth) {
+          btn.className = 'api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-800 text-white border border-slate-700 shadow-sm';
+        } else {
+          btn.className = 'api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-borderCol';
+        }
+      });
+      renderAPIList();
+    }
+
+    function renderAPIList() {
+      const container = document.getElementById('apiListContainer');
+      const countLabel = document.getElementById('apiFilterCountLabel');
+      if (!container) return;
+
+      const filtered = (lastAPIsCatalog || []).filter(api => {
+        if (apiMethodFilter !== 'ALL' && api.method !== apiMethodFilter) return false;
+        if (apiAuthFilter !== 'ALL' && api.auth !== apiAuthFilter) return false;
+        if (apiSearchQuery) {
+          const matchPath = (api.path || '').toLowerCase().includes(apiSearchQuery);
+          const matchSummary = (api.summary || '').toLowerCase().includes(apiSearchQuery);
+          const matchDesc = (api.description || '').toLowerCase().includes(apiSearchQuery);
+          const matchCat = (api.category || '').toLowerCase().includes(apiSearchQuery);
+          const matchTags = (api.tags || []).some(t => t.toLowerCase().includes(apiSearchQuery));
+          if (!matchPath && !matchSummary && !matchDesc && !matchCat && !matchTags) return false;
+        }
+        return true;
+      });
+
+      if (countLabel) {
+        countLabel.innerText = `Showing ${filtered.length} of ${lastAPIsCatalog ? lastAPIsCatalog.length : 0} routes`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center text-xs text-slate-500 rounded-lg bg-slate-950/40 border border-borderCol/50">
+            No API routes match the active filter criteria.
+          </div>
+        `;
+        return;
+      }
+
+      // Group by Category
+      const groups = {};
+      filtered.forEach(api => {
+        const cat = api.category || (api.tags && api.tags[0]) || 'General';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(api);
+      });
+
+      let html = '';
+      for (const [category, items] of Object.entries(groups)) {
+        html += `
+          <div class="mb-3">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-1 py-1 flex items-center justify-between">
+              <span>${escapeHtml(category)}</span>
+              <span class="text-[9px] font-mono text-slate-500">${items.length}</span>
+            </div>
+            <div class="space-y-1.5 mt-1">
+              ${items.map(api => {
+                const isSelected = selectedAPI && selectedAPI.id === api.id;
+                const methodCls = getMethodBadgeClass(api.method);
+                const authBadge = getAuthBadgeHtml(api);
+
+                return `
+                  <div onclick="selectAPI('${escapeHtml(api.id)}')" class="p-2.5 rounded-lg border transition-all cursor-pointer flex flex-col space-y-1 group ${isSelected ? 'bg-slate-900 border-emerald-500/80 shadow-md shadow-emerald-950/20' : 'bg-slate-950/60 border-borderCol/70 hover:border-slate-700 hover:bg-slate-900/60'}">
+                    <div class="flex items-center justify-between gap-1.5">
+                      <div class="flex items-center space-x-1.5 truncate">
+                        <span class="px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${methodCls}">${api.method}</span>
+                        <span class="font-mono text-xs font-semibold text-slate-200 group-hover:text-white truncate">${escapeHtml(api.path)}</span>
+                      </div>
+                      <div class="flex-shrink-0">
+                        ${authBadge}
+                      </div>
+                    </div>
+                    ${api.summary ? `<div class="text-[11px] text-slate-400 truncate pl-0.5">${escapeHtml(api.summary)}</div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function selectAPI(apiId) {
+      const api = (lastAPIsCatalog || []).find(a => a.id === apiId);
+      if (!api) return;
+      selectedAPI = api;
+
+      const emptyEl = document.getElementById('apiWorkbenchEmpty');
+      const activeEl = document.getElementById('apiWorkbenchActive');
+      if (emptyEl) emptyEl.classList.add('hidden');
+      if (activeEl) activeEl.classList.remove('hidden');
+
+      // Update header box
+      const methodBadge = document.getElementById('benchMethodBadge');
+      if (methodBadge) {
+        methodBadge.innerText = api.method;
+        methodBadge.className = `px-2 py-0.5 rounded font-mono font-bold text-xs uppercase ${getMethodBadgeClass(api.method)}`;
+      }
+
+      const pathText = document.getElementById('benchPathText');
+      if (pathText) pathText.innerText = api.path;
+
+      const authBadge = document.getElementById('benchAuthBadge');
+      if (authBadge) {
+        if (api.auth === 'open') {
+          authBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/40';
+          authBadge.innerText = '🟢 OPEN';
+        } else if (api.auth === 'token') {
+          authBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-950/80 text-purple-300 border border-purple-800/40';
+          authBadge.innerText = `🟣 BEARER TOKEN${api.auth_level ? ` (Level ≥ ${api.auth_level})` : ''}`;
+        } else if (api.auth === 'api_key') {
+          authBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-950/80 text-amber-300 border border-amber-800/40';
+          authBadge.innerText = '🔑 API KEY';
+        }
+      }
+
+      const summaryText = document.getElementById('benchSummaryText');
+      if (summaryText) summaryText.innerText = api.summary || 'Endpoint live test';
+
+      const descText = document.getElementById('benchDescText');
+      if (descText) descText.innerText = api.description || '';
+
+      // Auth controls setup
+      const authDesc = document.getElementById('benchAuthDesc');
+      const authControls = document.getElementById('benchAuthControls');
+      if (authControls) {
+        if (api.auth === 'open') {
+          if (authDesc) authDesc.innerText = 'Public endpoint (No credentials required)';
+          authControls.innerHTML = `
+            <div class="text-[11px] text-slate-400 italic bg-slate-950/60 p-2 rounded-lg border border-borderCol/40">
+              Open route — dispatched without authorization headers.
+            </div>
+          `;
+        } else if (api.auth === 'token') {
+          const currentToken = localStorage.getItem('admin_jwt_token') || '';
+          if (authDesc) authDesc.innerText = `Bearer JWT Token required${api.auth_level ? ` (Level ≥ ${api.auth_level})` : ''}`;
+          authControls.innerHTML = `
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Authorization Header: <code class="text-purple-300 font-mono">Bearer &lt;token&gt;</code></span>
+                ${currentToken ? '<button type="button" onclick="useAdminTokenForBench()" class="text-brand-400 hover:text-brand-300 font-mono text-[10px]">Use Admin Session Token</button>' : ''}
+              </div>
+              <div class="relative">
+                <input id="benchAuthTokenInput" type="password" oninput="updateBenchCurl()" value="${escapeHtml(currentToken)}" placeholder="Paste Bearer JWT token..." class="w-full bg-slate-950 border border-borderCol rounded-lg px-2.5 py-1.5 font-mono text-xs text-purple-200 placeholder-slate-600 focus:outline-none focus:border-purple-500" />
+                <button type="button" onclick="toggleBenchTokenVisibility()" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-500 hover:text-slate-300 text-xs">👁️</button>
+              </div>
+            </div>
+          `;
+        } else if (api.auth === 'api_key') {
+          if (authDesc) authDesc.innerText = 'X-API-Key header required (Master Key or DB Key)';
+          authControls.innerHTML = `
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Header: <code class="text-amber-300 font-mono">X-API-Key: &lt;key&gt;</code></span>
+                <span class="text-[10px] text-slate-500">Master or Postgres API key</span>
+              </div>
+              <input id="benchApiKeyInput" type="text" oninput="updateBenchCurl()" placeholder="Enter API key or master secret..." class="w-full bg-slate-950 border border-borderCol rounded-lg px-2.5 py-1.5 font-mono text-xs text-amber-200 placeholder-slate-600 focus:outline-none focus:border-amber-500" />
+            </div>
+          `;
+        }
+      }
+
+      // Path parameters
+      const pathParamsGroup = document.getElementById('benchPathParamsGroup');
+      const pathParamsInputs = document.getElementById('benchPathParamsInputs');
+      const pathParamMatches = (api.path.match(/:[a-zA-Z0-9_]+/g) || []).map(p => p.substring(1));
+
+      if (pathParamMatches.length > 0) {
+        if (pathParamsGroup) pathParamsGroup.classList.remove('hidden');
+        if (pathParamsInputs) {
+          pathParamsInputs.innerHTML = pathParamMatches.map(paramName => {
+            const pDef = (api.params || []).find(p => p.name === paramName && p.in === 'path');
+            let defaultVal = '';
+            if (paramName === 'id') defaultVal = '1';
+            else if (paramName === 'room') defaultVal = 'mesh-global';
+            else if (paramName === 'category') defaultVal = 'general';
+            else if (paramName === 'filename') defaultVal = 'sample.txt';
+
+            return `
+              <div class="bg-slate-950 p-2 rounded-lg border border-borderCol flex flex-col space-y-1">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="font-mono text-emerald-400 font-semibold">:${escapeHtml(paramName)}</span>
+                  <span class="text-[10px] text-slate-500">${pDef && pDef.description ? escapeHtml(pDef.description) : 'Path Param'}</span>
+                </div>
+                <input type="text" data-path-param="${escapeHtml(paramName)}" value="${escapeHtml(defaultVal)}" oninput="updateBenchResolvedUrl()" class="bench-path-param-field w-full bg-slate-900 border border-borderCol/80 rounded px-2 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500" />
+              </div>
+            `;
+          }).join('');
+        }
+      } else {
+        if (pathParamsGroup) pathParamsGroup.classList.add('hidden');
+        if (pathParamsInputs) pathParamsInputs.innerHTML = '';
+      }
+
+      // Query parameters
+      const queryParamsInputs = document.getElementById('benchQueryParamsInputs');
+      if (queryParamsInputs) {
+        queryParamsInputs.innerHTML = '';
+        const queryParams = (api.params || []).filter(p => p.in === 'query');
+        if (queryParams.length > 0) {
+          queryParams.forEach(qp => {
+            addQueryParamRow(qp.name, '');
+          });
+        }
+      }
+
+      // Request Body
+      const bodyGroup = document.getElementById('benchBodyGroup');
+      const bodyInput = document.getElementById('benchBodyInput');
+      const method = (api.method || '').toUpperCase();
+      const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+
+      if (hasBody) {
+        if (bodyGroup) bodyGroup.classList.remove('hidden');
+        if (bodyInput) {
+          if (api.body) {
+            let strBody = typeof api.body === 'string' ? api.body : JSON.stringify(api.body, null, 2);
+            try {
+              strBody = JSON.stringify(JSON.parse(strBody), null, 2);
+            } catch (_) {}
+            bodyInput.value = strBody;
+          } else {
+            bodyInput.value = '{\n  \n}';
+          }
+        }
+      } else {
+        if (bodyGroup) bodyGroup.classList.add('hidden');
+        if (bodyInput) bodyInput.value = '';
+      }
+
+      updateBenchResolvedUrl();
+      renderAPIList();
+    }
+
+    function useAdminTokenForBench() {
+      const token = localStorage.getItem('admin_jwt_token');
+      const input = document.getElementById('benchAuthTokenInput');
+      if (input && token) {
+        input.value = token;
+        updateBenchCurl();
+      }
+    }
+
+    function toggleBenchTokenVisibility() {
+      const input = document.getElementById('benchAuthTokenInput');
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function addQueryParamRow(defaultKey = '', defaultVal = '') {
+      const container = document.getElementById('benchQueryParamsInputs');
+      if (!container) return;
+      const rowId = 'qp_row_' + Math.random().toString(36).substring(2, 9);
+
+      const div = document.createElement('div');
+      div.id = rowId;
+      div.className = 'flex items-center space-x-2';
+      div.innerHTML = `
+        <input type="text" placeholder="Key" value="${escapeHtml(defaultKey)}" oninput="updateBenchResolvedUrl()" class="bench-qp-key w-1/3 bg-slate-950 border border-borderCol rounded px-2 py-1 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500" />
+        <span class="text-slate-500 text-xs font-mono">=</span>
+        <input type="text" placeholder="Value" value="${escapeHtml(defaultVal)}" oninput="updateBenchResolvedUrl()" class="bench-qp-val flex-1 bg-slate-950 border border-borderCol rounded px-2 py-1 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500" />
+        <button type="button" onclick="removeQueryParamRow('${rowId}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition" title="Remove query parameter">✕</button>
+      `;
+      container.appendChild(div);
+      updateBenchResolvedUrl();
+    }
+
+    function removeQueryParamRow(rowId) {
+      const row = document.getElementById(rowId);
+      if (row) {
+        row.remove();
+        updateBenchResolvedUrl();
+      }
+    }
+
+    function updateBenchResolvedUrl() {
+      if (!selectedAPI) return;
+      let path = selectedAPI.path;
+
+      // Replace path params
+      const paramInputs = document.querySelectorAll('.bench-path-param-field');
+      paramInputs.forEach(input => {
+        const paramName = input.getAttribute('data-path-param');
+        const val = input.value.trim() || `:${paramName}`;
+        path = path.replace(':' + paramName, encodeURIComponent(val));
+      });
+
+      // Collect query params
+      const queryParams = [];
+      const keys = document.querySelectorAll('.bench-qp-key');
+      const vals = document.querySelectorAll('.bench-qp-val');
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i].value.trim();
+        const v = vals[i] ? vals[i].value.trim() : '';
+        if (k) {
+          queryParams.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+        }
+      }
+
+      if (queryParams.length > 0) {
+        path += (path.includes('?') ? '&' : '?') + queryParams.join('&');
+      }
+
+      const previewEl = document.getElementById('benchResolvedUrl');
+      if (previewEl) previewEl.innerText = path;
+      updateBenchCurl();
+    }
+
+    function generateCurlCommand() {
+      if (!selectedAPI) return '# Select an API endpoint to generate curl';
+      const method = (selectedAPI.method || 'GET').toUpperCase();
+      const origin = window.location.origin || 'http://localhost:8080';
+      const previewEl = document.getElementById('benchResolvedUrl');
+      const resolvedPath = previewEl ? previewEl.innerText : selectedAPI.path;
+      const fullUrl = `${origin}${resolvedPath}`;
+
+      const headers = [];
+      const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+      let bodyData = null;
+
+      if (hasBody) {
+        const bodyInput = document.getElementById('benchBodyInput');
+        const rawBody = bodyInput ? bodyInput.value.trim() : '';
+        if (rawBody) {
+          headers.push('-H "Content-Type: application/json"');
+          bodyData = rawBody;
+        }
+      }
+
+      // Check auth headers
+      if (selectedAPI.auth === 'token') {
+        const tokenInput = document.getElementById('benchAuthTokenInput');
+        const token = tokenInput ? tokenInput.value.trim() : (localStorage.getItem('admin_jwt_token') || '');
+        if (token) {
+          headers.push(`-H "Authorization: Bearer ${token}"`);
+        } else {
+          headers.push('-H "Authorization: Bearer <jwt_token>"');
+        }
+      } else if (selectedAPI.auth === 'api_key') {
+        const keyInput = document.getElementById('benchApiKeyInput');
+        const apiKey = keyInput ? keyInput.value.trim() : '';
+        if (apiKey) {
+          headers.push(`-H "X-API-Key: ${apiKey}"`);
+        } else {
+          headers.push('-H "X-API-Key: <api_key>"');
+        }
+      }
+
+      let cmd = `curl -X ${method} "${fullUrl}"`;
+      if (headers.length > 0) {
+        cmd += ` \\\n  ${headers.join(' \\\n  ')}`;
+      }
+
+      if (hasBody && bodyData) {
+        try {
+          const minified = JSON.stringify(JSON.parse(bodyData));
+          cmd += ` \\\n  -d '${minified}'`;
+        } catch (_) {
+          const escaped = bodyData.replace(/'/g, "'\\''");
+          cmd += ` \\\n  -d '${escaped}'`;
+        }
+      }
+
+      return cmd;
+    }
+
+    function updateBenchCurl() {
+      const curlEl = document.getElementById('benchCurlCommand');
+      if (!curlEl) return;
+      curlEl.innerText = generateCurlCommand();
+    }
+
+    function copyBenchCurl() {
+      const curlEl = document.getElementById('benchCurlCommand');
+      const text = curlEl ? curlEl.innerText : '';
+      if (!text || text.startsWith('#')) return;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const btnText = document.getElementById('copyCurlBtnText');
+        if (btnText) {
+          const orig = btnText.innerText;
+          btnText.innerText = 'Copied!';
+          setTimeout(() => { btnText.innerText = orig; }, 1500);
+        }
+      }).catch(err => {
+        console.error('Clipboard copy failed:', err);
+      });
+    }
+
+    function formatBenchJSON() {
+      const input = document.getElementById('benchBodyInput');
+      if (!input || !input.value.trim()) return;
+      try {
+        const parsed = JSON.parse(input.value);
+        input.value = JSON.stringify(parsed, null, 2);
+        updateBenchCurl();
+      } catch (err) {
+        alert('Malformed JSON syntax: ' + err.message);
+      }
+    }
+
+    function resetBenchBody() {
+      if (!selectedAPI) return;
+      const input = document.getElementById('benchBodyInput');
+      if (!input) return;
+      if (selectedAPI.body) {
+        try {
+          const str = typeof selectedAPI.body === 'string' ? selectedAPI.body : JSON.stringify(selectedAPI.body);
+          input.value = JSON.stringify(JSON.parse(str), null, 2);
+        } catch (_) {
+          input.value = selectedAPI.body;
+        }
+      } else {
+        input.value = '{\n  \n}';
+      }
+      updateBenchCurl();
+    }
+
+    async function executeSelectedAPI() {
+      if (!selectedAPI) return;
+
+      const previewEl = document.getElementById('benchResolvedUrl');
+      const resolvedUrl = previewEl ? previewEl.innerText : selectedAPI.path;
+      const method = (selectedAPI.method || 'GET').toUpperCase();
+
+      const btn = document.getElementById('btnExecuteAPI');
+      const spinner = document.getElementById('btnExecuteSpinner');
+      const label = document.getElementById('btnExecuteLabel');
+
+      if (btn) btn.disabled = true;
+      if (spinner) spinner.classList.remove('hidden');
+      if (label) label.innerText = 'Sending...';
+
+      const headers = {};
+      const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+      let bodyData = null;
+
+      if (hasBody) {
+        const bodyInput = document.getElementById('benchBodyInput');
+        const rawBody = bodyInput ? bodyInput.value.trim() : '';
+        if (rawBody) {
+          headers['Content-Type'] = 'application/json';
+          bodyData = rawBody;
+        }
+      }
+
+      // Attach authentication
+      if (selectedAPI.auth === 'token') {
+        const tokenInput = document.getElementById('benchAuthTokenInput');
+        const token = tokenInput ? tokenInput.value.trim() : '';
+        if (token) {
+          headers['Authorization'] = 'Bearer ' + token;
+        }
+      } else if (selectedAPI.auth === 'api_key') {
+        const keyInput = document.getElementById('benchApiKeyInput');
+        const apiKey = keyInput ? keyInput.value.trim() : '';
+        if (apiKey) {
+          headers['X-API-Key'] = apiKey;
+        }
+      }
+
+      const startTime = performance.now();
+      let resOk = false;
+      let resStatus = 0;
+      let resStatusText = '';
+      let responseBody = '';
+      let resSize = 0;
+
+      try {
+        const fetchOptions = {
+          method: method,
+          headers: headers
+        };
+        if (hasBody && bodyData) {
+          fetchOptions.body = bodyData;
+        }
+
+        const res = await fetch(resolvedUrl, fetchOptions);
+        const duration = Math.round(performance.now() - startTime);
+        resOk = res.ok;
+        resStatus = res.status;
+        resStatusText = res.statusText || (res.ok ? 'OK' : 'Error');
+
+        const rawText = await res.text();
+        resSize = new Blob([rawText]).size;
+
+        try {
+          const parsed = JSON.parse(rawText);
+          responseBody = JSON.stringify(parsed, null, 2);
+        } catch (_) {
+          responseBody = rawText;
+        }
+
+        displayBenchResponse(resStatus, resStatusText, resOk, duration, resSize, responseBody);
+        lastApiTestResult = {
+          ok: resOk,
+          status: resStatus,
+          statusText: resStatusText,
+          durationMs: duration,
+          path: selectedAPI.path
+        };
+        updateDashboardBoxes('apis');
+        logEvent('API_TEST', `${method} ${resolvedUrl} -> HTTP ${resStatus} (${duration}ms)`);
+      } catch (err) {
+        const duration = Math.round(performance.now() - startTime);
+        displayBenchResponse(0, 'Network / Fetch Error', false, duration, 0, String(err.stack || err.message));
+        lastApiTestResult = {
+          ok: false,
+          status: 'ERR',
+          statusText: 'Network Error',
+          durationMs: duration,
+          path: selectedAPI.path
+        };
+        updateDashboardBoxes('apis');
+        logEvent('API_TEST', `${method} ${resolvedUrl} -> Network Error: ${err.message}`);
+      } finally {
+        if (btn) btn.disabled = false;
+        if (spinner) spinner.classList.add('hidden');
+        if (label) label.innerText = '▶ Send Request';
+      }
+    }
+
+    function displayBenchResponse(status, statusText, isOk, durationMs, sizeBytes, bodyText) {
+      const panel = document.getElementById('benchResponsePanel');
+      if (panel) panel.classList.remove('hidden');
+
+      const badge = document.getElementById('benchResStatusBadge');
+      if (badge) {
+        badge.innerText = status ? `${status} ${statusText}` : statusText;
+        if (isOk) {
+          badge.className = 'px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-950 text-emerald-400 border border-emerald-800';
+        } else if (status >= 400 && status < 500) {
+          badge.className = 'px-2 py-0.5 rounded font-mono font-bold text-xs bg-amber-950 text-amber-300 border border-amber-800';
+        } else {
+          badge.className = 'px-2 py-0.5 rounded font-mono font-bold text-xs bg-rose-950 text-rose-300 border border-rose-800';
+        }
+      }
+
+      const timeEl = document.getElementById('benchResTime');
+      if (timeEl) timeEl.innerText = `${durationMs} ms`;
+
+      const sizeEl = document.getElementById('benchResSize');
+      if (sizeEl) sizeEl.innerText = formatBytes(sizeBytes);
+
+      const bodyEl = document.getElementById('benchResponseBody');
+      if (bodyEl) {
+        bodyEl.innerText = bodyText || '(Empty response body)';
+      }
+    }
+
+    function copyBenchResponse() {
+      const bodyEl = document.getElementById('benchResponseBody');
+      const text = bodyEl ? bodyEl.innerText : '';
+      if (!text) return;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const btnText = document.getElementById('copyBenchBtnText');
+        if (btnText) {
+          const orig = btnText.innerText;
+          btnText.innerText = 'Copied!';
+          setTimeout(() => { btnText.innerText = orig; }, 1500);
+        }
+      }).catch(err => {
+        console.error('Clipboard copy failed:', err);
+      });
+    }
+
+    // ==========================================
+    // Live Telementry & Real-Time System Monitor
+    // ==========================================
+    async function fetchTelemetryMetrics() {
+      try {
+        const resp = await fetch('/api/v1/telemetry/metrics');
+        if (resp.ok) {
+          const res = await resp.json();
+          if (res.success && res.data) {
+            handleTelemetryMetrics(res.data);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch telemetry metrics:', err);
+      }
+    }
+
+    function updateTelemetryRoomStatus(isConnected) {
+      const badge = document.getElementById('telemetryRoomStatusBadge');
+      if (badge) {
+        if (isConnected) {
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          badge.innerText = 'Connected (live telementry)';
+        } else {
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20';
+          badge.innerText = 'Waiting (auth_level > 1)';
+        }
+      }
+    }
+
+    function handleTelemetryMetrics(data) {
+      if (!data) return;
+      
+      const current = data.current || {};
+      const points = data.points || [];
+      if (data.totals) {
+        telemetryTotals = data.totals;
+      }
+
+      telemetryMetrics = {
+        ...telemetryMetrics,
+        system_ram_percent: current.system_percent || 0,
+        system_ram_used: (current.system_used_mb || 0) * 1024 * 1024,
+        system_ram_total: (current.system_total_mb || 0) * 1024 * 1024,
+        system_ram_free: (current.system_free_mb || 0) * 1024 * 1024,
+        go_alloc_bytes: (current.app_alloc_mb || 0) * 1024 * 1024,
+        go_sys_bytes: (current.app_sys_mb || 0) * 1024 * 1024,
+        goroutines: current.goroutines || 0,
+        go_num_gc: current.num_gc || 0,
+        history: points.map(pt => ({
+          timestamp: pt.time_unix ? pt.time_unix * 1000 : new Date(pt.timestamp).getTime(),
+          system_ram_percent: pt.system_percent || 0,
+          system_ram_used: (pt.system_used_mb || 0) * 1024 * 1024,
+          system_ram_total: (pt.system_total_mb || 0) * 1024 * 1024,
+          go_alloc_bytes: (pt.app_alloc_mb || 0) * 1024 * 1024,
+          goroutines: pt.goroutines || 0
+        }))
+      };
+
+      // Update stat cards in telemetry section
+      const ramPctEl = document.getElementById('telemetryStatRamPct');
+      const ramUsedEl = document.getElementById('telemetryStatRamUsed');
+      const ramTotalEl = document.getElementById('telemetryStatRamTotal');
+      const ramFreeEl = document.getElementById('telemetryStatRamFree');
+      const goAllocEl = document.getElementById('telemetryStatGoAlloc');
+      const goSysEl = document.getElementById('telemetryStatGoSys');
+      const goroutinesEl = document.getElementById('telemetryStatGoroutines');
+      const numGCEl = document.getElementById('telemetryStatNumGC');
+
+      if (ramPctEl) {
+        const pct = (telemetryMetrics.system_ram_percent || 0).toFixed(1);
+        ramPctEl.innerText = `${pct}%`;
+        if (telemetryMetrics.system_ram_percent > 85) {
+          ramPctEl.className = 'text-xl sm:text-2xl font-extrabold text-rose-400 font-mono';
+        } else if (telemetryMetrics.system_ram_percent > 65) {
+          ramPctEl.className = 'text-xl sm:text-2xl font-extrabold text-amber-400 font-mono';
+        } else {
+          ramPctEl.className = 'text-xl sm:text-2xl font-extrabold text-cyan-300 font-mono';
+        }
+      }
+      if (ramUsedEl) ramUsedEl.innerText = formatBytes(telemetryMetrics.system_ram_used || 0);
+      if (ramTotalEl) ramTotalEl.innerText = formatBytes(telemetryMetrics.system_ram_total || 0);
+      if (ramFreeEl) ramFreeEl.innerText = formatBytes(telemetryMetrics.system_ram_free || 0);
+      if (goAllocEl) goAllocEl.innerText = formatBytes(telemetryMetrics.go_alloc_bytes || 0);
+      if (goSysEl) goSysEl.innerText = formatBytes(telemetryMetrics.go_sys_bytes || 0);
+      if (goroutinesEl) goroutinesEl.innerText = `${telemetryMetrics.goroutines || 0}`;
+      if (numGCEl) numGCEl.innerText = `${telemetryMetrics.go_num_gc || 0}`;
+
+      renderTelemetryGraph();
+
+      if (currentFocusedSection === 'telemetry') {
+        updateDashboardBoxes('telemetry');
+      }
+    }
+
+    function renderTelemetryGraph() {
+      const history = telemetryMetrics.history || [];
+      const emptyEl = document.getElementById('telemetryChartEmpty');
+      const svg = document.getElementById('telemetrySvgGraph');
+      if (!svg) return;
+
+      if (history.length === 0) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        svg.innerHTML = '';
+        return;
+      }
+
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      const W = 700;
+      const H = 200;
+      const padL = 45;
+      const padR = 25;
+      const padT = 20;
+      const padB = 30;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+      const N = history.length;
+
+      // Find max Go Heap in MB across the 10 data points (minimum 20MB for clean scaling)
+      let maxHeapMB = 20;
+      history.forEach(pt => {
+        const mb = (pt.go_alloc_bytes || 0) / (1024 * 1024);
+        if (mb > maxHeapMB) maxHeapMB = Math.ceil(mb * 1.25);
+      });
+
+      // SVG Elements
+      let content = `
+        <defs>
+          <linearGradient id="ramGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"/>
+          </linearGradient>
+          <linearGradient id="heapGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a855f7" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+      `;
+
+      // Horizontal grid lines: 0%, 25%, 50%, 75%, 100%
+      [0, 25, 50, 75, 100].forEach(pct => {
+        const y = padT + chartH - (pct / 100) * chartH;
+        content += `
+          <line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#334155" stroke-opacity="0.5" stroke-dasharray="3,3" stroke-width="1"/>
+          <text x="${padL - 6}" y="${y + 3}" fill="#64748b" font-size="9" font-family="monospace" text-anchor="end">${pct}%</text>
+        `;
+      });
+
+      // Calculate coordinates
+      const ramPoints = [];
+      const heapPoints = [];
+
+      history.forEach((pt, i) => {
+        const x = N === 1 ? (padL + chartW / 2) : (padL + (i / (N - 1)) * chartW);
+        const ramPct = Math.min(100, Math.max(0, pt.system_ram_percent || 0));
+        const ramY = padT + chartH - (ramPct / 100) * chartH;
+        ramPoints.push({ x, y: ramY, pt });
+
+        const heapMB = (pt.go_alloc_bytes || 0) / (1024 * 1024);
+        const heapY = padT + chartH - Math.min(chartH, (heapMB / maxHeapMB) * chartH);
+        heapPoints.push({ x, y: heapY, pt, heapMB });
+      });
+
+      // Render RAM area and path
+      if (ramPoints.length > 0) {
+        const ramPathD = ramPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+        const ramAreaD = `${ramPathD} L ${ramPoints[ramPoints.length - 1].x} ${padT + chartH} L ${ramPoints[0].x} ${padT + chartH} Z`;
+        content += `<path d="${ramAreaD}" fill="url(#ramGradient)" />`;
+        content += `<path d="${ramPathD}" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />`;
+      }
+
+      // Render Go Heap area and path
+      if (heapPoints.length > 0) {
+        const heapPathD = heapPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+        const heapAreaD = `${heapPathD} L ${heapPoints[heapPoints.length - 1].x} ${padT + chartH} L ${heapPoints[0].x} ${padT + chartH} Z`;
+        content += `<path d="${heapAreaD}" fill="url(#heapGradient)" />`;
+        content += `<path d="${heapPathD}" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round" stroke-linejoin="round" />`;
+      }
+
+      // Render Circles & Tooltips for RAM
+      ramPoints.forEach((p, idx) => {
+        const timeStr = p.pt.timestamp ? new Date(p.pt.timestamp).toLocaleTimeString() : `Point #${idx + 1}`;
+        const ramUsedStr = formatBytes(p.pt.system_ram_used || 0);
+        const ramTotStr = formatBytes(p.pt.system_ram_total || 0);
+        const allocStr = formatBytes(p.pt.go_alloc_bytes || 0);
+        const tooltip = `[${timeStr}] System RAM: ${(p.pt.system_ram_percent || 0).toFixed(1)}% (${ramUsedStr} / ${ramTotStr}) | Go Heap: ${allocStr} | Goroutines: ${p.pt.goroutines || 0}`;
+
+        content += `
+          <circle cx="${p.x}" cy="${p.y}" r="4" fill="#06b6d4" stroke="#0f172a" stroke-width="2" class="cursor-pointer transition-transform hover:scale-150">
+            <title>${escapeHtml(tooltip)}</title>
+          </circle>
+        `;
+      });
+
+      // Render Circles for Go Heap
+      heapPoints.forEach(p => {
+        content += `
+          <circle cx="${p.x}" cy="${p.y}" r="3" fill="#a855f7" stroke="#0f172a" stroke-width="1.5" class="cursor-pointer">
+            <title>Go Heap: ${p.heapMB.toFixed(1)} MB (${formatBytes(p.pt.go_alloc_bytes || 0)})</title>
+          </circle>
+        `;
+      });
+
+      svg.innerHTML = content;
+    }
+
+    function handleTelemetryLog(payload) {
+      if (!payload) return;
+
+      // Backend sends { log: {...}, totals: {...}, time: ... }
+      const logEntry = payload.log || payload;
+      if (payload.totals) {
+        telemetryTotals = payload.totals;
+      }
+
+      // Add to front of local log array (keeping max 150 entries)
+      telemetryLogs.unshift(logEntry);
+      if (telemetryLogs.length > 150) {
+        telemetryLogs.pop();
+      }
+
+      // Increment notification bell count
+      telemetryAlertCount++;
+      const badge = document.getElementById('telemetryAlertBadge');
+      if (badge) {
+        badge.innerText = telemetryAlertCount > 99 ? '99+' : `${telemetryAlertCount}`;
+        badge.classList.remove('hidden');
+      }
+      const totalEl = document.getElementById('telemetryAlertTotal');
+      if (totalEl) totalEl.innerText = `${telemetryAlertCount} alerts`;
+
+      // Prepend to bell notification dropdown list
+      appendTelemetryAlertToDropdown(logEntry);
+
+      // Re-render telemetry log stream
+      renderTelemetryLogs();
+
+      // Update dashboard boxes if telemetry section is focused
+      if (currentFocusedSection === 'telemetry') {
+        updateDashboardBoxes('telemetry');
+      }
+    }
+
+    function appendTelemetryAlertToDropdown(entry) {
+      const list = document.getElementById('telemetryNotifList');
+      if (!list) return;
+
+      // Remove placeholder if present
+      if (list.querySelector('.italic')) {
+        list.innerHTML = '';
+      }
+
+      const level = (entry.level || 'warn').toLowerCase();
+      let badgeBg = 'bg-amber-950 text-amber-300 border-amber-800';
+      if (level === 'error') badgeBg = 'bg-rose-950 text-rose-300 border-rose-800';
+      else if (level === 'fatal') badgeBg = 'bg-purple-950 text-purple-300 border-purple-800';
+
+      const timeStr = entry.time ? new Date(entry.time).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+      const item = document.createElement('div');
+      item.className = 'p-2 rounded-lg bg-slate-900/90 border border-borderCol/60 flex flex-col space-y-1 hover:border-brand-500/50 transition cursor-pointer';
+      item.onclick = () => {
+        focusSection('telemetry');
+        toggleTelemetryNotifDropdown();
+      };
+      item.innerHTML = `
+        <div class="flex items-center justify-between text-[10px]">
+          <span class="px-1.5 py-0.2 rounded font-mono font-bold uppercase border ${badgeBg}">${escapeHtml(level)}</span>
+          <span class="font-mono text-slate-500">${timeStr}</span>
+        </div>
+        <div class="text-xs text-slate-200 line-clamp-2">${escapeHtml(entry.message || 'High severity alert')}</div>
+      `;
+
+      list.insertBefore(item, list.firstChild);
+
+      // Keep max 20 dropdown items
+      while (list.children.length > 20) {
+        list.removeChild(list.lastChild);
+      }
+    }
+
+    function toggleTelemetryNotifDropdown(event) {
+      if (event) event.stopPropagation();
+      const dd = document.getElementById('telemetryNotifDropdown');
+      if (dd) {
+        dd.classList.toggle('hidden');
+      }
+    }
+
+    // Close notification dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('telemetryNotifDropdown');
+      const btn = document.getElementById('telemetryBellBtn');
+      if (dd && !dd.classList.contains('hidden')) {
+        if (!dd.contains(e.target) && !btn.contains(e.target)) {
+          dd.classList.add('hidden');
+        }
+      }
+    });
+
+    function clearTelemetryAlerts() {
+      telemetryAlertCount = 0;
+      const badge = document.getElementById('telemetryAlertBadge');
+      if (badge) badge.classList.add('hidden');
+      const totalEl = document.getElementById('telemetryAlertTotal');
+      if (totalEl) totalEl.innerText = '0 alerts';
+      const list = document.getElementById('telemetryNotifList');
+      if (list) {
+        list.innerHTML = '<div class="p-3 text-center text-slate-500 italic text-[11px]">No warning or error alerts recorded yet.</div>';
+      }
+    }
+
+    function setTelemetryLogLevelFilter(level) {
+      telemetryLogLevelFilter = level;
+      ['ALL', 'warn', 'error', 'fatal'].forEach(lvl => {
+        const btn = document.getElementById(`btnLogFilter${lvl === 'warn' ? 'Warn' : (lvl === 'error' ? 'Error' : (lvl === 'fatal' ? 'Fatal' : 'ALL'))}`);
+        if (btn) {
+          if (lvl === level) {
+            btn.className = 'px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white cursor-pointer';
+          } else {
+            const color = lvl === 'warn' ? 'text-amber-400' : (lvl === 'error' ? 'text-rose-400' : (lvl === 'fatal' ? 'text-purple-400' : 'text-slate-400'));
+            btn.className = `px-2 py-1 rounded text-[11px] font-medium ${color} hover:bg-slate-800 cursor-pointer`;
+          }
+        }
+      });
+      renderTelemetryLogs();
+    }
+
+    function clearTelemetryLogs() {
+      telemetryLogs = [];
+      renderTelemetryLogs();
+      if (currentFocusedSection === 'telemetry') updateDashboardBoxes('telemetry');
+    }
+
+    function renderTelemetryLogs() {
+      const container = document.getElementById('telemetryLogStreamContainer');
+      const badge = document.getElementById('telemetryLogCountBadge');
+      if (!container) return;
+
+      const searchInput = document.getElementById('telemetryLogSearchInput');
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+      let filtered = telemetryLogs.filter(item => {
+        const lvl = (item.level || '').toLowerCase();
+        if (telemetryLogLevelFilter !== 'ALL' && lvl !== telemetryLogLevelFilter.toLowerCase()) {
+          return false;
+        }
+        if (query) {
+          const msg = (item.message || '').toLowerCase();
+          const caller = (item.caller || '').toLowerCase();
+          const fieldsStr = item.fields ? JSON.stringify(item.fields).toLowerCase() : '';
+          return msg.includes(query) || caller.includes(query) || fieldsStr.includes(query);
+        }
+        return true;
+      });
+
+      if (badge) {
+        badge.innerText = `${filtered.length} events`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-500 italic font-sans">
+            ${telemetryLogs.length === 0 
+              ? 'Listening for high-severity logs on room <code class="text-cyan-400 font-mono">live telementry</code>... (Debug &amp; Info filtered out)' 
+              : 'No log entries match the current filter.'}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(log => {
+        const lvl = (log.level || 'warn').toLowerCase();
+        let badgeStyle = 'bg-amber-950/80 text-amber-300 border-amber-800';
+        if (lvl === 'error') badgeStyle = 'bg-rose-950/80 text-rose-300 border-rose-800';
+        else if (lvl === 'fatal') badgeStyle = 'bg-purple-950/80 text-purple-300 border-purple-800';
+
+        const timeStr = log.time ? new Date(log.time).toLocaleTimeString() : '';
+        const hasFields = log.fields && Object.keys(log.fields).length > 0;
+
+        return `
+          <div class="p-3 hover:bg-slate-900/50 transition flex flex-col space-y-1.5 border-b border-borderCol/40 last:border-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border font-mono ${badgeStyle}">${escapeHtml(lvl)}</span>
+                <span class="text-slate-400 text-xs">${timeStr}</span>
+                ${log.caller ? `<span class="text-slate-500 text-[11px] truncate max-w-xs" title="${escapeHtml(log.caller)}">(${escapeHtml(log.caller)})</span>` : ''}
+              </div>
+              <span class="text-[10px] text-cyan-400/80 font-mono">live telementry</span>
+            </div>
+            <div class="text-xs text-slate-200 select-all font-sans font-medium">${escapeHtml(log.message || '')}</div>
+            ${hasFields ? `
+              <div class="mt-1 bg-slate-900/90 rounded p-2 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap select-all">
+                ${escapeHtml(JSON.stringify(log.fields, null, 2))}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function triggerSimulatedLog(level) {
+      const fb = document.getElementById('simLogFeedback');
+      if (fb) fb.innerText = `Injecting simulated ${level.toUpperCase()} log into Zap pipeline...`;
+
+      try {
+        const resp = await fetch('/api/v1/telemetry/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            level: level,
+            message: `Simulated high-severity alert: [${level.toUpperCase()}] test trigger from admin console`
+          })
+        });
+        const res = await resp.json();
+        if (fb) {
+          if (res.success) {
+            fb.className = "text-[11px] font-mono text-emerald-400 italic text-center min-h-[16px]";
+            fb.innerText = `✓ Emitted simulated ${level.toUpperCase()} log to room "live-telemetry"`;
+            setTimeout(() => { if (fb) { fb.innerText = ''; fb.className = "text-[11px] font-mono text-slate-500 italic text-center min-h-[16px]"; } }, 3000);
+          } else {
+            fb.className = "text-[11px] font-mono text-rose-400 italic text-center min-h-[16px]";
+            fb.innerText = `Error: ${res.message || 'Simulation failed'}`;
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.className = "text-[11px] font-mono text-rose-400 italic text-center min-h-[16px]";
+          fb.innerText = `Simulation failed: ${err.message}`;
+        }
+      }
+    }
+
+    function simulateTelemetryLogPrompt() {
+      const lvl = prompt('Enter log severity to simulate (warn, error, or fatal):', 'warn');
+      if (!lvl) return;
+      const clean = lvl.trim().toLowerCase();
+      if (['warn', 'error', 'fatal'].includes(clean)) {
+        triggerSimulatedLog(clean);
+      } else {
+        alert('Invalid level. Please choose warn, error, or fatal.');
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const activeWorkbench = document.getElementById('apiWorkbenchActive');
+        if (activeWorkbench && !activeWorkbench.classList.contains('hidden') && selectedAPI) {
+          e.preventDefault();
+          executeSelectedAPI();
+        }
+      }
+    });
+
     function logoutAdmin() {
       localStorage.removeItem('admin_jwt_token');
       currentAdminUser = null;
@@ -2992,9 +5911,20 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
+      // Resolve initial section focus from URL hash (e.g. admin.html#webrtc)
+      const initialHash = window.location.hash ? window.location.hash.replace('#', '') : '';
+      if (initialHash && (SECTION_METADATA[initialHash] || initialHash === 'all')) {
+        focusSection(initialHash, false);
+      } else {
+        focusSection('all', false);
+      }
+
       fetchMeshRoomsHTTP();
       fetchWebhooks();
+      fetchWebhookLogs();
+      fetchRAGDocuments();
       fetchUploadedFiles();
+      fetchAdminAPIs();
       const savedToken = localStorage.getItem('admin_jwt_token');
       if (savedToken) {
         try {

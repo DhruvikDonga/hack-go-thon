@@ -17,6 +17,7 @@ type ServicesConfig struct {
 	WebRTC       bool `json:"webrtc"`
 	Webhook      bool `json:"webhook"`
 	Upload       bool `json:"upload"`
+	Telemetry    bool `json:"telemetry"`
 }
 
 // DefaultServicesConfig returns a ServicesConfig with all subsystems enabled.
@@ -30,6 +31,7 @@ func DefaultServicesConfig() ServicesConfig {
 		WebRTC:       true,
 		Webhook:      true,
 		Upload:       true,
+		Telemetry:    true,
 	}
 }
 
@@ -94,6 +96,9 @@ func LoadServicesConfig(filePath string) ServicesConfig {
 	}
 	if val, ok := checkBool("upload", "uploads", "file_upload", "files"); ok {
 		cfg.Upload = val
+	}
+	if val, ok := checkBool("telemetry", "live_telemetry", "metrics"); ok {
+		cfg.Telemetry = val
 	}
 
 	return cfg

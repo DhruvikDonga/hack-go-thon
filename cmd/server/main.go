@@ -13,6 +13,7 @@ import (
 	"hack-go-thon/internal/jobs"
 	llmclient "hack-go-thon/internal/llm_client"
 	pgstore "hack-go-thon/internal/store/pg_store"
+	"hack-go-thon/internal/telemetry"
 	webrtcserver "hack-go-thon/internal/webrtc_server"
 	"hack-go-thon/internal/worker"
 	"hack-go-thon/internal/ws"
@@ -90,10 +91,10 @@ func main() {
 		scheduler.RegisterInterval(jobs.NewHeartbeatJob(cfg.AppName), 30*time.Second)
 
 		// Convenience inline job registration
-		scheduler.RegisterFunc("metrics_collector", 1*time.Minute, func(ctx context.Context) error {
-			log.Debug("Sample metrics collector job executed")
-			return nil
-		})
+		// scheduler.RegisterFunc("metrics_collector", 1*time.Minute, func(ctx context.Context) error {
+		// 	log.Debug("Sample metrics collector job executed")
+		// 	return nil
+		// })
 	} else {
 		log.Info("Job scheduler service disabled via services.json")
 	}
@@ -173,18 +174,30 @@ func main() {
 		log.Info("Upload service disabled via services.json")
 	}
 
+	// Initialize Telementry Service & Background Worker (if enabled)
+	var telemetryHandler *handler.TelemetryHandler
+	var telemetryService *telemetry.Service
+	if cfg.Services.Telemetry && wsManager != nil {
+		telemetryService = telemetry.NewService(wsManager)
+		telemetryService.Start(ctx)
+		telemetryHandler = handler.NewTelemetryHandler(telemetryService)
+	} else if !cfg.Services.Telemetry {
+		log.Info("Telementry service disabled via services.json")
+	}
+
 	router := api.SetupRouter(api.RouterConfig{
-		Config:         cfg,
-		HealthHandler:  healthHandler,
-		ExampleHandler: exampleHandler,
-		RAGHandler:     ragHandler,
-		WebRTCHandler:  webrtcHandler,
-		UserHandler:    userHandler,
-		WebhookHandler: webhookHandler,
-		UploadHandler:  uploadHandler,
-		DB:             pgDB,
-		WSManager:      wsManager,
-		Scheduler:      scheduler,
+		Config:           cfg,
+		HealthHandler:    healthHandler,
+		ExampleHandler:   exampleHandler,
+		RAGHandler:       ragHandler,
+		WebRTCHandler:    webrtcHandler,
+		UserHandler:      userHandler,
+		WebhookHandler:   webhookHandler,
+		UploadHandler:    uploadHandler,
+		TelemetryHandler: telemetryHandler,
+		DB:               pgDB,
+		WSManager:        wsManager,
+		Scheduler:        scheduler,
 	})
 
 	// 7. Initialize & Start HTTP Server

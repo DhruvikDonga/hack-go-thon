@@ -1,0 +1,1036 @@
+[
+  {
+    "id": "get--api-v1-admin-apis",
+    "method": "GET",
+    "path": "/api/v1/admin/apis",
+    "summary": "Get all router APIs catalog",
+    "description": "Returns dynamic JSON catalog of all router endpoints generated from router comments",
+    "category": "Admin",
+    "tags": [
+      "Admin"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "source_line": 76
+  },
+  {
+    "id": "get--api-v1-health-live",
+    "method": "GET",
+    "path": "/api/v1/health/live",
+    "summary": "Check service liveness",
+    "description": "Returns 200 OK if server process is running",
+    "category": "Health",
+    "tags": [
+      "Health"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc HealthHandler}.Live",
+    "source_line": 87
+  },
+  {
+    "id": "get--api-v1-health-ready",
+    "method": "GET",
+    "path": "/api/v1/health/ready",
+    "summary": "Check service readiness",
+    "description": "Checks if database and dependent components are ready",
+    "category": "Health",
+    "tags": [
+      "Health"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc HealthHandler}.Ready",
+    "source_line": 93
+  },
+  {
+    "id": "get--api-v1-items",
+    "method": "GET",
+    "path": "/api/v1/items",
+    "summary": "List all items",
+    "description": "Returns array of all sample items",
+    "category": "Items",
+    "tags": [
+      "Items"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc ExampleHandler}.ListItems",
+    "source_line": 182
+  },
+  {
+    "id": "post--api-v1-items",
+    "method": "POST",
+    "path": "/api/v1/items",
+    "summary": "Create sample item",
+    "description": "Ingests and stores a new sample item",
+    "category": "Items",
+    "tags": [
+      "Items"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"name\": \"Example Item\", \"description\": \"Sample description\"}",
+    "handler": "\u0026{rc ExampleHandler}.CreateItem",
+    "source_line": 176
+  },
+  {
+    "id": "get--api-v1-items-id",
+    "method": "GET",
+    "path": "/api/v1/items/:id",
+    "summary": "Get item by ID",
+    "description": "Returns a single item by its unique identifier",
+    "category": "Items",
+    "tags": [
+      "Items"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Item ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc ExampleHandler}.GetItem",
+    "source_line": 189
+  },
+  {
+    "id": "get--api-v1-jobs",
+    "method": "GET",
+    "path": "/api/v1/jobs",
+    "summary": "List background cron jobs",
+    "description": "Returns scheduled tasks, cron intervals, execution states, and latencies",
+    "category": "Jobs",
+    "tags": [
+      "Jobs"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "source_line": 243
+  },
+  {
+    "id": "post--api-v1-llm-ask",
+    "method": "POST",
+    "path": "/api/v1/llm/ask",
+    "summary": "Ask AI completion",
+    "description": "Generates completion from OpenAI models",
+    "category": "LLM",
+    "tags": [
+      "LLM"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"prompt\": \"What is WebRTC?\", \"model\": \"gpt-4o-mini\"}",
+    "handler": "\u0026{rc ExampleHandler}.AskAI",
+    "source_line": 200
+  },
+  {
+    "id": "get--api-v1-protected-admin-only",
+    "method": "GET",
+    "path": "/api/v1/protected/admin-only",
+    "summary": "Admin-only route probe",
+    "description": "Requires Bearer JWT token with auth_level \u003e= 50",
+    "category": "Protected",
+    "tags": [
+      "Protected"
+    ],
+    "auth": "token",
+    "auth_level": 50,
+    "params": null,
+    "headers": {
+      "Authorization": "Bearer \u003cjwt-token\u003e"
+    },
+    "source_line": 424
+  },
+  {
+    "id": "get--api-v1-protected-profile",
+    "method": "GET",
+    "path": "/api/v1/protected/profile",
+    "summary": "Authenticated user profile probe",
+    "description": "Requires valid Bearer JWT token in Authorization header",
+    "category": "Protected",
+    "tags": [
+      "Protected"
+    ],
+    "auth": "token",
+    "auth_level": 1,
+    "params": null,
+    "headers": {
+      "Authorization": "Bearer \u003cjwt-token\u003e"
+    },
+    "source_line": 406
+  },
+  {
+    "id": "post--api-v1-rag-ask",
+    "method": "POST",
+    "path": "/api/v1/rag/ask",
+    "summary": "Ask question with RAG context",
+    "description": "Injects pgvector search context into prompt and generates grounded LLM answer",
+    "category": "RAG",
+    "tags": [
+      "RAG"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"question\": \"How do we store vector embeddings?\"}",
+    "handler": "\u0026{rc RAGHandler}.AskRAG",
+    "source_line": 233
+  },
+  {
+    "id": "get--api-v1-rag-documents",
+    "method": "GET",
+    "path": "/api/v1/rag/documents",
+    "summary": "List indexed RAG documents",
+    "description": "Retrieves all vectorized documents from pgvector store",
+    "category": "RAG",
+    "tags": [
+      "RAG"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc RAGHandler}.ListDocuments",
+    "source_line": 219
+  },
+  {
+    "id": "post--api-v1-rag-documents",
+    "method": "POST",
+    "path": "/api/v1/rag/documents",
+    "summary": "Index RAG document",
+    "description": "Computes 1536-d embedding vector and persists document in PostgreSQL pgvector",
+    "category": "RAG",
+    "tags": [
+      "RAG"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"title\": \"Architecture Overview\", \"content\": \"Microservices built with Go and PostgreSQL\"}",
+    "handler": "\u0026{rc RAGHandler}.CreateDocument",
+    "source_line": 213
+  },
+  {
+    "id": "post--api-v1-rag-search",
+    "method": "POST",
+    "path": "/api/v1/rag/search",
+    "summary": "KNN semantic vector search",
+    "description": "Performs cosine distance (\u003c=\u003e) KNN search in pgvector",
+    "category": "RAG",
+    "tags": [
+      "RAG"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"query\": \"What database is used?\", \"limit\": 5}",
+    "handler": "\u0026{rc RAGHandler}.SearchDocuments",
+    "source_line": 226
+  },
+  {
+    "id": "get--api-v1-secure-data",
+    "method": "GET",
+    "path": "/api/v1/secure/data",
+    "summary": "Enterprise secure data probe",
+    "description": "Requires master or database API key in X-API-Key header",
+    "category": "Secure",
+    "tags": [
+      "Secure"
+    ],
+    "auth": "api_key",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "X-API-Key": "\u003capi-key\u003e"
+    },
+    "source_line": 534
+  },
+  {
+    "id": "get--api-v1-telemetry-metrics",
+    "method": "GET",
+    "path": "/api/v1/telemetry/metrics",
+    "summary": "Get live telemetry snapshot and 10 memory data points",
+    "description": "Returns current system/VM RAM usage, Go runtime heap, and rolling window of 10 data points",
+    "category": "Telemetry",
+    "tags": [
+      "Telemetry"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc TelemetryHandler}.GetMetrics",
+    "source_line": 551
+  },
+  {
+    "id": "post--api-v1-telemetry-simulate",
+    "method": "POST",
+    "path": "/api/v1/telemetry/simulate",
+    "summary": "Simulate warning or error log",
+    "description": "Triggers a synthetic warning or error log entry for live stream and notification testing",
+    "category": "Telemetry",
+    "tags": [
+      "Telemetry"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"level\": \"warn\", \"message\": \"Simulated memory threshold warning\", \"fields\": {\"threshold_percent\": 85}}",
+    "handler": "\u0026{rc TelemetryHandler}.SimulateLog",
+    "source_line": 558
+  },
+  {
+    "id": "get--api-v1-files",
+    "method": "GET",
+    "path": "/api/v1/files",
+    "summary": "List uploaded assets catalog",
+    "description": "Returns metadata of all stored media files",
+    "category": "Uploads",
+    "tags": [
+      "Uploads"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc UploadHandler}.ListFiles",
+    "source_line": 508
+  },
+  {
+    "id": "delete--api-v1-files-filename",
+    "method": "DELETE",
+    "path": "/api/v1/files/:filename",
+    "summary": "Delete uploaded file",
+    "description": "Removes stored asset from disk and catalog",
+    "category": "Uploads",
+    "tags": [
+      "Uploads"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "filename",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Stored file name"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc UploadHandler}.DeleteFile",
+    "source_line": 523
+  },
+  {
+    "id": "get--api-v1-files-filename",
+    "method": "GET",
+    "path": "/api/v1/files/:filename",
+    "summary": "Download or view uploaded asset",
+    "description": "Streams uploaded file with Content-Type header or Content-Disposition attachment",
+    "category": "Uploads",
+    "tags": [
+      "Uploads"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "filename",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Stored file name"
+      },
+      {
+        "name": "download",
+        "in": "query",
+        "type": "boolean",
+        "required": false,
+        "description": "Set to true to force file download"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc UploadHandler}.GetFile",
+    "source_line": 516
+  },
+  {
+    "id": "post--api-v1-upload",
+    "method": "POST",
+    "path": "/api/v1/upload",
+    "summary": "Upload file via multipart/form-data",
+    "description": "Ingests file(s) with size limit checks, magic-byte sniffing, and category tagging",
+    "category": "Uploads",
+    "tags": [
+      "Uploads"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "multipart/form-data"
+    },
+    "handler": "\u0026{rc UploadHandler}.Upload",
+    "source_line": 502
+  },
+  {
+    "id": "post--api-v1-auth-login",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "summary": "Authenticate user \u0026 issue JWT",
+    "description": "Validates credentials and returns JWT token with auth_level claims",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"username\": \"admin\", \"password\": \"Password123!\"}",
+    "handler": "\u0026{rc UserHandler}.Login",
+    "source_line": 341
+  },
+  {
+    "id": "get--api-v1-auth-me",
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "summary": "Get currently authenticated profile",
+    "description": "Validates Bearer JWT claims and returns current user info",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "token",
+    "auth_level": 1,
+    "params": null,
+    "headers": {
+      "Authorization": "Bearer \u003cjwt-token\u003e"
+    },
+    "handler": "\u0026{rc UserHandler}.Me",
+    "source_line": 348
+  },
+  {
+    "id": "post--api-v1-auth-register",
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "summary": "Register new user account",
+    "description": "Creates a new account with hashed password and metadata",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"username\": \"alice\", \"email\": \"alice@example.com\", \"password\": \"Password123!\", \"role\": \"member\", \"auth_level\": 1}",
+    "handler": "\u0026{rc UserHandler}.Register",
+    "source_line": 334
+  },
+  {
+    "id": "get--api-v1-users",
+    "method": "GET",
+    "path": "/api/v1/users",
+    "summary": "List registered users",
+    "description": "Returns list of all user accounts and JSONB metadata",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc UserHandler}.ListUsers",
+    "source_line": 357
+  },
+  {
+    "id": "post--api-v1-users",
+    "method": "POST",
+    "path": "/api/v1/users",
+    "summary": "Create user account",
+    "description": "Directly provisions a new user with role and metadata",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"username\": \"bob\", \"email\": \"bob@example.com\", \"password\": \"Password123!\", \"role\": \"moderator\", \"auth_level\": 50}",
+    "handler": "\u0026{rc UserHandler}.CreateUser",
+    "source_line": 364
+  },
+  {
+    "id": "delete--api-v1-users-id",
+    "method": "DELETE",
+    "path": "/api/v1/users/:id",
+    "summary": "Delete user account",
+    "description": "Permanently removes a user account",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "User ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc UserHandler}.DeleteUser",
+    "source_line": 386
+  },
+  {
+    "id": "get--api-v1-users-id",
+    "method": "GET",
+    "path": "/api/v1/users/:id",
+    "summary": "Get user by ID",
+    "description": "Returns single user account details by ID",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "User ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc UserHandler}.GetUser",
+    "source_line": 371
+  },
+  {
+    "id": "put--api-v1-users-id",
+    "method": "PUT",
+    "path": "/api/v1/users/:id",
+    "summary": "Update user account",
+    "description": "Updates user fields and JSONB metadata",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "User ID"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"email\": \"updated@example.com\", \"role\": \"admin\", \"auth_level\": 90}",
+    "handler": "\u0026{rc UserHandler}.UpdateUser",
+    "source_line": 379
+  },
+  {
+    "id": "post--api-v1-users-id-token",
+    "method": "POST",
+    "path": "/api/v1/users/:id/token",
+    "summary": "Generate JWT token for user",
+    "description": "Issues a signed JWT with user's auth_level and metadata claims",
+    "category": "Users",
+    "tags": [
+      "Users"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "User ID"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "handler": "\u0026{rc UserHandler}.GenerateUserToken",
+    "source_line": 393
+  },
+  {
+    "id": "get--api-v1-webrtc-ice-servers",
+    "method": "GET",
+    "path": "/api/v1/webrtc/ice-servers",
+    "summary": "Get ICE STUN servers",
+    "description": "Returns configured STUN/TURN servers for WebRTC peer connection ICE negotiation",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.GetICEServers",
+    "source_line": 256
+  },
+  {
+    "id": "post--api-v1-webrtc-server-session",
+    "method": "POST",
+    "path": "/api/v1/webrtc/server/session",
+    "summary": "Create server-side WebRTC session",
+    "description": "Initiates Pion WebRTC PeerConnection session over SDP",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"sdp\": \"v=0\\r\\no=- 0 0 IN IP4 127.0.0.1...\"}",
+    "handler": "\u0026{rc WebRTCHandler}.CreateServerSession",
+    "source_line": 269
+  },
+  {
+    "id": "delete--api-v1-webrtc-server-session-id",
+    "method": "DELETE",
+    "path": "/api/v1/webrtc/server/session/:id",
+    "summary": "Close server-side WebRTC session",
+    "description": "Terminates an active Pion server session",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Session ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.CloseServerSession",
+    "source_line": 276
+  },
+  {
+    "id": "post--api-v1-webrtc-sfu-join",
+    "method": "POST",
+    "path": "/api/v1/webrtc/sfu/join",
+    "summary": "Join SFU conference room",
+    "description": "Joins Pion SFU room with publisher/subscriber tracks",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\", \"sdp\": \"...\"}",
+    "handler": "\u0026{rc WebRTCHandler}.JoinSFU",
+    "source_line": 292
+  },
+  {
+    "id": "post--api-v1-webrtc-sfu-leave",
+    "method": "POST",
+    "path": "/api/v1/webrtc/sfu/leave",
+    "summary": "Leave SFU room",
+    "description": "Disconnects peer from SFU room and closes RTP tracks",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\"}",
+    "handler": "\u0026{rc WebRTCHandler}.LeaveSFU",
+    "source_line": 306
+  },
+  {
+    "id": "post--api-v1-webrtc-sfu-renegotiate",
+    "method": "POST",
+    "path": "/api/v1/webrtc/sfu/renegotiate",
+    "summary": "Renegotiate SFU tracks",
+    "description": "Updates active tracks and renegotiates SDP offer/answer",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\", \"sdp\": \"...\"}",
+    "handler": "\u0026{rc WebRTCHandler}.RenegotiateSFU",
+    "source_line": 299
+  },
+  {
+    "id": "get--api-v1-webrtc-sfu-rooms",
+    "method": "GET",
+    "path": "/api/v1/webrtc/sfu/rooms",
+    "summary": "List active SFU conference rooms",
+    "description": "Returns all active Pion SFU rooms, peer lists, and track counts",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.GetSFURooms",
+    "source_line": 320
+  },
+  {
+    "id": "delete--api-v1-webrtc-sfu-rooms-room_id-peers-peer_id",
+    "method": "DELETE",
+    "path": "/api/v1/webrtc/sfu/rooms/:room_id/peers/:peer_id",
+    "summary": "Remove peer from SFU room",
+    "description": "Kicks peer and terminates tracks in SFU room",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "room_id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Room ID"
+      },
+      {
+        "name": "peer_id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Peer ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.LeaveSFU",
+    "source_line": 314
+  },
+  {
+    "id": "get--api-v1-webrtc-sfu-ws",
+    "method": "GET",
+    "path": "/api/v1/webrtc/sfu/ws",
+    "summary": "WebRTC SFU WebSocket signaling",
+    "description": "Upgrades connection for SFU conference signaling",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.HandleSFUWS",
+    "source_line": 285
+  },
+  {
+    "id": "get--api-v1-webrtc-status",
+    "method": "GET",
+    "path": "/api/v1/webrtc/status",
+    "summary": "WebRTC subsystem status",
+    "description": "Checks WebRTC Pion engine status and active sessions",
+    "category": "WebRTC",
+    "tags": [
+      "WebRTC"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebRTCHandler}.GetStatus",
+    "source_line": 262
+  },
+  {
+    "id": "get--api-v1-ws",
+    "method": "GET",
+    "path": "/api/v1/ws",
+    "summary": "WebSocket Mesh Gateway",
+    "description": "Connect to real-time simplysocket mesh with client name and token",
+    "category": "WebSocket",
+    "tags": [
+      "WebSocket"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "name",
+        "in": "query",
+        "type": "string",
+        "required": false,
+        "description": "Client name"
+      },
+      {
+        "name": "token",
+        "in": "query",
+        "type": "string",
+        "required": false,
+        "description": "JWT Token"
+      }
+    ],
+    "headers": {},
+    "source_line": 104
+  },
+  {
+    "id": "get--api-v1-ws-rooms",
+    "method": "GET",
+    "path": "/api/v1/ws/rooms",
+    "summary": "List active mesh rooms \u0026 clients",
+    "description": "Telemetry endpoint returning all simplysocket rooms, client counts, and client slugs",
+    "category": "WebSocket",
+    "tags": [
+      "WebSocket"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "source_line": 110
+  },
+  {
+    "id": "get--api-v1-webhooks",
+    "method": "GET",
+    "path": "/api/v1/webhooks",
+    "summary": "List registered webhooks",
+    "description": "Returns all active webhook configurations",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebhookHandler}.List",
+    "source_line": 450
+  },
+  {
+    "id": "post--api-v1-webhooks",
+    "method": "POST",
+    "path": "/api/v1/webhooks",
+    "summary": "Register mobile webhook gateway",
+    "description": "Registers an HTTP callback URL with event filters and optional HMAC secret",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"url\": \"https://example.com/webhook\", \"events\": [\"*\"], \"secret\": \"my-secret-key\", \"description\": \"Mobile push\"}",
+    "handler": "\u0026{rc WebhookHandler}.Register",
+    "source_line": 444
+  },
+  {
+    "id": "delete--api-v1-webhooks-id",
+    "method": "DELETE",
+    "path": "/api/v1/webhooks/:id",
+    "summary": "Delete webhook subscription",
+    "description": "Removes a registered webhook",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Webhook ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc WebhookHandler}.Delete",
+    "source_line": 472
+  },
+  {
+    "id": "get--api-v1-webhooks-id",
+    "method": "GET",
+    "path": "/api/v1/webhooks/:id",
+    "summary": "Get webhook by ID",
+    "description": "Returns single webhook configuration",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Webhook ID"
+      }
+    ],
+    "headers": {},
+    "handler": "\u0026{rc WebhookHandler}.Get",
+    "source_line": 457
+  },
+  {
+    "id": "put--api-v1-webhooks-id",
+    "method": "PUT",
+    "path": "/api/v1/webhooks/:id",
+    "summary": "Update webhook configuration",
+    "description": "Updates target URL, event subscriptions, or secret",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "type": "string",
+        "required": true,
+        "description": "Webhook ID"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"url\": \"https://example.com/new-webhook\", \"events\": [\"notification\", \"alert\"]}",
+    "handler": "\u0026{rc WebhookHandler}.Update",
+    "source_line": 465
+  },
+  {
+    "id": "get--api-v1-webhooks-logs",
+    "method": "GET",
+    "path": "/api/v1/webhooks/logs",
+    "summary": "Webhook delivery audit logs",
+    "description": "Returns recent webhook delivery attempts, latencies, and response codes",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "handler": "\u0026{rc WebhookHandler}.GetLogs",
+    "source_line": 492
+  },
+  {
+    "id": "post--api-v1-webhooks-send",
+    "method": "POST",
+    "path": "/api/v1/webhooks/send",
+    "summary": "Dispatch webhook notification",
+    "description": "Broadcasts notification event to matched webhooks and WebSocket mesh room",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"event\": \"notification\", \"title\": \"System Alert\", \"message\": \"Deployment succeeded\"}",
+    "handler": "\u0026{rc WebhookHandler}.Send",
+    "source_line": 479
+  },
+  {
+    "id": "post--api-v1-webhooks-test",
+    "method": "POST",
+    "path": "/api/v1/webhooks/test",
+    "summary": "Test ping webhook",
+    "description": "Sends test ping request to target webhook and reports HTTP status and latency",
+    "category": "Webhooks",
+    "tags": [
+      "Webhooks"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"webhook_id\": \"optional-id\", \"url\": \"https://httpbin.org/post\"}",
+    "handler": "\u0026{rc WebhookHandler}.Test",
+    "source_line": 486
+  }
+]

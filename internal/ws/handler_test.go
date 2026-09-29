@@ -167,4 +167,38 @@ func TestWebSocketHandlers(t *testing.T) {
 			"message": "Webhook job event",
 		})
 	})
+
+	t.Run("Live Telemetry Room Auth Level strictly above 1 (Excludes Normal Users)", func(t *testing.T) {
+		secret := "test-secret"
+
+		// Normal user (Level 1) -> rejected from live-telemetry room
+		normalUserToken, err := middleware.GenerateTokenWithMetadata(secret, "user_normal", "normal", "normal@test.local", "", "member", 1, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate normal user token: %v", err)
+		}
+		valid, _, err := middleware.VerifyTokenAuthLevel(secret, normalUserToken, 2, 99)
+		if valid || err == nil {
+			t.Fatalf("expected level 1 normal user to be rejected from live-telemetry room")
+		}
+
+		// Staff (Level 10) -> allowed
+		staffToken, err := middleware.GenerateTokenWithMetadata(secret, "user_staff", "staff", "staff@test.local", "", "staff", 10, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate staff token: %v", err)
+		}
+		valid, _, err = middleware.VerifyTokenAuthLevel(secret, staffToken, 2, 99)
+		if !valid || err != nil {
+			t.Fatalf("expected level 10 staff to be allowed in live-telemetry room: %v", err)
+		}
+
+		// Admin (Level 99) -> allowed
+		adminToken, err := middleware.GenerateTokenWithMetadata(secret, "user_admin", "admin", "admin@test.local", "", "admin", 99, nil, time.Hour)
+		if err != nil {
+			t.Fatalf("failed to generate admin token: %v", err)
+		}
+		valid, _, err = middleware.VerifyTokenAuthLevel(secret, adminToken, 2, 99)
+		if !valid || err != nil {
+			t.Fatalf("expected level 99 admin to be allowed in live-telemetry room: %v", err)
+		}
+	})
 }

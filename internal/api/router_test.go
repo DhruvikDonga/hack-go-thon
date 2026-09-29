@@ -66,6 +66,9 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		if !strings.Contains(w.Body.String(), "Scheduled Background Jobs") {
 			t.Fatalf("expected HTML to contain Scheduled Background Jobs section")
 		}
+		if !strings.Contains(w.Body.String(), "benchCurlCommand") {
+			t.Fatalf("expected HTML to contain benchCurlCommand for API test bench")
+		}
 	})
 
 	t.Run("GET / returns embedded HTML", func(t *testing.T) {
@@ -78,6 +81,42 @@ func TestRouter_AdminAndRAG(t *testing.T) {
 		}
 		if !strings.Contains(w.Body.String(), "simplysocket Admin") {
 			t.Fatalf("expected HTML to contain simplysocket Admin")
+		}
+	})
+
+	t.Run("GET /api/v1/admin/apis returns dynamic API catalog", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/admin/apis", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		var catalog []map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &catalog); err != nil {
+			t.Fatalf("expected valid JSON catalog array, got error: %v", err)
+		}
+		if len(catalog) == 0 {
+			t.Fatalf("expected non-empty API catalog")
+		}
+
+		// Verify auth modes exist
+		foundOpen := false
+		foundToken := false
+		foundKey := false
+		for _, ep := range catalog {
+			auth, _ := ep["auth"].(string)
+			switch auth {
+			case "open":
+				foundOpen = true
+			case "token":
+				foundToken = true
+			case "api_key":
+				foundKey = true
+			}
+		}
+		if !foundOpen || !foundToken || !foundKey {
+			t.Fatalf("expected catalog to have open, token, and api_key endpoints; got open=%v, token=%v, api_key=%v", foundOpen, foundToken, foundKey)
 		}
 	})
 

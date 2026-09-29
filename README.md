@@ -60,10 +60,15 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
 - 📁 **Multipart Form File Upload API (`/api/v1/upload` & `/api/v1/files/*`)**  
   Production-ready file upload engine ingesting `multipart/form-data` for single or multiple files (images, audio notes, media attachments, documents). Features path traversal protection, magic-byte MIME type sniffing (`http.DetectContentType`), configurable size limits (`MAX_UPLOAD_SIZE_MB`), SHA256 integrity checksums, and streaming or attachment download serving (`GET /api/v1/files/:filename?download=true`).
 
+- ⚡ **Dynamic Router API Explorer & Live Test Bench (`./generate-apis-for-admin`)**  
+  Zero-overhead API testing playground built directly into the dark-mode Control Center (`/admin#apis`). Developers annotate router endpoints with simple doc comments (`@Summary`, `@Description`, `@Tags`, `@Auth`, `@Level`, `@Body`, `@Param`). Running `./generate-apis-for-admin` uses Go AST analysis to extract endpoints and automatically detect authentication modes (`open`, `token` / Bearer JWT with required levels, or `api_key` with `X-API-Key`). Includes dynamic path-parameter substitution (`:id`), JSON payload formatting, 1-click token injection, and sub-millisecond response latency telemetry.
+
 - 🔐 **Authentication & Security Middlewares**  
   Production-ready authentication middleware pipeline with JWT (`Bearer <token>`) validation/generation, custom claims RBAC verification, and database-backed API Key (`X-API-Key`) checking with master key bypass.
 
 - 📊 **Audit Logging & Structured Telemetry**  
+  The `live-telemetry` room broadcasts live system insights directly to the Admin UI over WebSockets. A background worker captures system RAM, Go heap allocations (`app_alloc_mb`), and goroutines every 30 seconds. A non-blocking `zap` log sink streams high-severity logs (`warn`, `error`, `fatal`) with structural context, firing alert notifications in the UI for a real-time operational view.
+
   Asynchronous PostgreSQL request audit logging (`api_calls`), high-performance Zap structured logging with console/JSON modes, and unique `X-Request-ID` correlation.
 
 - 🩺 **Kubernetes Health Probes & Graceful Shutdown**  
@@ -101,4 +106,3 @@ Open **[http://localhost:8080/admin](http://localhost:8080/admin)** to access th
 ## 👤 Author
 
 By [Dhruvik](https://dhruvik.cc)
-

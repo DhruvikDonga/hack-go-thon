@@ -24,6 +24,7 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 16. [WebRTC Real-Time Media & Pion DataChannels](#16-webrtc-real-time-media--pion-datachannels)
 17. [Mobile Webhook Notification System](#17-mobile-webhook-notification-system)
 18. [Multipart Form File Upload API](#18-multipart-form-file-upload-api)
+19. [Dynamic Router API Explorer & Live Test Bench](#19-dynamic-router-api-explorer--live-test-bench)
 
 ---
 
@@ -54,18 +55,19 @@ Welcome to the comprehensive technical documentation for the **Hack-Go-Thon** ba
 │ PostgreSQL Store │    │   simplysocket   │◄───┤ Pion WebRTC SFU  │    │  Job Scheduler   │
 │  (Items, Keys,   │    │  WebSocket Mesh  │event│  & DataChannel   │    │ (In-Process Cron,│
 │ Audit, pgvector) │    │(P2P Signaling,rd)│hook│(RTP Fan-Out, PLI)│    │ Workers, Panics) │
-└──────────────────┘    └──────────────────┘    └──────┬───────────┘    └──────────────────┘
-                                                       │
-                                                ┌──────▼───────────┐
-                                                │    LLM Client    │
-                                                │ (OpenAI SDK, RAG │
-                                                │ Embeds, Fallback)│
-                                                └──────────────────┘
+└──────────────────┘    └───────▲──────────┘    └──────┬───────────┘    └──────────────────┘
+                                │                      │
+                         ┌──────┴───────────┐   ┌──────▼───────────┐
+                         │Telemetry Service │   │    LLM Client    │
+                         │ (Zap Log Sink,   │   │ (OpenAI SDK, RAG │
+                         │ MemStats Poller) │   │ Embeds, Fallback)│
+                         └──────────────────┘   └──────────────────┘
 ```
 
 The system is organized into modular, independently toggleable components:
 - **HTTP Routing Layer (Gin)**: High-performance router with CORS, request correlation (`X-Request-ID`), Zap access logging, panic recovery, and asynchronous PostgreSQL audit logging.
 - **WebSocket Mesh (`simplysocket`)**: Single connection endpoint (`/api/v1/ws`) multiplexing independent `RoomData` handlers for admin telemetry, LLM token streaming, and WebRTC P2P signaling.
+- **Live Telemetry & Observability**: Background metric pollers (`/proc/meminfo`, Go Heap) and non-blocking `zap` log sinks stream operational context in real-time to the `/admin` UI over WebSockets.
 - **WebRTC Subsystem (Pion & `simplysocket`)** *(see [WEBRTC_INFO.md](WEBRTC_INFO.md))*:
   - **1:1 P2P Mesh**: Direct browser-to-browser audio/video calls with signaling coordinated over `simplysocket`.
   - **Selective Forwarding Unit (SFU)**: Enterprise-grade media router with $O(1)$ client uplink bandwidth, raw RTP track forwarding, and periodic RTCP PLI keyframe heartbeats (`/api/v1/webrtc/sfu/*`).
@@ -1063,6 +1065,192 @@ Multiple files can be uploaded concurrently in a single multipart request by pro
 3. **Configurable File Size Limits**: Enforced via `MAX_UPLOAD_SIZE_MB` (default `32 MB`). Payloads exceeding this threshold are immediately rejected with `400 Bad Request`.
 4. **Storage Isolation**: Assets are stored in `UPLOAD_DIR` (default `./uploads`) with directory creation permissions `0755`.
 
+---
+
+## 19. Dynamic Router API Explorer & Live Test Bench
+
+The **Dynamic Router API Explorer** eliminates manual Postman/curl setup by allowing developers to test any endpoint directly from the `/admin` web interface. The explorer is dynamically driven by doc comments written on router functions and parsed using Go AST analysis.
+
+```
+┌─────────────────────────────────┐
+│     internal/api/router.go      │
+│  (Doc comments + Route Handlers)│
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│   generate-apis-for-admin       │
+│  (Go AST Parser & Token Matcher)│
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│       web/admin_apis.json       │
+│ (Dynamic JSON Endpoint Catalog) │
+└────────┬───────────────┬────────┘
+         │               │
+         ▼               ▼
+┌─────────────────┐  ┌────────────────────────────────────┐
+│ web/web.go      │  │ GET /api/v1/admin/apis             │
+│ (embed.FS Asset)│  │ (Serves JSON Catalog via HTTP)     │
+└─────────────────┘  └─────────────────┬──────────────────┘
+                                       │
+                                       ▼
+                     ┌────────────────────────────────────┐
+                     │ web/admin.html (#section-apis)     │
+                     │  - Interactive Multi-Filter Toolbar │
+                     │  - Dynamic Path/Query Inputs       │
+                     │  - Auto-Injected JWT / API Key     │
+                     │  - Request Runner & JSON Inspector │
+                     └────────────────────────────────────┘
+```
+
+### 19.1 How to Write Router Comments
+
+Doc comments are placed immediately above the route registration statement in `internal/api/router.go`. Comments begin with standard Go comment slashes (`//`) followed by a tag.
+
+#### Supported Annotation Tags
+
+| Tag | Format | Description | Example |
+| :--- | :--- | :--- | :--- |
+| `@Summary` | `@Summary <text>` | Short 3-6 word purpose of the endpoint | `@Summary Register new user account` |
+| `@Description` | `@Description <text>` | Detailed explanation of parameters, behaviors, and return types | `@Description Creates user record and hashes password` |
+| `@Tags` | `@Tags <Category>` | Logical grouping in the API catalog sidebar | `@Tags Users` |
+| `@Auth` | `@Auth <open \| token \| api_key>` | Authentication mechanism required | `@Auth token` |
+| `@Level` | `@Level <number>` | Minimum RBAC auth level (for `@Auth token`) | `@Level 50` |
+| `@Param` | `@Param <name> <in> <type> <required> "<desc>"` | Parameter specification (`in` is `path` or `query`) | `@Param id path string true "User ID or UUID"` |
+| `@Body` | `@Body <JSON string>` | Default JSON body template prefilled in the test bench | `@Body {"username": "alice", "email": "a@test.com"}` |
+
+#### Annotation Examples
+
+##### 1. Public Open Endpoint
+```go
+// @Summary List background cron jobs
+// @Description Returns scheduled tasks, cron intervals, execution states, and latencies
+// @Tags Jobs
+// @Auth open
+jobs.GET("", func(c *gin.Context) { ... })
+```
+
+##### 2. Bearer JWT Protected Route (with RBAC Level)
+```go
+// @Summary Admin-only route probe
+// @Description Requires Bearer JWT token with auth_level >= 50
+// @Tags Protected
+// @Auth token
+// @Level 50
+protected.GET("/admin-only", middleware.RequireAuthLevel(50), rc.UserHandler.AdminOnly)
+```
+
+##### 3. API Key Protected Route (`X-API-Key`)
+```go
+// @Summary Enterprise secure data probe
+// @Description Validates master API key or database-backed API key in X-API-Key header
+// @Tags Secure
+// @Auth api_key
+apiKeyProtected.GET("/data", rc.ExampleHandler.SecureData)
+```
+
+##### 4. Endpoint with Path Parameter and Request Body
+```go
+// @Summary Update webhook configuration
+// @Description Updates webhook URL, event subscriptions, or description
+// @Tags Webhooks
+// @Auth open
+// @Param id path string true "Webhook Subscription ID"
+// @Body {"url": "https://example.com/webhook", "events": ["*"]}
+webhooks.PUT("/:id", rc.WebhookHandler.UpdateWebhook)
+```
+
+---
+
+### 19.2 Running the Generator Script
+
+Whenever you add, modify, or rename an API route, regenerate the JSON catalog:
+
+```bash
+# Option 1: Using the root executable (Recommended)
+./generate-apis-for-admin
+
+# Option 2: Running the Go AST parser directly
+go run scripts/generate_apis_for_admin.go
+
+# Option 3: Using the shell script wrapper
+./generate_apis_for_admin.sh
+```
+
+#### Script Output & Verification
+The script scans `internal/api/router.go` via AST, parses all comments, identifies middlewares, and prints a summary table:
+
+```text
+Scanning router functions and comments...
+==========================================================================================
+                           ADMIN ROUTER APIS GENERATOR                                    
+==========================================================================================
+METHOD  PATH                                       AUTH         CATEGORY         SUMMARY
+------------------------------------------------------------------------------------------
+GET     /api/v1/admin/apis                         OPEN         Admin            Get all router APIs catalog
+GET     /api/v1/health/live                        OPEN         Health           Check service liveness
+POST    /api/v1/auth/register                      OPEN         Users            Register new user account
+GET     /api/v1/protected/admin-only               TOKEN(L50)   Protected        Admin-only route probe
+GET     /api/v1/secure/data                        API_KEY      Secure           Enterprise secure data probe
+...
+==========================================================================================
+Total APIs: 48 | Open: 44 | Token (JWT): 3 | API Key: 1
+Saved catalog to: /home/dhruvik/hack-go-thon/web/admin_apis.json
+==========================================================================================
+```
+
+---
+
+### 19.3 Automatic Authentication Detection
+
+The generator inspects the route’s parent Gin group and middleware handlers to automatically detect authentication:
+1. **`token`**: If the route group includes `middleware.JWTAuth` or `middleware.RequireAuthLevel(n)`. The required level $n$ is extracted and saved into `auth_level`.
+2. **`api_key`**: If the route group uses `middleware.APIKeyAuth()`, which verifies `X-API-Key`.
+3. **`open`**: Fallback when no authorization middleware is present.
+
+---
+
+### 19.4 Admin Control Center Test Bench Features
+
+Inside `/admin` (Section 9 `#section-apis`):
+* **Direct Navigation**: Press <kbd>9</kbd> on your keyboard or click the **"⚡ APIs"** button in the sticky navbar.
+* **Instant Filtering**:
+  * Real-time search by path, summary, or category.
+  * Filter buttons for HTTP methods (`ALL`, `GET`, `POST`, `PUT`, `DELETE`).
+  * Filter buttons for authentication schemes (`🟢 Open`, `🟣 Bearer JWT`, `🔑 API Key`).
+* **Path Parameter Auto-Inputs**: When selecting an endpoint with path parameters (e.g. `/api/v1/users/:id`), the UI generates dedicated input boxes with live URL resolution.
+* **1-Click Authentication**:
+  * For JWT routes: Click **"Use Admin Session Token"** to immediately inject the active Level 99 admin token into the Authorization header.
+  * For API Key routes: Provides a dedicated `X-API-Key` input field.
+* **Request Body Editor**: Prefills from `@Body` comments with **Format JSON** and **Reset** controls.
+* **Keyboard Shortcut**: Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> or <kbd>Cmd</kbd>+<kbd>Enter</kbd> anywhere in the workbench to immediately dispatch the request.
+* **Live Response Telemetry**: Inspect HTTP response status badge (`200 OK`, `401 Unauthorized`), latency in milliseconds, payload size, and formatted JSON output with 1-click clipboard copy.
 
 
 
+
+
+## 20. Live System Telemetry & Zap Log Sink
+
+The application leverages a `live-telemetry` room (restricted to users with Auth Level > 1) via the `simplysocket` mesh to stream real-time operational data directly to the `/admin` dashboard.
+
+### 20.1 Metrics Polling
+`internal/telemetry/service.go` maintains a background loop that executes every 30 seconds to poll:
+- System RAM usage (via `/proc/meminfo` on Linux).
+- Go runtime memory metrics (allocations, sys bytes) and GC statistics via `runtime.ReadMemStats`.
+- Active goroutine count via `runtime.NumGoroutine()`.
+
+These snapshots are maintained in a 10-point rolling window and broadcasted to clients dynamically.
+
+### 20.2 Non-Blocking Zap Log Sink
+A custom asynchronous log hook intercepts all high-severity logs (`warn`, `error`, `fatal`) generated globally via `pkg/log/logger.go`.
+- The sink `internal/telemetry/core.go` uses a non-blocking channel queue (capacity 500) to ensure the main application path never degrades if the WebSocket dispatcher falls behind.
+- Each intercepted log is enriched with structural data (`message`, `caller`, `time`, and contextual `fields`).
+- The log entry and server lifetime error counts (`totals`) are bundled into a `telemetry-log` JSON payload and pushed to the frontend.
+
+### 20.3 Admin Dashboard Integration
+The `/admin` dashboard binds to the `live-telemetry` room natively. When it receives:
+- `telemetry-metrics`: It re-renders memory stat boxes and draws a reactive SVG rolling graph (System RAM % and Go Heap size).
+- `telemetry-log`: It prepends the log entry to the main stream interface, increments the alert bell, and updates the dropdown notification panel with time-relative severity badges.

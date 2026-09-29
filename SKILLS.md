@@ -64,10 +64,15 @@ hack-go-thon/
 │   │   └── scheduler.go          # Custom in-process scheduler with TaskInfo telemetry
 │   └── worker/
 │       └── worker.go             # Background loop worker runner
+├── generate-apis-for-admin       # Executable to extract router comments & regenerate admin_apis.json
+├── generate_apis_for_admin.sh    # Shell script alias for API catalog generator
+├── scripts/
+│   └── generate_apis_for_admin.go # AST parser scanning router doc comments & auth modes
 ├── pkg/                          # Shared reusable packages (logger, apperrors, response)
 └── web/
-    ├── web.go                    # Go embed.FS declaration
-    └── admin.html                # Embedded dark-mode admin control center (w/ SFU Video Lab)
+    ├── web.go                    # Go embed.FS declaration (AdminHTML & AdminAPIsJSON)
+    ├── admin.html                # Embedded dark-mode admin control center (w/ API Explorer)
+    └── admin_apis.json           # Dynamic catalog of router endpoints with auth metadata
 ```
 
 ---
@@ -366,10 +371,114 @@ For multi-client group calls (3+ participants), mesh P2P exhausts mobile uplink 
    * Admins in `"admin"` can broadcast directly with `action: "broadcast"`, `target: "admin"`.
    * **Safety Rule**: In simplysocket, sending messages with `target` set to a non-existent room can cause a nil-pointer dereference inside `readPump`. Always target known active rooms (such as `mesh-global` or rooms verified via `GET /api/v1/ws/rooms`).
 
+### Recipe 8: Dynamic Router API Doc Comments & Admin Test Bench Generator
+
+The codebase features an AST-powered automated API explorer that turns Go router comments directly into an interactive test workbench in the `/admin` dashboard.
+
+#### 1. Annotating Endpoints in `internal/api/router.go`
+Whenever you define or modify a route in `internal/api/router.go`, annotate it immediately with standard comment tags placed directly above the Gin method call (`v1.GET`, `v1.POST`, `v1.PUT`, `v1.DELETE`, `group.GET`, etc.):
+
+```go
+// @Summary <Short 3-6 word summary of endpoint purpose>
+// @Description <Detailed description explaining functionality, validation, or responses>
+// @Tags <CategoryName> (e.g. Users, Webhooks, WebRTC, Jobs, RAG, Health, Uploads, LLM)
+// @Auth <open | token | api_key>
+// @Level <min_auth_level> (Optional, required if @Auth is token and level restricted)
+// @Param <name> <path|query> <type> <required: true|false> "<description>" (Repeatable)
+// @Body <Valid JSON template string> (For POST / PUT / PATCH endpoints)
+v1.POST("/users", rc.UserHandler.CreateUser)
+```
+
+##### Concrete Tag Examples by Authentication Type:
+
+* **Open Public Endpoint**:
+  ```go
+  // @Summary List all items
+  // @Description Returns array of all sample items
+  // @Tags Items
+  // @Auth open
+  items.GET("", rc.ExampleHandler.GetItems)
+  ```
+
+* **Bearer JWT Token Route (with RBAC Level)**:
+  ```go
+  // @Summary Admin-only route probe
+  // @Description Requires Bearer JWT token with auth_level >= 50
+  // @Tags Protected
+  // @Auth token
+  // @Level 50
+  v1.GET("/protected/admin-only", middleware.RequireAuthLevel(50), rc.UserHandler.AdminOnly)
+  ```
+
+* **API Key Protected Route (`X-API-Key`)**:
+  ```go
+  // @Summary Enterprise secure data probe
+  // @Description Validates master API key or database-backed API key in X-API-Key header
+  // @Tags Secure
+  // @Auth api_key
+  apiKeyProtected.GET("/data", rc.ExampleHandler.SecureData)
+  ```
+
+* **Route with Path Parameters, Query Parameters, and Request Body**:
+  ```go
+  // @Summary Update user account
+  // @Description Updates user profile details, roles, or custom metadata
+  // @Tags Users
+  // @Auth open
+  // @Param id path string true "User ID or UUID"
+  // @Body {"username": "bob", "phone_number": "9427425571", "metadata": {"role": "editor"}}
+  users.PUT("/:id", rc.UserHandler.UpdateUser)
+  ```
+
+#### 2. Running the Generator Script
+Regenerate the API catalog using any of the following commands from the repository root:
+
+```bash
+# Recommended: executable wrapper in root
+./generate-apis-for-admin
+
+# Direct Go script execution
+go run scripts/generate_apis_for_admin.go
+
+# Shell script equivalent
+./generate_apis_for_admin.sh
+```
+
+**What the script does under the hood**:
+1. Parses `internal/api/router.go` using Go standard library packages `go/parser`, `go/ast`, and `go/printer` (zero external dependencies).
+2. Traverses all route calls (`v1.GET`, `group.POST`, etc.) and extracts comments attached to each statement.
+3. Automatically inspects Gin group middlewares (`JWTAuth` -> `token`, `RequireAuthLevel(n)` -> `token(n)`, `APIKeyAuth` -> `api_key`, fallback -> `open`).
+4. Generates `web/admin_apis.json`.
+5. The JSON catalog is embedded directly into the Go binary via `web.AdminAPIsJSON` in `web/web.go`.
+6. Serves the catalog dynamically at `GET /api/v1/admin/apis`.
+
+#### 3. Testing APIs Live in Admin Control Center
+1. Open the Admin Panel at `http://localhost:8080/admin` (or press keyboard shortcut `9` to jump directly to **Router API Explorer**).
+2. **Filter Toolbar**: Search by path (`/users`), summary, HTTP method (`GET`, `POST`, etc.), or auth scheme (`🟢 Open`, `🟣 Bearer JWT`, `🔑 API Key`).
+3. **Select Endpoint**:
+   - Path parameters (e.g. `:id`) are detected and rendered as interactive input boxes with instant live URL substitution.
+   - Authentication headers are auto-configured (1-click "Use Admin Session Token" for JWT routes or prefilled `X-API-Key`).
+   - JSON payloads are prefilled from `@Body` comments with **Format JSON** and **Reset** buttons.
+4. **Execute**: Click **"▶ Send Request"** or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (<kbd>Cmd</kbd>+<kbd>Enter</kbd>) to dispatch the request.
+5. **Inspect**: Inspect the real-time HTTP status badge, round-trip latency (in ms), payload size, and formatted JSON output with 1-click clipboard copy.
+
+> [!IMPORTANT]
+> **Agent Rule**: Whenever you add, rename, or change any HTTP route or handler in `internal/api/router.go`, you **MUST** update its doc comment tags and execute `./generate-apis-for-admin` before completing the task.
+
 ---
+### Recipe 9: Live System Telemetry & Log Streaming
+
+The backend is equipped with a `live-telemetry` room (restricted to users with Auth Level > 1) that streams real-time operational data via WebSockets to the `/admin` dashboard.
+
+* **Metrics Polling**: `internal/telemetry/service.go` polls system RAM (via `/proc/meminfo`) and Go runtime heap allocations (`runtime.MemStats`) every 30 seconds.
+* **Zap Log Sink**: High severity logs (`warn`, `error`, `fatal`) generated by the `zap` logger are intercepted by a non-blocking sink `internal/telemetry/core.go` and broadcasted to the telemetry room as structured JSON payloads (`log`, `totals`, `time`).
+* **Frontend Integration**: The `admin.html` client listens for `telemetry-metrics` and `telemetry-log` actions to dynamically update the rolling SVG charts, memory usage widgets, and the real-time log feed without any page refreshes.
+
+**Safety Rule**: Avoid sending `debug` or `info` logs to the live-telemetry sink to prevent WebSocket saturation. The sink uses a non-blocking channel queue (size 500) to ensure the application's critical path is never delayed by slow clients.
+
+
 
 ## 4. Mobile Team Integration Guide
-
 When pairing with the mobile developers (iOS / Android / Flutter):
 1. **Network Binding**: Ensure the server runs on `0.0.0.0:8080`.
    * Android Emulators connect to `http://10.0.2.2:8080` (or `ws://10.0.2.2:8080/api/v1/ws`).

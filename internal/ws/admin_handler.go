@@ -56,7 +56,7 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 	log.Info("AdminRoomHandler started for room", "room", roomName)
 
 	// Periodic mesh state broadcaster
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	// Helper to build and broadcast full mesh snapshot
@@ -108,7 +108,7 @@ func (h *AdminRoomHandler) HandleRoomData(room simplysocket.Room, server simplys
 					rd = h
 				case "chat":
 					rd = NewChatRoomHandler("chat")
-				case WebhooksRoom, WebhookJobsRoom:
+				case WebhooksRoom, WebhookJobsRoom, LiveTelemetryRoom, LiveTelemetryRoomAlias, "telemetry", "live-telementry":
 					rd = NewEventsRoomHandler(targetRoom, h)
 				default:
 					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {

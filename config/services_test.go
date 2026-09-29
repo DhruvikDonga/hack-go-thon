@@ -26,11 +26,14 @@ func TestDefaultServicesConfig(t *testing.T) {
 	if !cfg.WebRTC {
 		t.Errorf("expected WebRTC to default to true")
 	}
+	if !cfg.Telemetry {
+		t.Errorf("expected Telemetry to default to true")
+	}
 }
 
 func TestLoadServicesConfig_MissingFile(t *testing.T) {
 	cfg := LoadServicesConfig("/nonexistent/services.json")
-	if !cfg.Database || !cfg.APIHandler || !cfg.RAGHandler || !cfg.JobScheduler || !cfg.WebSocket || !cfg.WebRTC {
+	if !cfg.Database || !cfg.APIHandler || !cfg.RAGHandler || !cfg.JobScheduler || !cfg.WebSocket || !cfg.WebRTC || !cfg.Telemetry {
 		t.Errorf("expected all services to be true when config file is missing, got %+v", cfg)
 	}
 }

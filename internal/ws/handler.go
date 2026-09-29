@@ -17,6 +17,10 @@ const (
 	WebhooksRoom = "webhooks"
 	// WebhookJobsRoom is an alias for the webhooks notification room.
 	WebhookJobsRoom = "webhook-jobs"
+	// LiveTelemetryRoom is the dedicated WebSocket room for live telemetry (RAM/memory & log stream).
+	LiveTelemetryRoom = "live-telemetry"
+	// LiveTelemetryRoomAlias is an alias for live telemetry room.
+	LiveTelemetryRoomAlias = "live telementry"
 )
 
 // RoomHandler defines the interface for modular room business logic.
@@ -194,6 +198,46 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					log.Info("Authorized client to join webhooks room", "client", msg.Sender, "auth_level", claims.AuthLevel)
 				}
 
+				// The "live-telemetry" (and "live telementry", "telemetry") room excludes normal user accounts (auth_level <= 1).
+				// Only users other than normal can be part of that room (Auth Level 2 to 99, e.g. Staff Level 10 and Admin Level 99).
+				if targetRoom == LiveTelemetryRoom {
+					tokenStr, _ := msg.MessageBody["token"].(string)
+					if tokenStr == "" {
+						tokenStr = h.GetClientToken(msg.Sender)
+					}
+
+					h.mu.RLock()
+					sec := h.jwtSecret
+					h.mu.RUnlock()
+
+					valid, claims, err := middleware.VerifyTokenAuthLevel(sec, tokenStr, 2, 99)
+					if !valid {
+						errMsg := "Unauthorized: telemetry room excludes normal user accounts (requires elevated Auth Level > 1, e.g. staff or admin)"
+						if err != nil {
+							errMsg = fmt.Sprintf("Unauthorized: %v", err)
+						}
+						log.Warn("Denied client access to telemetry room", "client", msg.Sender, "error", errMsg)
+
+						// Acknowledge refusal specifically to the requesting client
+						room.BroadcastMessage(&simplysocket.Message{
+							Action: "joined-room-ack",
+							Target: msg.Sender,
+							MessageBody: map[string]any{
+								"status":      "error",
+								"error":       errMsg,
+								"joined_room": targetRoom,
+								"client_slug": msg.Sender,
+								"time":        time.Now().UTC().Format(time.RFC3339),
+							},
+							Sender:         "server",
+							IsTargetClient: true,
+						})
+						continue
+					}
+
+					log.Info("Authorized client to join live telemetry room", "client", msg.Sender, "auth_level", claims.AuthLevel)
+				}
+
 				var rd simplysocket.RoomData
 				switch targetRoom {
 				case "admin":
@@ -204,7 +248,7 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 					}
 				case "chat":
 					rd = NewChatRoomHandler("chat")
-				case WebhooksRoom, WebhookJobsRoom:
+				case WebhooksRoom, WebhookJobsRoom, LiveTelemetryRoom, LiveTelemetryRoomAlias, "telemetry", "live-telementry":
 					rd = NewEventsRoomHandler(targetRoom, h.adminHandler)
 				default:
 					if strings.HasPrefix(targetRoom, "call-") || strings.HasPrefix(targetRoom, "webrtc") {
@@ -254,6 +298,10 @@ func (h *EventsRoomHandler) HandleRoomData(room simplysocket.Room, server simply
 				if _, ok := msg.MessageBody["from"]; !ok {
 					msg.MessageBody["from"] = msg.Sender
 				}
+				msg.IsTargetClient = false
+				room.BroadcastMessage(msg)
+
+			case "telemetry-metrics", "telemetry-log":
 				msg.IsTargetClient = false
 				room.BroadcastMessage(msg)
 
