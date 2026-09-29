@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hack-Go-Thon Control Center | simplysocket Admin</title>
+  <title>Hack-Go-Thon Control Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -24,6 +24,33 @@
         }
       }
     }
+
+    let isSidebarOpenDesktop = true;
+    let isSidebarOpenMobile = false;
+    
+    function toggleSidebar() {
+      const nav = document.getElementById('sectionNavBar');
+      if (!nav) return;
+      
+      const isMobile = window.innerWidth < 768;
+      
+      if (isMobile) {
+        isSidebarOpenMobile = !isSidebarOpenMobile;
+        if (isSidebarOpenMobile) {
+          nav.classList.remove('max-md:hidden');
+          nav.classList.remove('hidden');
+        } else {
+          nav.classList.add('hidden');
+        }
+      } else {
+        isSidebarOpenDesktop = !isSidebarOpenDesktop;
+        if (isSidebarOpenDesktop) {
+          nav.classList.remove('hidden');
+        } else {
+          nav.classList.add('hidden');
+        }
+      }
+    }
   </script>
   <style>
     @keyframes pulse-slow {
@@ -33,6 +60,25 @@
     .pulse-dot { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes text-swap-1 {
+      0%, 28% { opacity: 1; }
+      33%, 95% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes text-swap-2 {
+      0%, 28% { opacity: 0; }
+      33%, 61% { opacity: 1; }
+      66%, 100% { opacity: 0; }
+    }
+    @keyframes text-swap-3 {
+      0%, 61% { opacity: 0; }
+      66%, 95% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .title-swap-wrapper { position: relative; display: inline-flex; align-items: center; overflow: visible; }
+    .title-part-1 { animation: text-swap-1 9s infinite ease-in-out; }
+    .title-part-2 { position: absolute; left: 0; white-space: nowrap; animation: text-swap-2 9s infinite ease-in-out; }
+    .title-part-3 { position: absolute; left: 0; white-space: nowrap; animation: text-swap-3 9s infinite ease-in-out; }
   </style>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
@@ -92,30 +138,34 @@
 
   <!-- Navigation Bar -->
   <header class="border-b border-borderCol bg-cardBg/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="w-full max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button onclick="toggleSidebar()" class="flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition items-center justify-center border border-transparent hover:border-borderCol" title="Toggle Sidebar">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="h-7 w-7 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
-        <div>
-          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Hack-Go-Thon</span>
-          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">simplysocket Mesh</span>
+        <div class="title-swap-wrapper min-w-[130px] sm:min-w-[160px] h-6 sm:h-7 text-white">
+          <span class="title-part-1 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Hack-Go-Thon</span>
+          <span class="title-part-2 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">HGT Control Plane</span>
+          <span class="title-part-3 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent"><span id="headerActiveOption">Mesh Rooms</span></span>
         </div>
       </div>
 
       <!-- Live Connection Status & User Profile -->
-      <div class="flex items-center space-x-3">
-        <div id="statusBadge" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div id="statusBadge" class="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
           <span class="h-2 w-2 rounded-full bg-red-500"></span>
-          <span id="statusText">Disconnected</span>
+          <span id="statusText" class="hidden md:inline">Disconnected</span>
         </div>
-        <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+        <div class="hidden md:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span>Client Slug:</span>
           <span id="clientSlugText" class="font-mono text-emerald-400 font-semibold">Connecting...</span>
         </div>
-        <div class="flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+        <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span>Room:</span>
           <span class="font-mono text-amber-400 font-semibold">admin</span>
         </div>
@@ -130,133 +180,130 @@
           </button>
 
           <!-- Notification Bell Dropdown -->
-          <div id="telemetryNotifDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-cardBg/95 backdrop-blur-md border border-borderCol rounded-xl shadow-2xl p-3 space-y-2 z-50">
+          <div id="telemetryNotifDropdown" class="hidden absolute right-0 mt-2 w-72 sm:w-80 lg:w-96 bg-cardBg/95 backdrop-blur-md border border-borderCol rounded-xl shadow-2xl p-3 space-y-2 z-50">
             <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
               <div class="flex items-center space-x-1.5">
                 <span class="text-sm">🔔</span>
-                <span class="text-xs font-bold text-white uppercase tracking-wider">Telementry Alerts</span>
-                <span id="telemetryAlertTotal" class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-mono">0 alerts</span>
+                <span class="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider">Telementry</span>
+                <span id="telemetryAlertTotal" class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 font-mono">0 alerts</span>
               </div>
               <div class="flex items-center space-x-1.5">
                 <button onclick="clearTelemetryAlerts()" class="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer">Clear</button>
-                <button onclick="focusSection('telemetry'); toggleTelemetryNotifDropdown();" class="text-[10px] px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium transition cursor-pointer">Open Hub</button>
+                <button onclick="focusSection('telemetry'); toggleTelemetryNotifDropdown();" class="text-[9px] sm:text-[10px] px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium transition cursor-pointer">Open Hub</button>
               </div>
             </div>
 
             <!-- List of recent high-severity logs -->
             <div id="telemetryNotifList" class="max-h-60 overflow-y-auto space-y-1.5 text-xs no-scrollbar">
-              <div class="p-3 text-center text-slate-500 italic text-[11px]">No warning or error alerts recorded yet.</div>
+              <div class="p-3 text-center text-slate-500 italic text-[11px]">No alerts recorded yet.</div>
             </div>
           </div>
         </div>
 
         <!-- Authenticated User Profile & Sign Out -->
-        <div id="userProfileHeader" class="hidden flex items-center space-x-2 text-xs border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
-          <span class="text-slate-400">User:</span>
-          <span id="headerUsername" class="font-bold text-cyan-400">admin</span>
-          <span id="headerAuthLevelBadge" class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">Lvl 99</span>
-          <button onclick="logoutAdmin()" class="ml-1 text-[11px] text-red-400 hover:text-red-300 transition underline">Log Out</button>
+        <div id="userProfileHeader" class="hidden flex items-center space-x-1.5 sm:space-x-2 text-xs border border-borderCol px-2 sm:px-3 py-1 rounded-md bg-slate-900/60">
+          <span class="hidden sm:inline text-slate-400">User:</span>
+          <span id="headerUsername" class="font-bold text-cyan-400 max-w-[60px] sm:max-w-none truncate">admin</span>
+          <span id="headerAuthLevelBadge" class="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">Lvl 99</span>
+          <button onclick="logoutAdmin()" class="ml-1 text-[11px] text-red-400 hover:text-red-300 transition" title="Log Out">
+            <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            <span class="hidden sm:inline underline">Log Out</span>
+          </button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Sticky Section Navigation & Button Focus Bar -->
-  <nav id="sectionNavBar" class="border-b border-borderCol bg-slate-900/95 backdrop-blur-md sticky top-16 z-40 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
-      <div class="flex items-center justify-between gap-3">
-        
-        <!-- Scrollable Section Buttons -->
-        <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 no-scrollbar scroll-smooth">
-          <!-- All Overview -->
-          <button id="btnFocusAll" data-section="all" onclick="focusSection('all')" class="section-focus-btn group flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/20 ring-2 ring-brand-400/50 transition whitespace-nowrap cursor-pointer">
-            <span>📊</span>
-            <span>All Overview</span>
-            <span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/30 text-white/90">10 Modules</span>
-          </button>
-
-          <div class="h-4 w-px bg-borderCol mx-1 flex-shrink-0"></div>
+  <!-- Flex Container for Sidebar + Main -->
+  <div class="max-w-[100rem] mx-auto w-full flex flex-col md:flex-row items-start min-h-[calc(100vh-4rem)]">
+  
+    <!-- Section Navigation (Sidebar on Desktop) -->
+  <nav id="sectionNavBar" class="max-md:hidden max-md:fixed max-md:top-16 max-md:left-0 max-md:bottom-0 max-md:w-64 max-md:z-[60] max-md:shadow-2xl max-md:border-r max-md:bg-slate-950 w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-borderCol md:bg-transparent backdrop-blur-md sticky top-16 z-40 shadow-md md:shadow-none shrink-0 h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar transition-all duration-300">
+    <div class="p-2 md:p-4">
+      <div class="hidden md:flex items-center justify-between mb-4">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider sidebar-text">Modules</span>
+        <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white transition p-1 rounded hover:bg-slate-800" title="Toggle Sidebar">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+        </button>
+      </div>
+      <!-- Section Buttons -->
+      <div class="flex flex-col items-stretch space-y-1.5 py-2 no-scrollbar scroll-smooth">
+          
 
           <!-- 1. Mesh -->
-          <button id="btnFocusMesh" data-section="mesh" onclick="focusSection('mesh')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-brand-500"></span>
+          <button id="btnFocusMesh" data-section="mesh" onclick="focusSection('mesh')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>🌐</span>
             <span>Mesh Rooms</span>
             <span id="navMeshCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 2. LLM -->
-          <button id="btnFocusLLM" data-section="llm" onclick="focusSection('llm')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          <button id="btnFocusLLM" data-section="llm" onclick="focusSection('llm')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>🤖</span>
             <span>LLM Stream</span>
           </button>
 
           <!-- 3. Jobs -->
-          <button id="btnFocusJobs" data-section="jobs" onclick="focusSection('jobs')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-purple-400"></span>
+          <button id="btnFocusJobs" data-section="jobs" onclick="focusSection('jobs')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>⚙️</span>
             <span>Background Jobs</span>
             <span id="navJobsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 4. RAG -->
-          <button id="btnFocusRAG" data-section="rag" onclick="focusSection('rag')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
-            <span>pgvector RAG</span>
+          <button id="btnFocusRAG" data-section="rag" onclick="focusSection('rag')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>🧠</span>
+            <span>PGvector RAG</span>
           </button>
 
           <!-- 5. WebRTC -->
-          <button id="btnFocusWebRTC" data-section="webrtc" onclick="focusSection('webrtc')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+          <button id="btnFocusWebRTC" data-section="webrtc" onclick="focusSection('webrtc')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>📹</span>
             <span>WebRTC Lab</span>
             <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-rose-950/60 text-rose-300 border border-rose-800/40">SFU</span>
           </button>
 
           <!-- 6. Users -->
-          <button id="btnFocusUsers" data-section="users" onclick="focusSection('users')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+          <button id="btnFocusUsers" data-section="users" onclick="focusSection('users')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>👥</span>
             <span>Users &amp; RBAC</span>
             <span id="navUsersCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 7. Webhooks -->
-          <button id="btnFocusWebhooks" data-section="webhooks" onclick="focusSection('webhooks')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+          <button id="btnFocusWebhooks" data-section="webhooks" onclick="focusSection('webhooks')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>🔔</span>
             <span>Mobile Webhooks</span>
             <span id="navWebhooksCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 8. Uploads -->
-          <button id="btnFocusUploads" data-section="uploads" onclick="focusSection('uploads')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+          <button id="btnFocusUploads" data-section="uploads" onclick="focusSection('uploads')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>📁</span>
             <span>Multipart Assets</span>
             <span id="navUploadsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 9. APIs Test Bench -->
-          <button id="btnFocusAPIs" data-section="apis" onclick="focusSection('apis')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          <button id="btnFocusAPIs" data-section="apis" onclick="focusSection('apis')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>⚡</span>
             <span>API Test Bench</span>
             <span id="navAPIsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">50</span>
           </button>
 
           <!-- 10. Telementry -->
-          <button id="btnFocusTelemetry" data-section="telemetry" onclick="focusSection('telemetry')" class="section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer">
-            <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+          <button id="btnFocusTelemetry" data-section="telemetry" onclick="focusSection('telemetry')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+            <span>📈</span>
             <span>Telementry</span>
             <span id="navTelemetryCadence" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-cyan-400 border border-slate-800">30s</span>
           </button>
-        </div>
-
-        <!-- Mode Indicator / Shortcut Hint -->
-        <div class="hidden lg:flex items-center space-x-2.5 text-[11px] text-slate-400 flex-shrink-0">
-          <span class="text-slate-500 font-mono hidden xl:inline">Hotkeys: [1-9, T Focus | 0 All]</span>
-          <span id="activeSectionIndicator" class="font-mono text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded">View: All Overview</span>
-        </div>
       </div>
-    </div>
+
+      </div>
   </nav>
 
   <!-- Main Grid Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <main class="flex-1 w-full min-w-0 px-4 sm:px-6 lg:px-8 pt-6 pb-32 space-y-8 max-w-full">
     
     <!-- Hidden Telemetry Hooks (Preserves legacy element ID references) -->
     <div class="hidden" aria-hidden="true">
@@ -264,11 +311,6 @@
       <span id="statClientsCount">-</span>
       <span id="statAdminCount">-</span>
       <span id="statJobsCount">-</span>
-    </div>
-
-    <!-- Top Stats Row (Dynamically Updated per Section with Multi-Value Metrics) -->
-    <div id="dashboardStatsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- Dynamically populated by updateDashboardBoxes() based on focused section -->
     </div>
 
     <!-- Focus Mode Top Banner -->
@@ -281,7 +323,6 @@
           <div class="flex items-center space-x-2">
             <h2 id="focusBannerTitle" class="text-sm font-bold text-white tracking-tight">Active Section</h2>
             <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/30">Focused View</span>
-            <span id="focusBannerCount" class="text-[10px] font-mono text-slate-500">1 of 8</span>
           </div>
           <p id="focusBannerSubtitle" class="text-xs text-slate-400 mt-0.5">Section description and feature tools</p>
         </div>
@@ -296,11 +337,12 @@
         <button id="btnFocusNext" onclick="focusNextSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Next section (→ arrow)">
           <span>Next →</span>
         </button>
-        <!-- Return to All Overview -->
-        <button onclick="focusSection('all')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-500/20 transition flex items-center space-x-1" title="Show all sections together (Esc or 0)">
-          <span>✕ Show All Overview</span>
-        </button>
       </div>
+    </div>
+
+    <!-- Top Stats Row (Dynamically Updated per Section with Multi-Value Metrics) -->
+    <div id="dashboardStatsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Dynamically populated by updateDashboardBoxes() based on focused section -->
     </div>
 
     <!-- 2 Column Layout: Mesh Rooms (Left) & LLM Streaming (Right) -->
@@ -1536,6 +1578,25 @@
             </div>
           </div>
 
+          <!-- Log Stream Graph -->
+          <div class="relative w-full h-40 bg-slate-900/60 rounded-lg border border-borderCol/60 p-2 flex flex-col justify-between overflow-hidden mb-4">
+            <div id="telemetryLogChartEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs z-10 bg-slate-900/40">
+              <div class="animate-spin text-xl mb-1">⏳</div>
+              <span>Waiting for log telemetry intervals...</span>
+            </div>
+            
+            <div class="flex justify-between items-center mb-1 z-10 px-2">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">EVENTS OVER TIME (LAST 5 MINS)</span>
+              <div class="flex space-x-3 text-[10px] font-mono">
+                <span class="flex items-center text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400 mr-1"></span>Warn</span>
+                <span class="flex items-center text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-400 mr-1"></span>Error</span>
+                <span class="flex items-center text-purple-400"><span class="w-2 h-2 rounded-full bg-purple-400 mr-1"></span>Fatal</span>
+              </div>
+            </div>
+            
+            <svg id="telemetryLogSvgGraph" class="w-full h-full overflow-visible z-0" viewBox="0 0 700 120" preserveAspectRatio="none"></svg>
+          </div>
+
           <!-- Log stream list table/container -->
           <div class="rounded-xl border border-borderCol bg-slate-950 overflow-hidden">
             <div class="max-h-80 overflow-y-auto custom-scrollbar font-mono text-xs divide-y divide-borderCol/40" id="telemetryLogStreamContainer">
@@ -1549,9 +1610,11 @@
       </div>
     </div>
 
+  </div>
+
   <!-- Page Footer -->
-  <footer class="border-t border-borderCol bg-cardBg/40 py-6 mt-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+  <footer class="fixed bottom-0 left-0 w-full z-40 border-t border-borderCol bg-darkBg/95 backdrop-blur-md py-4">
+    <div class="w-full max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
       <div class="flex items-center space-x-2">
         <span class="font-medium text-slate-400">Hack-Go-Thon Control Center</span>
         <span>•</span>
@@ -1573,7 +1636,7 @@
     let isAdminRoomJoined = false;
 
     // --- Section Focus & Navigation System ---
-    let currentFocusedSection = 'all';
+    let currentFocusedSection = 'mesh';
 
     const SECTION_METADATA = {
       'all': {
@@ -1675,6 +1738,8 @@
     };
     let telemetryTotals = { warn: 0, error: 0, fatal: 0 };
     let telemetryLogs = [];
+    let telemetryLogHistory = [{warn:0, error:0, fatal:0}, {warn:0, error:0, fatal:0}];
+    let lastLogTotals = null;
     let telemetryAlertCount = 0;
     let isTelemetryRoomJoined = false;
     let telemetryLogLevelFilter = 'ALL';
@@ -2302,8 +2367,8 @@
     }
 
     function focusSection(sectionId, smoothScroll = true) {
-      if (!sectionId || (!SECTION_METADATA[sectionId] && sectionId !== 'all')) {
-        sectionId = 'all';
+      if (!sectionId || !SECTION_METADATA[sectionId]) {
+        sectionId = 'mesh';
       }
 
       currentFocusedSection = sectionId;
@@ -2317,16 +2382,20 @@
       document.querySelectorAll('.section-focus-btn').forEach(btn => {
         const btnSec = btn.getAttribute('data-section');
         if (btnSec === sectionId) {
-          btn.className = 'section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-400/60 transition whitespace-nowrap cursor-pointer';
+          btn.className = 'section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-400/60 transition whitespace-nowrap cursor-pointer w-full justify-start';
         } else {
-          btn.className = 'section-focus-btn group flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-borderCol transition whitespace-nowrap cursor-pointer';
+          btn.className = 'section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start';
         }
       });
 
-      // Update indicator text in navbar
+      // Update indicator text in navbar and header animated title
       const indicator = document.getElementById('activeSectionIndicator');
       if (indicator) {
         indicator.innerText = 'View: ' + SECTION_METADATA[sectionId].name;
+      }
+      const headerOption = document.getElementById('headerActiveOption');
+      if (headerOption) {
+        headerOption.innerText = SECTION_METADATA[sectionId].name;
       }
 
       // Update Focus Banner
@@ -2340,13 +2409,13 @@
           const iconEl = document.getElementById('focusBannerIcon');
           const titleEl = document.getElementById('focusBannerTitle');
           const subEl = document.getElementById('focusBannerSubtitle');
-          const countEl = document.getElementById('focusBannerCount');
+          
           if (iconEl) iconEl.innerText = meta.icon;
           if (titleEl) titleEl.innerText = meta.name;
           if (subEl) subEl.innerText = meta.desc;
 
           const idx = SECTION_KEYS.indexOf(sectionId);
-          if (countEl) countEl.innerText = `${idx + 1} of ${SECTION_KEYS.length}`;
+          
 
           const prevSec = idx > 0 ? SECTION_KEYS[idx - 1] : SECTION_KEYS[SECTION_KEYS.length - 1];
           const nextSec = idx < SECTION_KEYS.length - 1 ? SECTION_KEYS[idx + 1] : SECTION_KEYS[0];
@@ -2491,10 +2560,8 @@
         }, 1200);
 
         if (smoothScroll) {
-          const headerOffset = 135;
-          const elPos = targetEl.getBoundingClientRect().top + window.pageYOffset;
           window.scrollTo({
-            top: Math.max(0, elPos - headerOffset),
+            top: 0,
             behavior: 'smooth'
           });
         }
@@ -2521,9 +2588,7 @@
       const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-      if (e.key === '0' || e.key === 'Escape') {
-        focusSection('all');
-      } else if (e.key >= '1' && e.key <= '9') {
+      if (e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key, 10) - 1;
         if (idx >= 0 && idx < SECTION_KEYS.length) {
           focusSection(SECTION_KEYS[idx]);
@@ -4307,7 +4372,7 @@ function simulateTelemetryLogPrompt() {
             <span>HTTP ${resp.status} ${resp.statusText || (resp.ok ? 'OK' : 'DENIED')}</span>
             <span class="text-[10px] text-slate-500">${endpoint}</span>
           </div>
-          <pre class="text-[10px] text-slate-300 overflow-x-auto">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+<pre class="text-[10px] text-slate-300 overflow-x-auto m-0 p-0">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
         `;
       } catch (err) {
         probeBox.innerHTML = `<span class="text-rose-400 font-bold">Error: ${escapeHtml(err.message)}</span>`;
@@ -5476,6 +5541,18 @@ function simulateTelemetryLogPrompt() {
       const points = data.points || [];
       if (data.totals) {
         telemetryTotals = data.totals;
+
+        // Generate data for the log severity graph diff
+        let diff = {warn: 0, error: 0, fatal: 0};
+        if (lastLogTotals) {
+          diff.warn = Math.max(0, data.totals.warn - lastLogTotals.warn);
+          diff.error = Math.max(0, data.totals.error - lastLogTotals.error);
+          diff.fatal = Math.max(0, data.totals.fatal - lastLogTotals.fatal);
+        }
+        telemetryLogHistory.push(diff);
+        if (telemetryLogHistory.length > 10) telemetryLogHistory.shift();
+        lastLogTotals = data.totals;
+        renderTelemetryLogGraph();
       }
 
       telemetryMetrics = {
@@ -5532,6 +5609,67 @@ function simulateTelemetryLogPrompt() {
       if (currentFocusedSection === 'telemetry') {
         updateDashboardBoxes('telemetry');
       }
+    }
+
+    function renderTelemetryLogGraph() {
+      const emptyEl = document.getElementById('telemetryLogChartEmpty');
+      const svg = document.getElementById('telemetryLogSvgGraph');
+      if (!svg) return;
+
+      if (telemetryLogHistory.length < 2) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        svg.innerHTML = '';
+        return;
+      }
+
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      const W = 700, H = 120;
+      const padL = 30, padR = 10, padT = 10, padB = 20;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+      const N = telemetryLogHistory.length;
+
+      let maxVal = 5; // minimum scale
+      telemetryLogHistory.forEach(pt => {
+        maxVal = Math.max(maxVal, pt.warn, pt.error, pt.fatal);
+      });
+      maxVal = Math.ceil(maxVal * 1.2);
+
+      let content = '';
+      
+      // Grid lines
+      [0, 50, 100].forEach(pct => {
+        const y = padT + chartH - (pct / 100) * chartH;
+        content += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#334155" stroke-opacity="0.5" stroke-dasharray="2,2" stroke-width="1"/>`;
+        if (pct > 0) {
+            content += `<text x="${padL - 4}" y="${y + 3}" fill="#64748b" font-size="9" font-family="monospace" text-anchor="end">${Math.round((pct/100)*maxVal)}</text>`;
+        }
+      });
+      content += `<text x="${padL - 4}" y="${padT + chartH + 3}" fill="#64748b" font-size="9" font-family="monospace" text-anchor="end">0</text>`;
+
+      const getPoints = (key) => {
+        return telemetryLogHistory.map((pt, i) => {
+          const x = padL + (i / (N - 1)) * chartW;
+          const y = padT + chartH - (pt[key] / maxVal) * chartH;
+          return `${x},${y}`;
+        }).join(' ');
+      };
+
+      // Draw lines
+      content += `<polyline points="${getPoints('warn')}" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round"/>`;
+      content += `<polyline points="${getPoints('error')}" fill="none" stroke="#fb7185" stroke-width="2" stroke-linejoin="round"/>`;
+      content += `<polyline points="${getPoints('fatal')}" fill="none" stroke="#c084fc" stroke-width="2" stroke-linejoin="round"/>`;
+
+      // Draw points
+      telemetryLogHistory.forEach((pt, i) => {
+        const x = padL + (i / (N - 1)) * chartW;
+        if (pt.warn > 0) content += `<circle cx="${x}" cy="${padT + chartH - (pt.warn/maxVal)*chartH}" r="3" fill="#fbbf24" />`;
+        if (pt.error > 0) content += `<circle cx="${x}" cy="${padT + chartH - (pt.error/maxVal)*chartH}" r="3" fill="#fb7185" />`;
+        if (pt.fatal > 0) content += `<circle cx="${x}" cy="${padT + chartH - (pt.fatal/maxVal)*chartH}" r="3" fill="#c084fc" />`;
+      });
+
+      svg.innerHTML = content;
     }
 
     function renderTelemetryGraph() {
@@ -5653,6 +5791,23 @@ function simulateTelemetryLogPrompt() {
       const logEntry = payload.log || payload;
       if (payload.totals) {
         telemetryTotals = payload.totals;
+
+        // Instantly update the graph spike
+        if (telemetryLogHistory.length > 0 && lastLogTotals) {
+          const diffWarn = Math.max(0, payload.totals.warn - lastLogTotals.warn);
+          const diffError = Math.max(0, payload.totals.error - lastLogTotals.error);
+          const diffFatal = Math.max(0, payload.totals.fatal - lastLogTotals.fatal);
+          
+          let lastPt = telemetryLogHistory[telemetryLogHistory.length - 1];
+          lastPt.warn += diffWarn;
+          lastPt.error += diffError;
+          lastPt.fatal += diffFatal;
+          
+          lastLogTotals = payload.totals;
+          renderTelemetryLogGraph();
+        } else {
+          lastLogTotals = payload.totals;
+        }
       }
 
       // Add to front of local log array (keeping max 150 entries)
@@ -5831,11 +5986,7 @@ function simulateTelemetryLogPrompt() {
               <span class="text-[10px] text-cyan-400/80 font-mono">live telementry</span>
             </div>
             <div class="text-xs text-slate-200 select-all font-sans font-medium">${escapeHtml(log.message || '')}</div>
-            ${hasFields ? `
-              <div class="mt-1 bg-slate-900/90 rounded p-2 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap select-all">
-                ${escapeHtml(JSON.stringify(log.fields, null, 2))}
-              </div>
-            ` : ''}
+            ${hasFields ? `<div class="mt-1 bg-slate-900/90 rounded p-2 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap select-all">${escapeHtml(JSON.stringify(log.fields, null, 2))}</div>` : ''}
           </div>
         `;
       }).join('');
