@@ -2250,8 +2250,8 @@
           ];
           
           if (containers && containers.length > 0) {
-            let postgres = containers.find(c => c.name.toLowerCase().includes('postgres'));
-            let goApp = containers.find(c => c.name.toLowerCase().includes('go') || c.name.toLowerCase().includes('server'));
+            let postgres = containers.find(c => c.name === 'hack-go-thon-db');
+            let goApp = containers.find(c => c.name.startsWith('hack-go-thon-web'));
             
             if (postgres) {
               boxes.push({
@@ -5807,9 +5807,9 @@ function simulateTelemetryLogPrompt() {
         // Containers (0-100% scale)
         let pgPerc = 0, goSrvPerc = 0;
         if (pt.containers) {
-          let pg = pt.containers.find(c => c.name === 'hack-go-thon-postgres');
+          let pg = pt.containers.find(c => c.name === 'hack-go-thon-db');
           if (pg) pgPerc = parseFloat(pg.mem_perc) || 0;
-          let go = pt.containers.find(c => c.name === 'hack-go-thon-server');
+          let go = pt.containers.find(c => c.name.startsWith('hack-go-thon-web'));
           if (go) goSrvPerc = parseFloat(go.mem_perc) || 0;
         }
         pgPoints.push({ x, y: padT + chartH - (pgPerc / 100) * chartH, perc: pgPerc, pt });
@@ -5900,9 +5900,9 @@ function simulateTelemetryLogPrompt() {
         let pgPerc = 0, goSrvPerc = 0;
         let pgUsed = "0", goSrvUsed = "0";
         if (pt.containers) {
-          let pg = pt.containers.find(c => c.name === 'hack-go-thon-postgres');
+          let pg = pt.containers.find(c => c.name === 'hack-go-thon-db');
           if (pg) { pgPerc = parseFloat(pg.mem_perc) || 0; pgUsed = pg.mem_used.split(' / ')[0]; }
-          let go = pt.containers.find(c => c.name === 'hack-go-thon-server');
+          let go = pt.containers.find(c => c.name.startsWith('hack-go-thon-web'));
           if (go) { goSrvPerc = parseFloat(go.mem_perc) || 0; goSrvUsed = go.mem_used.split(' / ')[0]; }
         }
 

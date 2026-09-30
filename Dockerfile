@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/bin/
 # ==========================================
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates tzdata curl bash
+RUN apk add --no-cache ca-certificates tzdata curl bash docker-cli
 
 # Create non-root user and persistent uploads directory
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
@@ -35,7 +35,7 @@ WORKDIR /home/appuser
 COPY --from=builder /app/bin/server ./server
 RUN chown appuser:appgroup ./server
 
-USER appuser
+# USER appuser # Temporarily disabled so container can access docker.sock
 
 EXPOSE 8080
 

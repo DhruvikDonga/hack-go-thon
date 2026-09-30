@@ -153,8 +153,8 @@ func getContainerStats() []ContainerStat {
 		parts := strings.Split(line, "|")
 		if len(parts) >= 3 {
 			name := parts[0]
-			// Filter specifically for the exact docker-compose container names
-			if name == "hack-go-thon-postgres" || name == "hack-go-thon-server" {
+			// Filter specifically for Kamal's generated container names
+			if name == "hack-go-thon-db" || strings.HasPrefix(name, "hack-go-thon-web") {
 				stats = append(stats, ContainerStat{
 					Name:    name,
 					MemUsed: strings.TrimSpace(parts[1]),
