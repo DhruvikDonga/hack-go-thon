@@ -22,6 +22,12 @@ func APICallLogger(db *dbclient.PostgresDatabase) gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 
+		// Only log requests that were authenticated via API keys
+		apiKeyName := c.GetString("api_key_name")
+		if apiKeyName == "" {
+			return
+		}
+
 		latency := time.Since(start).Milliseconds()
 		statusCode := c.Writer.Status()
 		endpoint := c.FullPath()
