@@ -120,11 +120,42 @@ When generating or refactoring code in this repository, strictly adhere to these
 
 ---
 
+
+## 2.5 Deployment & Infrastructure (Kamal 2)
+
+We use Kamal for zero-downtime, containerized deployments directly to our server.
+* **Configuration**: `config/deploy.yml` controls environment variables, port mappings, proxy settings, and Docker socket mounts.
+* **Secrets**: Stored locally in `.kamal/secrets`. Never commit this file to git. If a secret key is specified in `deploy.yml` under `env.secret`, it *must* exist in `.kamal/secrets` or the deployment will fail immediately.
+* **Database Accessory**: PostgreSQL (via `pgvector/pgvector:pg16`) runs as a Kamal accessory. To check live Postgres tables, use: `kamal accessory exec db -i "psql -h <server-ip> -U postgres -d hack_db"`.
+* **SSL & Domains**: We use Let's Encrypt. For rapid hackathon free SSL without a domain, set `hosts: [ <ip-address>.nip.io ]` in `deploy.yml` with `ssl: true`.
+* **Volumes**: File persistence must be routed to host volumes, mapped in `deploy.yml`: `- "hack-go-thon-uploads:/home/appuser/uploads"`.
+
 ## 3. Step-by-Step Recipes for Agents
 
-### Recipe 1: Adding a New REST Endpoint
+### Recipe 1: Adding a New Postgres Table & REST Endpoint
 
-1. **Define the Data Model & Interface**:
+1. **Define the Schema & Data Model**:
+   In `internal/store/pg_store/`, define your struct and standard initialization methods:
+   ```go
+   type ItemModel struct { ... }
+   
+   func InitItemSchema(ctx context.Context, db *dbclient.PostgresDatabase) error {
+       query := `CREATE TABLE IF NOT EXISTS items (id VARCHAR(100) PRIMARY KEY, ...);`
+       _, err := db.Client.ExecContext(ctx, query)
+       return err
+   }
+   
+   func InsertItem(...) error { ... }
+   ```
+2. **Register Schema on Boot**:
+   In `cmd/server/main.go`, inject your initialization under step `// 4. Initialize Database`:
+   ```go
+   if err := pgstore.InitItemSchema(ctx, pgDB); err != nil {
+       log.Warn("Failed to initialize items schema", "error", err.Error())
+   }
+   ```
+3. **Define the Interface (Optional) & Create HTTP Handler (Gin)**:
+   In `internal/api/handler/item_handler.go`:
 
    In `internal/store/`, declare the model struct and interface:
    ```go
@@ -522,3 +553,11 @@ curl -s http://localhost:8080/health
 kill $PID
 ```
 
+
+### Recipe 10: Building Responsive Admin UI Modules (Tailwind CSS)
+
+The embedded `/admin` dashboard uses pure Tailwind CSS (via CDN). When modifying the UI, strict adherence to mobile-responsive patterns is required:
+1. **Flexbox Overflow Protection**: Text inputs (`flex-1`) naturally resist shrinking and will push buttons off-screen on mobile. Always apply `min-w-0` to flex-child inputs.
+2. **Button Squishing**: To prevent flexbox from wrapping text inside buttons and ruining their border radius, always apply `shrink-0 whitespace-nowrap` to action buttons.
+3. **Responsive Wrapping**: Do not hardcode `grid-cols-3` or `justify-between` for button toolbars, as they will overflow narrow screens. Use `flex flex-wrap gap-2` so elements gracefully drop to the next line.
+4. **Mobile Popups & Dropdowns**: Use `max-sm:fixed` modifiers (e.g., `max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-16`) to break dropdowns out of constrained parent headers on small screens and display them as centered modals.
