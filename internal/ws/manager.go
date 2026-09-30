@@ -99,7 +99,7 @@ func (m *Manager) Broadcast(targetRoom, action string, body map[string]any) {
 			}
 		}
 		if !found {
-			log.Warn("Cannot broadcast to inactive or non-existent room", "room", targetRoom)
+			log.Debug("Cannot broadcast to inactive or non-existent room", "room", targetRoom)
 			return
 		}
 	}
