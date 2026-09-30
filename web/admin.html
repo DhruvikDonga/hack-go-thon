@@ -102,12 +102,12 @@
       <form id="adminLoginForm" onsubmit="event.preventDefault(); submitAdminLogin();" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Email or Username</label>
-          <input id="loginEmail" type="text" required value="admin@hack-go-thon.local" placeholder="admin@hack-go-thon.local" class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+          <input id="loginEmail" type="text" required value="" placeholder="Enter your email or username..." class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
         </div>
 
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
-          <input id="loginPassword" type="password" required value="Mp@tel98" placeholder="••••••••" class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
+          <input id="loginPassword" type="password" required value="" placeholder="••••••••" class="w-full bg-slate-950 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" />
         </div>
 
         <!-- Error Alert Box -->
@@ -117,21 +117,7 @@
           <span>Sign In to Admin Panel</span>
         </button>
 
-        <!-- Quick Fill Credentials Helpers -->
-        <div class="pt-2 border-t border-borderCol/60 space-y-1.5 text-[11px] text-slate-400">
-          <div class="flex items-center justify-between">
-            <span>Fallback Admin (Lvl 99):</span>
-            <button type="button" onclick="fillAdminCredentials()" class="text-emerald-400 hover:text-emerald-300 font-mono font-medium underline transition">
-              Fill Admin (Lvl 99)
-            </button>
-          </div>
-          <div class="flex items-center justify-between">
-            <span>Staff Viewer (Lvl 10, View-Only):</span>
-            <button type="button" onclick="fillStaffCredentials()" class="text-cyan-400 hover:text-cyan-300 font-mono font-medium underline transition">
-              Fill Staff (Lvl 10)
-            </button>
-          </div>
-        </div>
+
       </form>
     </div>
   </div>
@@ -1462,6 +1448,14 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>
                     <span>Go Heap (MB)</span>
                   </span>
+                  <span class="flex items-center space-x-1 text-indigo-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 inline-block"></span>
+                    <span>Postgres %</span>
+                  </span>
+                  <span class="flex items-center space-x-1 text-emerald-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                    <span>Go Server %</span>
+                  </span>
                 </div>
               </div>
 
@@ -2198,8 +2192,9 @@
           const pointsCount = (telemetryMetrics.history || []).length;
           const warnCount = telemetryTotals.warn || 0;
           const errCount = (telemetryTotals.error || 0) + (telemetryTotals.fatal || 0);
-
-          return [
+          const containers = telemetryMetrics.containers || [];
+          
+          let boxes = [
             {
               icon: '📈',
               title: 'System RAM Usage',
@@ -2253,6 +2248,42 @@
               ]
             }
           ];
+          
+          if (containers && containers.length > 0) {
+            let postgres = containers.find(c => c.name.toLowerCase().includes('postgres'));
+            let goApp = containers.find(c => c.name.toLowerCase().includes('go') || c.name.toLowerCase().includes('server'));
+            
+            if (postgres) {
+              boxes.push({
+                icon: '🐘',
+                title: 'Postgres Container',
+                value: postgres.mem_perc,
+                unit: 'used',
+                color: 'text-indigo-400',
+                badge: 'Docker Stats',
+                subvalues: [
+                  { label: 'RAM', val: postgres.mem_used, color: 'text-slate-300' },
+                  { label: 'Service', val: postgres.name.substring(0, 15), color: 'text-indigo-300' }
+                ]
+              });
+            }
+            if (goApp) {
+              boxes.push({
+                icon: '🐳',
+                title: 'Go Srv Container',
+                value: goApp.mem_perc,
+                unit: 'used',
+                color: 'text-cyan-400',
+                badge: 'Docker Stats',
+                subvalues: [
+                  { label: 'RAM', val: goApp.mem_used, color: 'text-slate-300' },
+                  { label: 'Service', val: goApp.name.substring(0, 15), color: 'text-cyan-300' }
+                ]
+              });
+            }
+          }
+
+          return boxes;
         }
 
         case 'all':
@@ -2345,7 +2376,7 @@
                 <span class="text-base">${box.icon}</span>
                 <span class="font-semibold text-slate-300 group-hover:text-white transition">${box.title}</span>
               </span>
-              ${box.badge ? `<span class="text-[10px] font-medium font-mono px-2 py-0.5 rounded-full bg-slate-800/60 text-slate-400 group-hover:text-slate-300 transition">${box.badge}</span>` : ''}
+              ${box.badge ? `<span class="text-[8.5px] font-medium font-mono px-1.5 py-px rounded-full bg-slate-800/60 text-slate-400 group-hover:text-slate-300 transition leading-tight">${box.badge}</span>` : ''}
             </div>
 
             <div class="flex items-baseline space-x-2 my-1">
@@ -2354,9 +2385,9 @@
             </div>
           </div>
 
-          <div class="mt-2.5 pt-2 border-t border-borderCol/40 flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+          <div class="mt-2.5 pt-2 border-t border-borderCol/40 flex flex-wrap items-center gap-1 text-[8.5px] font-mono">
             ${(box.subvalues || []).map(sub => `
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-800/40 text-slate-300">
+              <span class="inline-flex items-center px-1.5 py-px rounded-full bg-slate-800/40 text-slate-300 leading-tight">
                 <span class="text-slate-400 mr-1">${sub.label}:</span>
                 <span class="font-medium ${sub.color || 'text-slate-200'}">${sub.val}</span>
               </span>
@@ -5565,13 +5596,15 @@ function simulateTelemetryLogPrompt() {
         go_sys_bytes: (current.app_sys_mb || 0) * 1024 * 1024,
         goroutines: current.goroutines || 0,
         go_num_gc: current.num_gc || 0,
+        containers: current.containers || [],
         history: points.map(pt => ({
           timestamp: pt.time_unix ? pt.time_unix * 1000 : new Date(pt.timestamp).getTime(),
           system_ram_percent: pt.system_percent || 0,
           system_ram_used: (pt.system_used_mb || 0) * 1024 * 1024,
           system_ram_total: (pt.system_total_mb || 0) * 1024 * 1024,
           go_alloc_bytes: (pt.app_alloc_mb || 0) * 1024 * 1024,
-          goroutines: pt.goroutines || 0
+          goroutines: pt.goroutines || 0,
+          containers: pt.containers || []
         }))
       };
 
@@ -5609,6 +5642,35 @@ function simulateTelemetryLogPrompt() {
       if (currentFocusedSection === 'telemetry') {
         updateDashboardBoxes('telemetry');
       }
+    }
+
+
+    function showGraphCrosshair(evt, b64Html) {
+      let tt = document.getElementById('graphTooltip');
+      if (!tt) {
+        tt = document.createElement('div');
+        tt.id = 'graphTooltip';
+        tt.className = 'fixed hidden bg-slate-900 border border-slate-700 text-[10px] rounded-lg shadow-2xl z-[100] pointer-events-none p-2.5 font-mono min-w-[160px] text-slate-300';
+        document.body.appendChild(tt);
+      }
+      tt.innerHTML = atob(b64Html);
+      
+      // Calculate position to prevent overflowing window
+      let x = evt.clientX + 15;
+      let y = evt.clientY + 15;
+      
+      tt.classList.remove('hidden');
+      const rect = tt.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth) x = evt.clientX - rect.width - 10;
+      if (y + rect.height > window.innerHeight) y = evt.clientY - rect.height - 10;
+      
+      tt.style.left = x + 'px';
+      tt.style.top = y + 'px';
+    }
+    
+    function hideGraphCrosshair() {
+      let tt = document.getElementById('graphTooltip');
+      if (tt) tt.classList.add('hidden');
     }
 
     function renderTelemetryLogGraph() {
@@ -5729,6 +5791,8 @@ function simulateTelemetryLogPrompt() {
       // Calculate coordinates
       const ramPoints = [];
       const heapPoints = [];
+      const pgPoints = [];
+      const goSrvPoints = [];
 
       history.forEach((pt, i) => {
         const x = N === 1 ? (padL + chartW / 2) : (padL + (i / (N - 1)) * chartW);
@@ -5739,6 +5803,17 @@ function simulateTelemetryLogPrompt() {
         const heapMB = (pt.go_alloc_bytes || 0) / (1024 * 1024);
         const heapY = padT + chartH - Math.min(chartH, (heapMB / maxHeapMB) * chartH);
         heapPoints.push({ x, y: heapY, pt, heapMB });
+
+        // Containers (0-100% scale)
+        let pgPerc = 0, goSrvPerc = 0;
+        if (pt.containers) {
+          let pg = pt.containers.find(c => c.name === 'hack-go-thon-postgres');
+          if (pg) pgPerc = parseFloat(pg.mem_perc) || 0;
+          let go = pt.containers.find(c => c.name === 'hack-go-thon-server');
+          if (go) goSrvPerc = parseFloat(go.mem_perc) || 0;
+        }
+        pgPoints.push({ x, y: padT + chartH - (pgPerc / 100) * chartH, perc: pgPerc, pt });
+        goSrvPoints.push({ x, y: padT + chartH - (goSrvPerc / 100) * chartH, perc: goSrvPerc, pt });
       });
 
       // Render RAM area and path
@@ -5772,6 +5847,18 @@ function simulateTelemetryLogPrompt() {
         `;
       });
 
+      // Render Postgres path
+      if (pgPoints.length > 0) {
+        const pgPathD = pgPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+        content += `<path d="${pgPathD}" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
+      }
+      
+      // Render Go Srv path
+      if (goSrvPoints.length > 0) {
+        const goPathD = goSrvPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+        content += `<path d="${goPathD}" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
+      }
+
       // Render Circles for Go Heap
       heapPoints.forEach(p => {
         content += `
@@ -5780,6 +5867,83 @@ function simulateTelemetryLogPrompt() {
           </circle>
         `;
       });
+      
+      // Render Circles for Postgres
+      pgPoints.forEach(p => {
+        if (p.perc > 0) {
+          content += `
+            <circle cx="${p.x}" cy="${p.y}" r="3" fill="#818cf8" stroke="#0f172a" stroke-width="1.5" class="cursor-pointer hover:scale-150 transition-transform">
+              <title>Postgres Container: ${p.perc.toFixed(2)}% RAM</title>
+            </circle>
+          `;
+        }
+      });
+      
+      // Render Circles for Go Srv
+      goSrvPoints.forEach(p => {
+        if (p.perc > 0) {
+          content += `
+            <circle cx="${p.x}" cy="${p.y}" r="3" fill="#34d399" stroke="#0f172a" stroke-width="1.5" class="cursor-pointer hover:scale-150 transition-transform">
+              <title>Go Server Container: ${p.perc.toFixed(2)}% RAM</title>
+            </circle>
+          `;
+        }
+      });
+
+      // Render Vertical Crosshair Zones for Custom Tooltip
+      history.forEach((pt, i) => {
+        const x = N === 1 ? (padL + chartW / 2) : (padL + (i / (N - 1)) * chartW);
+        const halfW = chartW / Math.max(1, N - 1) / 2;
+        const rectX = x - halfW;
+        const rectW = halfW * 2;
+        
+        let pgPerc = 0, goSrvPerc = 0;
+        let pgUsed = "0", goSrvUsed = "0";
+        if (pt.containers) {
+          let pg = pt.containers.find(c => c.name === 'hack-go-thon-postgres');
+          if (pg) { pgPerc = parseFloat(pg.mem_perc) || 0; pgUsed = pg.mem_used.split(' / ')[0]; }
+          let go = pt.containers.find(c => c.name === 'hack-go-thon-server');
+          if (go) { goSrvPerc = parseFloat(go.mem_perc) || 0; goSrvUsed = go.mem_used.split(' / ')[0]; }
+        }
+
+        const timeStr = pt.timestamp ? new Date(pt.timestamp).toLocaleTimeString() : `Point #${i + 1}`;
+        const ramUsedStr = formatBytes(pt.system_ram_used || 0);
+        const ramTotStr = formatBytes(pt.system_ram_total || 0);
+        const allocStr = formatBytes(pt.go_alloc_bytes || 0);
+        
+        let tooltipHtml = `
+          <div class="font-bold text-white mb-2 pb-1 border-b border-slate-700">${timeStr}</div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="flex items-center space-x-1.5 text-cyan-400"><span class="w-2 h-2 bg-cyan-400 rounded-full"></span><span>System RAM:</span></span>
+            <span class="ml-4">${(pt.system_ram_percent || 0).toFixed(1)}% (${ramUsedStr})</span>
+          </div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="flex items-center space-x-1.5 text-purple-400"><span class="w-2 h-2 bg-purple-400 rounded-full"></span><span>Go Heap:</span></span>
+            <span class="ml-4">${allocStr}</span>
+          </div>
+        `;
+        if (pgPerc > 0) {
+          tooltipHtml += `
+            <div class="flex items-center justify-between mb-1">
+              <span class="flex items-center space-x-1.5 text-indigo-400"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span><span>Postgres:</span></span>
+              <span class="ml-4">${pgPerc.toFixed(2)}% (${pgUsed})</span>
+            </div>
+          `;
+        }
+        if (goSrvPerc > 0) {
+          tooltipHtml += `
+            <div class="flex items-center justify-between">
+              <span class="flex items-center space-x-1.5 text-emerald-400"><span class="w-2 h-2 bg-emerald-400 rounded-full"></span><span>Go Server:</span></span>
+              <span class="ml-4">${goSrvPerc.toFixed(2)}% (${goSrvUsed})</span>
+            </div>
+          `;
+        }
+
+        // We use btoa to safely pass HTML string through SVG attributes
+        const encoded = btoa(tooltipHtml);
+        content += `<rect x="${rectX}" y="0" width="${rectW}" height="${H}" fill="transparent" class="hover:bg-slate-300/10 cursor-crosshair transition-colors" onmousemove="showGraphCrosshair(event, '${encoded}')" onmouseleave="hideGraphCrosshair()" />`;
+      });
+
 
       svg.innerHTML = content;
     }

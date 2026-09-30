@@ -4,24 +4,32 @@ import (
 	"bufio"
 	"math"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// MemoryDataPoint captures a single telemetry snapshot of system VM and Go runtime memory.
+type ContainerStat struct {
+	Name    string `json:"name"`
+	MemUsed string `json:"mem_used"` // e.g. "25.54MiB / 30.82GiB"
+	MemPerc string `json:"mem_perc"` // e.g. "0.08%"
+}
+
+// MemoryDataPoint captures a single telemetry snapshot of system VM and Go runtime memory. a single telemetry snapshot of system VM and Go runtime memory.
 type MemoryDataPoint struct {
-	Timestamp     string  `json:"timestamp"`       // Local time "15:04:05"
-	TimeUnix      int64   `json:"time_unix"`       // Unix timestamp in seconds
-	SystemTotalMB float64 `json:"system_total_mb"` // Total system/VM RAM in MB
-	SystemUsedMB  float64 `json:"system_used_mb"`  // Used system/VM RAM in MB
-	SystemFreeMB  float64 `json:"system_free_mb"`  // Free system/VM RAM in MB
-	SystemPercent float64 `json:"system_percent"`  // System RAM usage % (0-100)
-	AppAllocMB    float64 `json:"app_alloc_mb"`    // Go runtime heap allocated in MB
-	AppSysMB      float64 `json:"app_sys_mb"`      // Go runtime OS memory obtained in MB
-	NumGC         uint32  `json:"num_gc"`          // Total completed GC cycles
-	Goroutines    int     `json:"goroutines"`      // Active goroutines count
+	Timestamp     string          `json:"timestamp"`            // Local time "15:04:05"
+	TimeUnix      int64           `json:"time_unix"`            // Unix timestamp in seconds
+	SystemTotalMB float64         `json:"system_total_mb"`      // Total system/VM RAM in MB
+	SystemUsedMB  float64         `json:"system_used_mb"`       // Used system/VM RAM in MB
+	SystemFreeMB  float64         `json:"system_free_mb"`       // Free system/VM RAM in MB
+	SystemPercent float64         `json:"system_percent"`       // System RAM usage % (0-100)
+	AppAllocMB    float64         `json:"app_alloc_mb"`         // Go runtime heap allocated in MB
+	AppSysMB      float64         `json:"app_sys_mb"`           // Go runtime OS memory obtained in MB
+	NumGC         uint32          `json:"num_gc"`               // Total completed GC cycles
+	Goroutines    int             `json:"goroutines"`           // Active goroutines count
+	Containers    []ContainerStat `json:"containers,omitempty"` // Docker container memory stats
 }
 
 // CollectMemoryStats gathers host VM/system RAM and Go runtime memory metrics.
@@ -57,6 +65,7 @@ func CollectMemoryStats() MemoryDataPoint {
 		AppSysMB:      appSysMB,
 		NumGC:         numGC,
 		Goroutines:    goroutines,
+		Containers:    getContainerStats(),
 	}
 }
 
@@ -124,4 +133,35 @@ func readSystemMemory() (totalMB, usedMB, freeMB, percent float64) {
 func roundTo(val float64, decimals int) float64 {
 	pow := math.Pow(10, float64(decimals))
 	return math.Round(val*pow) / pow
+}
+
+func getContainerStats() []ContainerStat {
+	var stats []ContainerStat
+	// Requesting stats without streaming, format as Name|MemUsage|MemPerc
+	cmd := exec.Command("docker", "stats", "--no-stream", "--format", "{{.Name}}|{{.MemUsage}}|{{.MemPerc}}")
+	out, err := cmd.Output()
+	if err != nil {
+		return stats
+	}
+
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "|")
+		if len(parts) >= 3 {
+			name := parts[0]
+			// Filter specifically for the exact docker-compose container names
+			if name == "hack-go-thon-postgres" || name == "hack-go-thon-server" {
+				stats = append(stats, ContainerStat{
+					Name:    name,
+					MemUsed: strings.TrimSpace(parts[1]),
+					MemPerc: strings.TrimSpace(parts[2]),
+				})
+			}
+		}
+	}
+	return stats
 }
