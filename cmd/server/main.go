@@ -74,6 +74,9 @@ func main() {
 			if err := pgstore.InitWebhookSchema(ctx, pgDB); err != nil {
 				log.Warn("Failed to initialize webhooks schema", "error", err.Error())
 			}
+			if err := pgstore.InitUploadedFilesSchema(ctx, pgDB); err != nil {
+				log.Warn("Failed to initialize uploaded_files schema", "error", err.Error())
+			}
 		}
 	} else if !cfg.Services.Database {
 		log.Info("Database service disabled via services.json")
