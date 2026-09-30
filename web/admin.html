@@ -30,6 +30,7 @@
     
     function toggleSidebar() {
       const nav = document.getElementById('sectionNavBar');
+      const backdrop = document.getElementById('sidebarBackdrop');
       if (!nav) return;
       
       const isMobile = window.innerWidth < 768;
@@ -37,10 +38,11 @@
       if (isMobile) {
         isSidebarOpenMobile = !isSidebarOpenMobile;
         if (isSidebarOpenMobile) {
-          nav.classList.remove('max-md:hidden');
-          nav.classList.remove('hidden');
+          nav.classList.remove('max-md:-translate-x-full');
+          if (backdrop) backdrop.classList.remove('hidden');
         } else {
-          nav.classList.add('hidden');
+          nav.classList.add('max-md:-translate-x-full');
+          if (backdrop) backdrop.classList.add('hidden');
         }
       } else {
         isSidebarOpenDesktop = !isSidebarOpenDesktop;
@@ -113,7 +115,7 @@
         <!-- Error Alert Box -->
         <div id="loginErrorAlert" class="hidden p-3 rounded-lg bg-red-950/60 border border-red-800/60 text-xs text-red-300 font-mono"></div>
 
-        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-brand-500/20 transition flex items-center justify-center space-x-2">
+        <button type="submit" id="btnLoginSubmit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-brand-500/20 transition flex items-center justify-center ">
           <span>Sign In to Admin Panel</span>
         </button>
 
@@ -124,8 +126,8 @@
 
   <!-- Navigation Bar -->
   <header class="border-b border-borderCol bg-cardBg/80 backdrop-blur sticky top-0 z-50">
-    <div class="w-full max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-2 sm:space-x-3">
+    <div class="w-full max-w-[100rem] mx-auto px-2 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center  shrink-0">
         <button onclick="toggleSidebar()" class="flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition items-center justify-center border border-transparent hover:border-borderCol" title="Toggle Sidebar">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
@@ -134,24 +136,24 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
-        <div class="title-swap-wrapper min-w-[130px] sm:min-w-[160px] h-6 sm:h-7 text-white">
-          <span class="title-part-1 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Hack-Go-Thon</span>
-          <span class="title-part-2 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">HGT Control Plane</span>
-          <span class="title-part-3 text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent"><span id="headerActiveOption">Mesh Rooms</span></span>
+        <div class="title-swap-wrapper min-w-0 sm:min-w-[160px] h-6 sm:h-7 text-white overflow-hidden">
+          <span class="title-part-1 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent truncate block">Hack-Go-Thon</span>
+          <span class="title-part-2 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent truncate block">HGT Control Plane</span>
+          <span class="title-part-3 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent truncate block"><span id="headerActiveOption">Mesh Rooms</span></span>
         </div>
       </div>
 
       <!-- Live Connection Status & User Profile -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        <div id="statusBadge" class="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
+      <div class="flex items-center  sm:space-x-3">
+        <div id="statusBadge" class="flex items-center space-x-1.5 sm: px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40">
           <span class="h-2 w-2 rounded-full bg-red-500"></span>
           <span id="statusText" class="hidden md:inline">Disconnected</span>
         </div>
-        <div class="hidden md:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+        <div class="hidden md:flex items-center  text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span>Client Slug:</span>
           <span id="clientSlugText" class="font-mono text-emerald-400 font-semibold">Connecting...</span>
         </div>
-        <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
+        <div class="hidden sm:flex items-center  text-xs text-slate-400 border border-borderCol px-3 py-1 rounded-md bg-slate-900/60">
           <span>Room:</span>
           <span class="font-mono text-amber-400 font-semibold">admin</span>
         </div>
@@ -166,7 +168,7 @@
           </button>
 
           <!-- Notification Bell Dropdown -->
-          <div id="telemetryNotifDropdown" class="hidden absolute right-0 mt-2 w-72 sm:w-80 lg:w-96 bg-cardBg/95 backdrop-blur-md border border-borderCol rounded-xl shadow-2xl p-3 space-y-2 z-50">
+          <div id="telemetryNotifDropdown" class="hidden max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-16 max-sm:w-auto max-sm:mt-0 absolute right-0 mt-2 w-72 sm:w-80 lg:w-96 bg-cardBg/95 backdrop-blur-md border border-borderCol rounded-xl shadow-2xl p-3 space-y-2 z-50">
             <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
               <div class="flex items-center space-x-1.5">
                 <span class="text-sm">🔔</span>
@@ -175,7 +177,7 @@
               </div>
               <div class="flex items-center space-x-1.5">
                 <button onclick="clearTelemetryAlerts()" class="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer">Clear</button>
-                <button onclick="focusSection('telemetry'); toggleTelemetryNotifDropdown();" class="text-[9px] sm:text-[10px] px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium transition cursor-pointer">Open Hub</button>
+                <button onclick="focusSection('telemetry'); toggleTelemetryNotifDropdown();" class="text-[9px] sm:text-[10px] px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-medium transition cursor-pointer shrink-0 whitespace-nowrap">Open Hub</button>
               </div>
             </div>
 
@@ -187,7 +189,7 @@
         </div>
 
         <!-- Authenticated User Profile & Sign Out -->
-        <div id="userProfileHeader" class="hidden flex items-center space-x-1.5 sm:space-x-2 text-xs border border-borderCol px-2 sm:px-3 py-1 rounded-md bg-slate-900/60">
+        <div id="userProfileHeader" class="hidden flex items-center space-x-1.5 sm:space-x-2 text-xs border border-borderCol px-2 sm:px-3 py-1 rounded-md bg-slate-900/60 min-w-0">
           <span class="hidden sm:inline text-slate-400">User:</span>
           <span id="headerUsername" class="font-bold text-cyan-400 max-w-[60px] sm:max-w-none truncate">admin</span>
           <span id="headerAuthLevelBadge" class="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">Lvl 99</span>
@@ -203,8 +205,12 @@
   <!-- Flex Container for Sidebar + Main -->
   <div class="max-w-[100rem] mx-auto w-full flex flex-col md:flex-row items-start min-h-[calc(100vh-4rem)]">
   
+    
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebarBackdrop" onclick="toggleSidebar()" class="hidden md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] transition-opacity duration-300"></div>
+
     <!-- Section Navigation (Sidebar on Desktop) -->
-  <nav id="sectionNavBar" class="max-md:hidden max-md:fixed max-md:top-16 max-md:left-0 max-md:bottom-0 max-md:w-64 max-md:z-[60] max-md:shadow-2xl max-md:border-r max-md:bg-slate-950 w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-borderCol md:bg-transparent backdrop-blur-md sticky top-16 z-40 shadow-md md:shadow-none shrink-0 h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar transition-all duration-300">
+  <nav id="sectionNavBar" class="max-md:-translate-x-full max-md:fixed max-md:top-16 max-md:left-0 max-md:bottom-0 max-md:w-64 max-md:z-[60] max-md:shadow-2xl max-md:border-r max-md:bg-slate-950 w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-borderCol md:bg-transparent backdrop-blur-md sticky top-16 z-40 shadow-md md:shadow-none shrink-0 h-[calc(100vh-4rem)] overflow-y-auto custom-scrollbar transition-transform duration-300 ease-in-out">
     <div class="p-2 md:p-4">
       <div class="hidden md:flex items-center justify-between mb-4">
         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider sidebar-text">Modules</span>
@@ -217,68 +223,68 @@
           
 
           <!-- 1. Mesh -->
-          <button id="btnFocusMesh" data-section="mesh" onclick="focusSection('mesh')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusMesh" data-section="mesh" onclick="focusSection('mesh')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>🌐</span>
             <span>Mesh Rooms</span>
             <span id="navMeshCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 2. LLM -->
-          <button id="btnFocusLLM" data-section="llm" onclick="focusSection('llm')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusLLM" data-section="llm" onclick="focusSection('llm')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>🤖</span>
             <span>LLM Stream</span>
           </button>
 
           <!-- 3. Jobs -->
-          <button id="btnFocusJobs" data-section="jobs" onclick="focusSection('jobs')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusJobs" data-section="jobs" onclick="focusSection('jobs')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>⚙️</span>
             <span>Background Jobs</span>
             <span id="navJobsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 4. RAG -->
-          <button id="btnFocusRAG" data-section="rag" onclick="focusSection('rag')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusRAG" data-section="rag" onclick="focusSection('rag')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>🧠</span>
             <span>PGvector RAG</span>
           </button>
 
           <!-- 5. WebRTC -->
-          <button id="btnFocusWebRTC" data-section="webrtc" onclick="focusSection('webrtc')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusWebRTC" data-section="webrtc" onclick="focusSection('webrtc')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>📹</span>
             <span>WebRTC Lab</span>
             <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-rose-950/60 text-rose-300 border border-rose-800/40">SFU</span>
           </button>
 
           <!-- 6. Users -->
-          <button id="btnFocusUsers" data-section="users" onclick="focusSection('users')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusUsers" data-section="users" onclick="focusSection('users')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>👥</span>
             <span>Users &amp; RBAC</span>
             <span id="navUsersCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 7. Webhooks -->
-          <button id="btnFocusWebhooks" data-section="webhooks" onclick="focusSection('webhooks')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusWebhooks" data-section="webhooks" onclick="focusSection('webhooks')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>🔔</span>
             <span>Mobile Webhooks</span>
             <span id="navWebhooksCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 8. Uploads -->
-          <button id="btnFocusUploads" data-section="uploads" onclick="focusSection('uploads')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusUploads" data-section="uploads" onclick="focusSection('uploads')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>📁</span>
             <span>Multipart Assets</span>
             <span id="navUploadsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">-</span>
           </button>
 
           <!-- 9. APIs Test Bench -->
-          <button id="btnFocusAPIs" data-section="apis" onclick="focusSection('apis')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusAPIs" data-section="apis" onclick="focusSection('apis')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>⚡</span>
             <span>API Test Bench</span>
             <span id="navAPIsCount" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-slate-400 border border-slate-800">50</span>
           </button>
 
           <!-- 10. Telementry -->
-          <button id="btnFocusTelemetry" data-section="telemetry" onclick="focusSection('telemetry')" class="section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start">
+          <button id="btnFocusTelemetry" data-section="telemetry" onclick="focusSection('telemetry')" class="section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start shrink-0 whitespace-nowrap">
             <span>📈</span>
             <span>Telementry</span>
             <span id="navTelemetryCadence" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/80 text-cyan-400 border border-slate-800">30s</span>
@@ -289,7 +295,7 @@
   </nav>
 
   <!-- Main Grid Content -->
-  <main class="flex-1 w-full min-w-0 px-4 sm:px-6 lg:px-8 pt-6 pb-32 space-y-8 max-w-full">
+  <main class="flex-1 min-w-0 w-full min-w-0 px-4 sm:px-6 lg:px-8 pt-6 pb-32 space-y-8 max-w-full">
     
     <!-- Hidden Telemetry Hooks (Preserves legacy element ID references) -->
     <div class="hidden" aria-hidden="true">
@@ -306,7 +312,7 @@
           🎯
         </div>
         <div>
-          <div class="flex items-center space-x-2">
+          <div class="flex flex-wrap items-center gap-2">
             <h2 id="focusBannerTitle" class="text-sm font-bold text-white tracking-tight">Active Section</h2>
             <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/30">Focused View</span>
           </div>
@@ -314,13 +320,13 @@
         </div>
       </div>
 
-      <div class="flex items-center space-x-2 self-end sm:self-center flex-shrink-0">
+      <div class="flex items-center  self-end sm:self-center flex-shrink-0">
         <!-- Prev Section -->
-        <button id="btnFocusPrev" onclick="focusPrevSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Previous section (← arrow)">
+        <button id="btnFocusPrev" onclick="focusPrevSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Previous section (← arrow)">
           <span>← Prev</span>
         </button>
         <!-- Next Section -->
-        <button id="btnFocusNext" onclick="focusNextSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Next section (→ arrow)">
+        <button id="btnFocusNext" onclick="focusNextSection()" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Next section (→ arrow)">
           <span>Next →</span>
         </button>
       </div>
@@ -337,9 +343,9 @@
       <!-- Left: Mesh Server Rooms & Connected Clients (7 cols) -->
       <div id="section-mesh" class="lg:col-span-7 flex flex-col space-y-6 section-card transition-all">
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div>
-              <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+              <h2 class="text-base font-semibold text-white flex items-center ">
                 <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
@@ -347,12 +353,12 @@
               </h2>
               <p class="text-xs text-slate-400 mt-0.5">Live view from <code class="text-emerald-400">MeshServer.GetClientsInRoom()</code></p>
             </div>
-            <div class="flex items-center space-x-2">
-              <button data-target="mesh" onclick="focusSection('mesh')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <div class="flex flex-wrap items-center gap-2">
+              <button data-target="mesh" onclick="focusSection('mesh')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
                 <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 <span class="focus-btn-label">Focus</span>
               </button>
-              <button onclick="requestStateRefresh()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+              <button onclick="requestStateRefresh()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -363,8 +369,8 @@
 
           <!-- Join / Create Room Toolbar -->
           <div class="flex items-center gap-2 mb-4 bg-slate-950/80 p-2.5 rounded-lg border border-borderCol">
-            <input id="newRoomInput" type="text" placeholder="Enter room name (e.g. chat, room-1, custom-room)..." class="flex-1 bg-slate-900 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" onkeydown="if(event.key==='Enter') joinCustomRoom();" />
-            <button onclick="joinCustomRoom()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1 whitespace-nowrap">
+            <input id="newRoomInput" type="text" placeholder="Enter room name (e.g. chat, room-1, custom-room)..." class="flex-1 min-w-0 bg-slate-900 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono" onkeydown="if(event.key==='Enter') joinCustomRoom();" />
+            <button onclick="joinCustomRoom()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1 whitespace-nowrap shrink-0 whitespace-nowrap">
               <span>➕ Join / Create Room</span>
             </button>
           </div>
@@ -377,7 +383,7 @@
 
         <!-- Global Announcement / Mesh Broadcast Tool -->
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
-          <h2 class="text-base font-semibold text-white mb-2 flex items-center space-x-2">
+          <h2 class="text-base font-semibold text-white mb-2 flex items-center ">
             <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
             </svg>
@@ -388,8 +394,8 @@
             <select id="broadcastTarget" class="bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
               <option value="mesh-global" selected>mesh-global (All Clients)</option>
             </select>
-            <input id="broadcastInput" type="text" placeholder="Type broadcast message..." class="flex-1 bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" onkeydown="if(event.key==='Enter') sendAdminBroadcast();" />
-            <button onclick="sendAdminBroadcast()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded-lg shadow-sm transition">
+            <input id="broadcastInput" type="text" placeholder="Type broadcast message..." class="flex-1 min-w-0 bg-slate-900 border border-borderCol rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500" onkeydown="if(event.key==='Enter') sendAdminBroadcast();" />
+            <button onclick="sendAdminBroadcast()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded-lg shadow-sm transition shrink-0 whitespace-nowrap">
               Broadcast
             </button>
           </div>
@@ -397,8 +403,8 @@
 
         <!-- Live Event Stream Feed -->
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base font-semibold text-white flex items-center ">
               <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
               </svg>
@@ -415,9 +421,9 @@
       <!-- Right: simplysocket LLM Token Streaming Tester (5 cols) -->
       <div id="section-llm" class="lg:col-span-5 flex flex-col space-y-6 section-card transition-all">
         <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm flex-1 flex flex-col">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
-              <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+              <h2 class="text-base font-semibold text-white flex items-center ">
                 <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
@@ -425,8 +431,8 @@
               </h2>
               <p class="text-xs text-slate-400 mt-0.5">Stream tokens via WebSocket mesh in real-time</p>
             </div>
-            <div class="flex items-center space-x-2">
-              <button data-target="llm" onclick="focusSection('llm')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+            <div class="flex flex-wrap items-center gap-2">
+              <button data-target="llm" onclick="focusSection('llm')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
                 <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 <span class="focus-btn-label">Focus</span>
               </button>
@@ -441,15 +447,15 @@
               <textarea id="llmPrompt" rows="3" class="w-full bg-slate-900 border border-borderCol rounded-lg p-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">Explain how simplysocket enables real-time LLM streaming over Go WebSockets.</textarea>
             </div>
             
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <label class="text-xs text-slate-400">Model:</label>
                 <select id="llmModel" class="bg-slate-900 border border-borderCol rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none">
                   <option value="gpt-4o-mini">gpt-4o-mini</option>
                   <option value="gpt-4o">gpt-4o</option>
                 </select>
               </div>
-              <button id="streamBtn" onclick="triggerLLMStream()" class="px-4 py-1.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-medium text-xs rounded-lg shadow-md shadow-brand-500/10 transition flex items-center space-x-1.5">
+              <button id="streamBtn" onclick="triggerLLMStream()" class="px-4 py-1.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-medium text-xs rounded-lg shadow-md shadow-brand-500/10 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                 </svg>
@@ -459,12 +465,12 @@
           </div>
 
           <!-- Streaming Response Output Box -->
-          <div class="flex-1 flex flex-col">
+          <div class="flex-1 min-w-0 flex flex-col">
             <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
               <span>Token Output:</span>
               <span id="tokenStats" class="font-mono text-emerald-400">0 tokens</span>
             </div>
-            <div id="streamOutput" class="flex-1 min-h-[200px] max-h-[360px] overflow-y-auto bg-slate-950 border border-borderCol rounded-lg p-4 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+            <div id="streamOutput" class="flex-1 min-w-0 min-h-[200px] max-h-[360px] overflow-y-auto bg-slate-950 border border-borderCol rounded-lg p-4 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
               <span class="text-slate-500 italic">Click "Stream Response" to start receiving real-time WebSocket tokens...</span>
             </div>
           </div>
@@ -474,9 +480,9 @@
 
     <!-- NEW SECTION: Scheduled Background Jobs Observability -->
     <div id="section-jobs" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+          <h2 class="text-base font-semibold text-white flex items-center ">
             <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -484,12 +490,12 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">In-process periodic task scheduler (<code class="text-purple-400">jobs.Scheduler</code>) with panic recovery & live metrics</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button data-target="jobs" onclick="focusSection('jobs')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="jobs" onclick="focusSection('jobs')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
             <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
             <span class="focus-btn-label">Focus</span>
           </button>
-          <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+          <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -522,9 +528,9 @@
 
     <!-- Bottom: Postgres pgvector RAG Explorer -->
     <div id="section-rag" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+          <h2 class="text-base font-semibold text-white flex items-center ">
             <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
@@ -532,8 +538,8 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">Semantic vector similarity search & question answering with in-database vector embeddings</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button data-target="rag" onclick="focusSection('rag')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="rag" onclick="focusSection('rag')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
             <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
             <span class="focus-btn-label">Focus</span>
           </button>
@@ -559,9 +565,9 @@
         <div class="bg-slate-900/60 border border-borderCol rounded-lg p-4">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">2. Ask RAG / Semantic Search</h3>
           <div class="space-y-3">
-            <div class="flex space-x-2">
-              <input id="ragQuery" type="text" placeholder="Ask a question or search knowledge base..." class="flex-1 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
-              <button onclick="askRAG()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs rounded-md shadow transition">
+            <div class="flex ">
+              <input id="ragQuery" type="text" placeholder="Ask a question or search knowledge base..." class="flex-1 min-w-0 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+              <button onclick="askRAG()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs rounded-md shadow transition shrink-0 whitespace-nowrap">
                 Ask RAG
               </button>
             </div>
@@ -575,9 +581,9 @@
 
     <!-- NEW SECTION: WebRTC Lab & Real-Time Media Playground -->
     <div id="section-webrtc" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+          <h2 class="text-base font-semibold text-white flex items-center ">
             <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
             </svg>
@@ -585,26 +591,26 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">P2P Audio/Video calls via simplysocket signaling + Ultra-low latency UDP DataChannel via Pion WebRTC</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button data-target="webrtc" onclick="focusSection('webrtc')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="webrtc" onclick="focusSection('webrtc')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
             <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
             <span class="focus-btn-label">Focus</span>
           </button>
           <span id="webrtcIceStatus" class="text-xs px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">P2P + Pion WebRTC</span>
-          <button onclick="fetchICEServers()" class="px-3 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Inspect ICE</button>
+          <button onclick="fetchICEServers()" class="px-3 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition shrink-0 whitespace-nowrap">Inspect ICE</button>
         </div>
       </div>
 
       <!-- WebRTC Mode Switcher -->
-      <div class="flex items-center space-x-2 mb-5 border-b border-borderCol pb-3">
-        <button id="webrtcTabSFU" onclick="switchWebRTCTab('sfu')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 text-white shadow flex items-center space-x-1.5 transition">
+      <div class="flex items-center  mb-5 border-b border-borderCol pb-3">
+        <button id="webrtcTabSFU" onclick="switchWebRTCTab('sfu')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 text-white shadow flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap">
           <span>🌟 SFU Multi-Party Conference</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-800 text-rose-200">Pion Router</span>
         </button>
-        <button id="webrtcTabP2P" onclick="switchWebRTCTab('p2p')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5">
+        <button id="webrtcTabP2P" onclick="switchWebRTCTab('p2p')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
           <span>📡 1:1 P2P Mesh Call</span>
         </button>
-        <button id="webrtcTabDC" onclick="switchWebRTCTab('dc')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5">
+        <button id="webrtcTabDC" onclick="switchWebRTCTab('dc')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
           <span>⚡ UDP DataChannel</span>
         </button>
       </div>
@@ -614,13 +620,13 @@
         <div class="bg-slate-900/60 border border-borderCol rounded-lg p-5">
           <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center ">
                 <span class="h-2 w-2 rounded-full bg-rose-500"></span>
                 <span>Pion SFU Conference Hub (Selective Forwarding Unit)</span>
               </h3>
               <p class="text-[11px] text-slate-400 mt-0.5">High-throughput RTP media router fanning out video/audio streams across unlimited clients with periodic PLI keyframe generation</p>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <span id="sfuStatusBadge" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-borderCol font-mono">Idle</span>
             </div>
           </div>
@@ -631,16 +637,16 @@
               <span class="text-xs text-slate-400">Room:</span>
               <input id="sfuRoomInput" type="text" value="sfu-conf" placeholder="Room ID..." class="bg-slate-900 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500 w-32 font-mono" />
             </div>
-            <button id="btnSFUStartMedia" onclick="startSFULocalMedia()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center space-x-1">
+            <button id="btnSFUStartMedia" onclick="startSFULocalMedia()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>📹 Start Camera</span>
             </button>
-            <button id="btnSFUJoin" onclick="joinSFUConference()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1">
+            <button id="btnSFUJoin" onclick="joinSFUConference()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>🌟 Join Conference</span>
             </button>
-            <button id="btnSFULeave" onclick="leaveSFUConference()" disabled class="px-3 py-1.5 bg-red-950 text-red-400 text-xs font-medium rounded-md border border-red-800/40 opacity-50 cursor-not-allowed transition">
+            <button id="btnSFULeave" onclick="leaveSFUConference()" disabled class="px-3 py-1.5 bg-red-950 text-red-400 text-xs font-medium rounded-md border border-red-800/40 opacity-50 cursor-not-allowed transition shrink-0 whitespace-nowrap">
               <span>Leave</span>
             </button>
-            <button id="btnSFURefresh" onclick="refreshSFURooms()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-md border border-slate-700 transition">
+            <button id="btnSFURefresh" onclick="refreshSFURooms()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-md border border-slate-700 transition shrink-0 whitespace-nowrap">
               <span>🔄 Refresh Rooms</span>
             </button>
           </div>
@@ -704,8 +710,8 @@
       <!-- Tab 2: 1:1 P2P Mesh Call Panel -->
       <div id="webrtcPanelP2P" class="hidden">
         <div class="bg-slate-900/60 border border-borderCol rounded-lg p-5">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center ">
               <span class="h-2 w-2 rounded-full bg-rose-500"></span>
               <span>1:1 P2P Video Call (simplysocket Signaling)</span>
             </h3>
@@ -715,13 +721,13 @@
           <!-- Controls -->
           <div class="flex flex-wrap gap-2 mb-4">
             <input id="webrtcRoomInput" type="text" value="call-demo" placeholder="Call room name..." class="bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500 w-36" />
-            <button id="btnStartMedia" onclick="startLocalMedia()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center space-x-1">
+            <button id="btnStartMedia" onclick="startLocalMedia()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>📹 Start Camera</span>
             </button>
-            <button id="btnJoinCall" onclick="joinWebRTCRoom()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1">
+            <button id="btnJoinCall" onclick="joinWebRTCRoom()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md shadow transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>📞 Join Call</span>
             </button>
-            <button id="btnHangup" onclick="hangupCall()" disabled class="px-3 py-1.5 bg-red-950 text-red-400 text-xs font-medium rounded-md border border-red-800/40 opacity-50 cursor-not-allowed transition">
+            <button id="btnHangup" onclick="hangupCall()" disabled class="px-3 py-1.5 bg-red-950 text-red-400 text-xs font-medium rounded-md border border-red-800/40 opacity-50 cursor-not-allowed transition shrink-0 whitespace-nowrap">
               <span>Hang Up</span>
             </button>
           </div>
@@ -757,8 +763,8 @@
       <!-- Tab 3: Server-Side Pion WebRTC & DataChannel Benchmark -->
       <div id="webrtcPanelDC" class="hidden">
         <div class="bg-slate-900/60 border border-borderCol rounded-lg p-5">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center ">
               <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
               <span>Server DataChannel (Pion WebRTC)</span>
             </h3>
@@ -767,8 +773,8 @@
 
           <!-- Server Connection Controls -->
           <div class="space-y-3 mb-4">
-            <div class="flex items-center justify-between text-xs">
-              <button id="btnConnectServerDC" onclick="connectServerDataChannel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-md shadow transition">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <button id="btnConnectServerDC" onclick="connectServerDataChannel()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-md shadow transition shrink-0 whitespace-nowrap">
                 Connect UDP DataChannel
               </button>
               <div class="text-right">
@@ -777,12 +783,12 @@
               </div>
             </div>
 
-            <div class="flex space-x-2">
-              <input id="dcMessageInput" type="text" placeholder="Type message over UDP DataChannel..." disabled class="flex-1 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 disabled:opacity-50" />
-              <button id="btnSendDC" onclick="sendDCMessage()" disabled class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded-md border border-slate-700 disabled:opacity-50 transition">
+            <div class="flex ">
+              <input id="dcMessageInput" type="text" placeholder="Type message over UDP DataChannel..." disabled class="flex-1 min-w-0 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 disabled:opacity-50" />
+              <button id="btnSendDC" onclick="sendDCMessage()" disabled class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded-md border border-slate-700 disabled:opacity-50 transition shrink-0 whitespace-nowrap">
                 Send
               </button>
-              <button id="btnPingDC" onclick="pingServerDC()" disabled class="px-3 py-1.5 bg-emerald-950 text-emerald-400 font-medium text-xs rounded-md border border-emerald-800/40 disabled:opacity-50 transition">
+              <button id="btnPingDC" onclick="pingServerDC()" disabled class="px-3 py-1.5 bg-emerald-950 text-emerald-400 font-medium text-xs rounded-md border border-emerald-800/40 disabled:opacity-50 transition shrink-0 whitespace-nowrap">
                 Ping
               </button>
             </div>
@@ -799,9 +805,9 @@
 
     <!-- User Base & Multi-Level Auth Management (RBAC) -->
     <div id="section-users" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+          <h2 class="text-base font-semibold text-white flex items-center ">
             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -809,13 +815,13 @@
           </h2>
           <p class="text-xs text-slate-400 mt-0.5">Pre-setup user store with contact info, credentials, and custom JSONB metadata embedding <code class="text-cyan-400">auth_level</code> directly into JWT token claims</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button data-target="users" onclick="focusSection('users')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="users" onclick="focusSection('users')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
             <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
             <span class="focus-btn-label">Focus</span>
           </button>
           <span class="text-xs px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">JWT Claims RBAC</span>
-          <button onclick="fetchUsers()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+          <button onclick="fetchUsers()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
@@ -828,8 +834,8 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
         <!-- Users Table (7 cols) -->
         <div class="lg:col-span-7 bg-slate-900/60 border border-borderCol rounded-lg p-4 flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center ">
               <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
               <span>Registered Accounts</span>
             </h3>
@@ -857,7 +863,7 @@
 
         <!-- Create User Form (5 cols) -->
         <div class="lg:col-span-5 bg-slate-900/60 border border-borderCol rounded-lg p-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3 flex items-center space-x-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3 flex items-center ">
             <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
             <span>Register New User</span>
           </h3>
@@ -915,22 +921,22 @@
       <div class="bg-slate-900/60 border border-borderCol rounded-lg p-5">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center space-x-2">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center ">
               <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
               <span>Instant JWT Token Inspector & RBAC Verification Bench</span>
             </h3>
             <p class="text-[11px] text-slate-400 mt-0.5">Click "🔑 Get JWT" on any user above to load their active token, inspect decoded claims, and test route access.</p>
           </div>
-          <div class="flex items-center space-x-2">
+          <div class="flex flex-wrap items-center gap-2">
             <span id="activeUserBadge" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-borderCol font-mono">No User Selected</span>
           </div>
         </div>
 
         <div class="space-y-3">
           <!-- Token Input with Copy Button -->
-          <div class="flex items-center space-x-2">
-            <input id="activeJwtToken" type="text" readonly placeholder="Select a user above or paste Bearer JWT token here..." class="flex-1 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500" />
-            <button onclick="copyTokenToClipboard()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition">
+          <div class="flex flex-wrap items-center gap-2">
+            <input id="activeJwtToken" type="text" readonly placeholder="Select a user above or paste Bearer JWT token here..." class="flex-1 min-w-0 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500" />
+            <button onclick="copyTokenToClipboard()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-md border border-slate-700 transition shrink-0 whitespace-nowrap">
               Copy
             </button>
           </div>
@@ -951,13 +957,13 @@
               <div>
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Test Multi-Level Route Protection</div>
                 <div class="flex flex-wrap gap-2 mb-2">
-                  <button onclick="testProtectedEndpoint('/api/v1/auth/me')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs border border-slate-700 transition">
+                  <button onclick="testProtectedEndpoint('/api/v1/auth/me')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs border border-slate-700 transition shrink-0 whitespace-nowrap">
                     GET /auth/me
                   </button>
-                  <button onclick="testProtectedEndpoint('/api/v1/protected/profile')" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 rounded text-xs border border-cyan-800/40 transition">
+                  <button onclick="testProtectedEndpoint('/api/v1/protected/profile')" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 rounded text-xs border border-cyan-800/40 transition shrink-0 whitespace-nowrap">
                     GET /protected/profile
                   </button>
-                  <button onclick="testProtectedEndpoint('/api/v1/protected/admin-only')" class="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs border border-rose-800/40 transition">
+                  <button onclick="testProtectedEndpoint('/api/v1/protected/admin-only')" class="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 rounded text-xs border border-rose-800/40 transition shrink-0 whitespace-nowrap">
                     GET /protected/admin-only (Req: ≥50)
                   </button>
                 </div>
@@ -976,9 +982,9 @@
       
       <!-- Mobile Webhook Notification Center -->
       <div id="section-webhooks" class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4 section-card transition-all">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+            <h2 class="text-base font-semibold text-white flex items-center ">
               <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
@@ -986,12 +992,12 @@
             </h2>
             <p class="text-xs text-slate-400 mt-0.5">Register mobile push endpoints, sign payloads with HMAC-SHA256, and dispatch live alerts.</p>
           </div>
-          <div class="flex items-center space-x-2">
-            <button data-target="webhooks" onclick="focusSection('webhooks')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+          <div class="flex flex-wrap items-center gap-2">
+            <button data-target="webhooks" onclick="focusSection('webhooks')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
               <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
               <span class="focus-btn-label">Focus</span>
             </button>
-            <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0 whitespace-nowrap">
               Refresh
             </button>
           </div>
@@ -1009,7 +1015,7 @@
             <input id="whDescInput" type="text" placeholder="Description (e.g. iOS Push Gateway)" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
           </div>
           <div class="flex justify-end">
-            <button onclick="registerWebhook()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+            <button onclick="registerWebhook()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>+ Register Webhook</span>
             </button>
           </div>
@@ -1017,7 +1023,7 @@
 
         <!-- Registered Webhooks Table -->
         <div class="overflow-x-auto max-h-48 overflow-y-auto border border-borderCol rounded-lg">
-          <table class="w-full text-left text-xs text-slate-300">
+          <table class="w-full text-left text-xs text-slate-300 whitespace-nowrap md:whitespace-normal">
             <thead class="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] sticky top-0 border-b border-borderCol">
               <tr>
                 <th class="p-2">Target URL</th>
@@ -1036,8 +1042,8 @@
         <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
             <span>Dispatch Notification / Alert</span>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="joinWebhooksRoom()" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition">🔔 Join 'webhooks' Room</button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="joinWebhooksRoom()" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition shrink-0 whitespace-nowrap">🔔 Join 'webhooks' Room</button>
               <span class="text-[10px] text-indigo-400 font-mono">Notifies 'webhooks' Room</span>
             </div>
           </div>
@@ -1046,9 +1052,9 @@
             <input id="notifEventInput" type="text" placeholder="Event Type (default: notification)" value="notification" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
           </div>
           <textarea id="notifMessageInput" rows="2" placeholder="Notification message body..." class="w-full bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500">Scheduled server update will complete in 10 minutes.</textarea>
-          <div class="flex items-center justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <span id="notifStatusText" class="text-[11px] text-slate-400 font-mono"></span>
-            <button onclick="dispatchWebhookNotification()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+            <button onclick="dispatchWebhookNotification()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>🚀 Dispatch Notification</span>
             </button>
           </div>
@@ -1068,9 +1074,9 @@
 
       <!-- Multipart Form File Upload & Media Storage Hub -->
       <div id="section-uploads" class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4 section-card transition-all">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 class="text-base font-semibold text-white flex items-center space-x-2">
+            <h2 class="text-base font-semibold text-white flex items-center ">
               <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
@@ -1078,12 +1084,12 @@
             </h2>
             <p class="text-xs text-slate-400 mt-0.5">Upload photos, voice notes, media, and attachments via standard multipart/form-data.</p>
           </div>
-          <div class="flex items-center space-x-2">
-            <button data-target="uploads" onclick="focusSection('uploads')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+          <div class="flex flex-wrap items-center gap-2">
+            <button data-target="uploads" onclick="focusSection('uploads')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
               <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
               <span class="focus-btn-label">Focus</span>
             </button>
-            <button onclick="fetchUploadedFiles()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            <button onclick="fetchUploadedFiles()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0 whitespace-nowrap">
               Refresh
             </button>
           </div>
@@ -1119,7 +1125,7 @@
 
           <div class="flex items-center justify-between pt-1">
             <span id="uploadProgressText" class="text-[11px] text-slate-400 font-mono"></span>
-            <button type="submit" id="btnUploadSubmit" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs rounded transition flex items-center space-x-1">
+            <button type="submit" id="btnUploadSubmit" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs rounded transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
               <span>Upload to Server</span>
             </button>
           </div>
@@ -1127,7 +1133,7 @@
 
         <!-- Uploaded Files Catalog Table -->
         <div class="overflow-x-auto max-h-60 overflow-y-auto border border-borderCol rounded-lg">
-          <table class="w-full text-left text-xs text-slate-300">
+          <table class="w-full text-left text-xs text-slate-300 whitespace-nowrap md:whitespace-normal">
             <thead class="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] sticky top-0 border-b border-borderCol">
               <tr>
                 <th class="p-2">Name</th>
@@ -1155,7 +1161,7 @@
             ⚡
           </div>
           <div>
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <h3 class="text-sm font-bold text-white tracking-wide">Router API Explorer &amp; Live Test Bench</h3>
               <span id="apiCatalogCountBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/40">Loading...</span>
             </div>
@@ -1163,11 +1169,11 @@
           </div>
         </div>
 
-        <div class="flex items-center space-x-2 self-start sm:self-center">
-          <button onclick="fetchAdminAPIs()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Reload generated API catalog">
+        <div class="flex items-center  self-start sm:self-center">
+          <button onclick="fetchAdminAPIs()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Reload generated API catalog">
             <span>↻ Refresh Catalog</span>
           </button>
-          <button data-target="apis" onclick="focusSection('apis')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1" title="Focus this section exclusively">
+          <button data-target="apis" onclick="focusSection('apis')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
             <span class="focus-btn-label">Focus</span>
           </button>
         </div>
@@ -1183,19 +1189,19 @@
 
         <!-- Method Filters -->
         <div class="flex items-center space-x-1 overflow-x-auto pb-1 md:pb-0" id="apiMethodFilters">
-          <button onclick="setMethodFilter('ALL')" data-method="ALL" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white border border-slate-700">ALL</button>
-          <button onclick="setMethodFilter('GET')" data-method="GET" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-sky-400 hover:bg-slate-800 border border-borderCol">GET</button>
-          <button onclick="setMethodFilter('POST')" data-method="POST" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-emerald-400 hover:bg-slate-800 border border-borderCol">POST</button>
-          <button onclick="setMethodFilter('PUT')" data-method="PUT" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-amber-400 hover:bg-slate-800 border border-borderCol">PUT</button>
-          <button onclick="setMethodFilter('DELETE')" data-method="DELETE" class="api-method-filter px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-rose-400 hover:bg-slate-800 border border-borderCol">DELETE</button>
+          <button onclick="setMethodFilter('ALL')" data-method="ALL" class="api-method-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white border border-slate-700">ALL</button>
+          <button onclick="setMethodFilter('GET')" data-method="GET" class="api-method-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-sky-400 hover:bg-slate-800 border border-borderCol">GET</button>
+          <button onclick="setMethodFilter('POST')" data-method="POST" class="api-method-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-emerald-400 hover:bg-slate-800 border border-borderCol">POST</button>
+          <button onclick="setMethodFilter('PUT')" data-method="PUT" class="api-method-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-amber-400 hover:bg-slate-800 border border-borderCol">PUT</button>
+          <button onclick="setMethodFilter('DELETE')" data-method="DELETE" class="api-method-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-semibold bg-slate-950 text-rose-400 hover:bg-slate-800 border border-borderCol">DELETE</button>
         </div>
 
         <!-- Auth Filters -->
         <div class="flex items-center space-x-1 overflow-x-auto" id="apiAuthFilters">
-          <button onclick="setAuthFilter('ALL')" data-auth="ALL" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-800 text-white border border-slate-700">All Auth</button>
-          <button onclick="setAuthFilter('open')" data-auth="open" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-slate-300 hover:bg-slate-800 border border-borderCol">🟢 Open</button>
-          <button onclick="setAuthFilter('token')" data-auth="token" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-purple-300 hover:bg-slate-800 border border-borderCol">🟣 Bearer JWT</button>
-          <button onclick="setAuthFilter('api_key')" data-auth="api_key" class="api-auth-filter px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-amber-300 hover:bg-slate-800 border border-borderCol">🔑 API Key</button>
+          <button onclick="setAuthFilter('ALL')" data-auth="ALL" class="api-auth-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-medium bg-slate-800 text-white border border-slate-700">All Auth</button>
+          <button onclick="setAuthFilter('open')" data-auth="open" class="api-auth-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-slate-300 hover:bg-slate-800 border border-borderCol">🟢 Open</button>
+          <button onclick="setAuthFilter('token')" data-auth="token" class="api-auth-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-purple-300 hover:bg-slate-800 border border-borderCol">🟣 Bearer JWT</button>
+          <button onclick="setAuthFilter('api_key')" data-auth="api_key" class="api-auth-filter shrink-0 whitespace-nowrap px-2 py-1 rounded text-[11px] font-medium bg-slate-950 text-amber-300 hover:bg-slate-800 border border-borderCol">🔑 API Key</button>
         </div>
       </div>
 
@@ -1225,8 +1231,8 @@
           <div id="apiWorkbenchActive" class="hidden flex flex-col space-y-4">
             <!-- Selected Route Header Box -->
             <div class="p-4 rounded-xl bg-slate-950 border border-borderCol flex flex-col space-y-2">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2 truncate">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center  truncate">
                   <span id="benchMethodBadge" class="px-2 py-0.5 rounded font-mono font-bold text-xs uppercase bg-sky-500/20 text-sky-400 border border-sky-500/30">GET</span>
                   <span id="benchPathText" class="font-mono text-sm font-bold text-white truncate">/api/v1/health/live</span>
                 </div>
@@ -1260,7 +1266,7 @@
 
               <!-- Query Parameters -->
               <div id="benchQueryParamsGroup" class="space-y-2 pt-2 border-t border-borderCol/60">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                   <span class="text-xs font-semibold text-slate-300">Query Parameters (URL ?key=value)</span>
                   <button type="button" onclick="addQueryParamRow()" class="text-[10px] text-brand-400 hover:text-brand-300 font-mono">+ Add Param</button>
                 </div>
@@ -1269,11 +1275,11 @@
 
               <!-- Request Body (For POST / PUT / PATCH) -->
               <div id="benchBodyGroup" class="hidden space-y-2 pt-2 border-t border-borderCol/60">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                   <label class="text-xs font-semibold text-slate-300">Request Body (<span id="benchContentTypeLabel">application/json</span>)</label>
                   <div class="space-x-1" id="benchBodyActionBtns">
-                    <button type="button" onclick="formatBenchJSON()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition">Format JSON</button>
-                    <button type="button" onclick="resetBenchBody()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition">Reset</button>
+                    <button type="button" onclick="formatBenchJSON()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition shrink-0 whitespace-nowrap">Format JSON</button>
+                    <button type="button" onclick="resetBenchBody()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition shrink-0 whitespace-nowrap">Reset</button>
                   </div>
                 </div>
                 <div id="benchBodyContainer">
@@ -1297,39 +1303,39 @@
 
             <!-- Generated cURL Command Box -->
             <div id="benchCurlBox" class="p-4 rounded-xl bg-slate-950 border border-borderCol space-y-2.5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center  text-xs font-semibold text-slate-300">
                   <span class="text-emerald-400 font-mono text-sm font-bold">$</span>
                   <span>Generated cURL Command</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">Terminal Ready</span>
                 </div>
-                <button type="button" onclick="copyBenchCurl()" class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-borderCol transition flex items-center space-x-1.5 cursor-pointer shadow-sm">
+                <button type="button" onclick="copyBenchCurl()" class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-borderCol transition flex items-center space-x-1.5 cursor-pointer shadow-sm shrink-0 whitespace-nowrap">
                   <span>📋</span>
                   <span id="copyCurlBtnText">Copy cURL</span>
                 </button>
               </div>
               <div class="relative">
-                <pre id="benchCurlCommand" class="p-3 rounded-lg bg-slate-900 border border-slate-800/80 text-[11px] font-mono text-emerald-300 overflow-x-auto whitespace-pre-wrap select-all max-h-36 custom-scrollbar"></pre>
+                <pre id="benchCurlCommand" class="p-3 rounded-lg bg-slate-900 border border-slate-800/80 text-[11px] font-mono text-emerald-300 overflow-x-auto whitespace-pre-wrap break-all select-all max-h-36 custom-scrollbar"></pre>
               </div>
             </div>
 
             <!-- Live Response Panel -->
             <div id="benchResponsePanel" class="hidden p-4 rounded-xl bg-slate-950 border border-borderCol space-y-3">
               <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
-                <div class="flex items-center space-x-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <span id="benchResStatusBadge" class="px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-950 text-emerald-400 border border-emerald-800">200 OK</span>
                   <span id="benchResTime" class="text-[11px] font-mono text-slate-400">12 ms</span>
                   <span id="benchResSize" class="text-[11px] font-mono text-slate-500">1.2 KB</span>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <button onclick="copyBenchResponse()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button onclick="copyBenchResponse()" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
                     <span id="copyBenchBtnText">Copy Response</span>
                   </button>
                 </div>
               </div>
 
               <div class="relative">
-                <pre id="benchResponseBody" class="max-h-72 overflow-y-auto p-3 rounded-lg bg-slate-900/90 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap select-all"></pre>
+                <pre id="benchResponseBody" class="max-h-72 overflow-y-auto p-3 rounded-lg bg-slate-900/90 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap break-all select-all"></pre>
               </div>
             </div>
           </div>
@@ -1346,7 +1352,7 @@
           <div class="flex items-center space-x-3">
             <span class="p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-400 text-xl font-bold flex items-center justify-center">📈</span>
             <div>
-              <div class="flex items-center space-x-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <h3 class="font-bold text-white text-base">Telementry</h3>
                 <span id="telemetryRoomStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">Waiting WebSocket...</span>
                 <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">30s Cadence</span>
@@ -1355,16 +1361,16 @@
               <p class="text-xs text-slate-400 mt-0.5">Non-blocking Zap logger sink (Warn/Error/Fatal) streamed to <code class="text-cyan-300">live telementry</code> room with 10-point rolling Linux VM RAM &amp; Go memory metrics.</p>
             </div>
           </div>
-          <div class="flex items-center space-x-2">
-            <button onclick="fetchTelemetryMetrics()" title="Refresh telemetry metrics from REST API" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="fetchTelemetryMetrics()" title="Refresh telemetry metrics from REST API" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap">
               <span>🔄</span>
               <span>Refresh Metrics</span>
             </button>
-            <button onclick="simulateTelemetryLogPrompt()" title="Inject simulated high-severity log entry" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition flex items-center space-x-1 cursor-pointer">
+            <button onclick="simulateTelemetryLogPrompt()" title="Inject simulated high-severity log entry" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap">
               <span>⚡</span>
               <span>Simulate Spike</span>
             </button>
-            <button class="section-expand-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer" data-target="telemetry">
+            <button class="section-expand-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap" data-target="telemetry">
               <span>⛶</span>
               <span class="focus-btn-label">Focus</span>
             </button>
@@ -1434,8 +1440,8 @@
 
             <!-- SVG 10-Point Rolling Chart Box -->
             <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <span class="text-xs font-semibold text-slate-300">System RAM &amp; Heap Memory Timeline</span>
                   <span id="telemetryGraphCadenceLabel" class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono border border-borderCol">Rolling 10 data points (every 30s)</span>
                 </div>
@@ -1492,7 +1498,7 @@
               </div>
 
               <div class="space-y-2 text-xs">
-                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
                   <span class="text-emerald-400 text-base">🛡️</span>
                   <div>
                     <div class="font-semibold text-slate-200">Non-Blocking Log Worker</div>
@@ -1500,7 +1506,7 @@
                   </div>
                 </div>
 
-                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
                   <span class="text-amber-400 text-base">🔍</span>
                   <div>
                     <div class="font-semibold text-slate-200">Strict Log Exclusion Filter</div>
@@ -1508,7 +1514,7 @@
                   </div>
                 </div>
 
-                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start space-x-2">
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
                   <span class="text-purple-400 text-base">🔒</span>
                   <div>
                     <div class="font-semibold text-slate-200">Elevated Room Access</div>
@@ -1526,16 +1532,16 @@
               </div>
               <p class="text-[11px] text-slate-400">Trigger real high-severity logs into the Zap telemetry pipeline to test live room broadcast &amp; bell notifications:</p>
               
-              <div class="grid grid-cols-3 gap-2">
-                <button onclick="triggerSimulatedLog('warn')" class="px-2 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+              <div class="flex flex-wrap gap-2">
+                <button onclick="triggerSimulatedLog('warn')" class="px-2 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
                   <span>⚠️</span>
                   <span>Warn</span>
                 </button>
-                <button onclick="triggerSimulatedLog('error')" class="px-2 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+                <button onclick="triggerSimulatedLog('error')" class="px-2 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
                   <span>❌</span>
                   <span>Error</span>
                 </button>
-                <button onclick="triggerSimulatedLog('fatal')" class="px-2 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1">
+                <button onclick="triggerSimulatedLog('fatal')" class="px-2 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
                   <span>💥</span>
                   <span>Fatal</span>
                 </button>
@@ -1549,26 +1555,26 @@
         <!-- Lower Section: Time-Based High-Severity Log Feed -->
         <div class="mt-8 border-t border-borderCol/80 pt-6 flex flex-col space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <h4 class="font-bold text-white text-sm">Time-Based High-Severity Log Stream</h4>
               <span id="telemetryLogCountBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-800 text-slate-300 border border-borderCol">0 events</span>
               <span class="text-[10px] text-slate-500 font-mono">(Warn, Error, Fatal)</span>
             </div>
 
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <!-- Severity Filter -->
               <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-borderCol text-xs">
-                <button onclick="setTelemetryLogLevelFilter('ALL')" id="btnLogFilterALL" class="px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white cursor-pointer">ALL</button>
-                <button onclick="setTelemetryLogLevelFilter('warn')" id="btnLogFilterWarn" class="px-2 py-1 rounded text-[11px] font-medium text-amber-400 hover:bg-slate-800 cursor-pointer">WARN</button>
-                <button onclick="setTelemetryLogLevelFilter('error')" id="btnLogFilterError" class="px-2 py-1 rounded text-[11px] font-medium text-rose-400 hover:bg-slate-800 cursor-pointer">ERROR</button>
-                <button onclick="setTelemetryLogLevelFilter('fatal')" id="btnLogFilterFatal" class="px-2 py-1 rounded text-[11px] font-medium text-purple-400 hover:bg-slate-800 cursor-pointer">FATAL</button>
+                <button onclick="setTelemetryLogLevelFilter('ALL')" id="btnLogFilterALL" class="px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white cursor-pointer shrink-0 whitespace-nowrap">ALL</button>
+                <button onclick="setTelemetryLogLevelFilter('warn')" id="btnLogFilterWarn" class="px-2 py-1 rounded text-[11px] font-medium text-amber-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">WARN</button>
+                <button onclick="setTelemetryLogLevelFilter('error')" id="btnLogFilterError" class="px-2 py-1 rounded text-[11px] font-medium text-rose-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">ERROR</button>
+                <button onclick="setTelemetryLogLevelFilter('fatal')" id="btnLogFilterFatal" class="px-2 py-1 rounded text-[11px] font-medium text-purple-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">FATAL</button>
               </div>
 
               <!-- Search -->
-              <input type="text" id="telemetryLogSearchInput" oninput="renderTelemetryLogs()" placeholder="Search logs..." class="w-36 sm:w-48 px-2.5 py-1 bg-slate-900 border border-borderCol rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+              <input type="text" id="telemetryLogSearchInput" oninput="renderTelemetryLogs()" placeholder="Search logs..." class="w-36 min-w-0 sm:w-48 px-2.5 py-1 bg-slate-900 border border-borderCol rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
 
               <!-- Clear -->
-              <button onclick="clearTelemetryLogs()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-borderCol transition cursor-pointer">Clear</button>
+              <button onclick="clearTelemetryLogs()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-borderCol transition cursor-pointer shrink-0 whitespace-nowrap">Clear</button>
             </div>
           </div>
 
@@ -1609,7 +1615,7 @@
   <!-- Page Footer -->
   <footer class="fixed bottom-0 left-0 w-full z-40 border-t border-borderCol bg-darkBg/95 backdrop-blur-md py-4">
     <div class="w-full max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-      <div class="flex items-center space-x-2">
+      <div class="flex flex-wrap items-center gap-2">
         <span class="font-medium text-slate-400">Hack-Go-Thon Control Center</span>
         <span>•</span>
         <span>simplysocket Mesh &amp; Pion WebRTC SFU</span>
@@ -2379,7 +2385,7 @@
               ${box.badge ? `<span class="text-[8.5px] font-medium font-mono px-1.5 py-px rounded-full bg-slate-800/60 text-slate-400 group-hover:text-slate-300 transition leading-tight">${box.badge}</span>` : ''}
             </div>
 
-            <div class="flex items-baseline space-x-2 my-1">
+            <div class="flex items-baseline  my-1">
               <div class="text-2xl sm:text-3xl font-extrabold tracking-tight ${box.color}">${box.value}</div>
               ${box.unit ? `<span class="text-xs font-mono text-slate-400">${box.unit}</span>` : ''}
             </div>
@@ -2413,9 +2419,9 @@
       document.querySelectorAll('.section-focus-btn').forEach(btn => {
         const btnSec = btn.getAttribute('data-section');
         if (btnSec === sectionId) {
-          btn.className = 'section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-400/60 transition whitespace-nowrap cursor-pointer w-full justify-start';
+          btn.className = 'section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-semibold bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-400/60 transition whitespace-nowrap cursor-pointer w-full justify-start';
         } else {
-          btn.className = 'section-focus-btn group flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start';
+          btn.className = 'section-focus-btn group flex items-center  px-4 py-2 rounded-lg text-sm font-medium bg-slate-950/80 text-slate-300 hover:text-white hover:bg-slate-800 transition whitespace-nowrap cursor-pointer w-full justify-start';
         }
       });
 
@@ -3013,13 +3019,13 @@
         card.className = `p-3.5 rounded-lg border bg-slate-950/60 ${isAdmin ? 'border-amber-500/30' : isGlobal ? 'border-brand-500/30' : 'border-borderCol'}`;
         card.innerHTML = `
           <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <span class="font-mono text-sm font-semibold text-white">${escapeHtml(rName)}</span>
               <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badgeStyle}">
                 ${badgeText}
               </span>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center gap-2">
               <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
                 ${detail.count} client${detail.count === 1 ? '' : 's'}
               </span>
@@ -3029,7 +3035,7 @@
                     Lvl &gt; 10 req
                   </span>
                 ` : `
-                  <button onclick="joinCustomRoom('${escapeHtml(rName)}')" class="px-2.5 py-1 text-xs rounded font-medium ${isUserJoined ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'} transition flex items-center space-x-1">
+                  <button onclick="joinCustomRoom('${escapeHtml(rName)}')" class="px-2.5 py-1 text-xs rounded font-medium ${isUserJoined ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'} transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
                     <span>${isUserJoined ? '✓ Joined' : 'Join Room'}</span>
                   </button>
                 `
@@ -3377,10 +3383,10 @@
       const text = document.getElementById('statusText');
       text.innerText = label;
       if (connected) {
-        badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-400 border border-emerald-800/40';
+        badge.className = 'flex items-center  px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-400 border border-emerald-800/40';
         badge.children[0].className = 'h-2 w-2 rounded-full bg-emerald-500 pulse-dot';
       } else {
-        badge.className = 'flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40';
+        badge.className = 'flex items-center  px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 text-red-400 border border-red-800/40';
         badge.children[0].className = 'h-2 w-2 rounded-full bg-red-500';
       }
     }
@@ -4204,7 +4210,7 @@ function simulateTelemetryLogPrompt() {
                 ${metaStr}
               </td>
               <td class="p-2 text-right space-x-1.5 whitespace-nowrap">
-                <button onclick="generateUserToken('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded text-[11px] font-medium transition">
+                <button onclick="generateUserToken('${escapeHtml(u.id)}', '${escapeHtml(u.username)}')" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded text-[11px] font-medium transition shrink-0 whitespace-nowrap">
                   🔑 Get JWT
                 </button>
                 ${isViewOnly ? `
@@ -4212,7 +4218,7 @@ function simulateTelemetryLogPrompt() {
                     🔒 View-Only
                   </span>
                 ` : `
-                  <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2 py-1 bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded text-[11px] font-medium transition">
+                  <button onclick="deleteUser('${escapeHtml(u.id)}')" class="px-2 py-1 bg-red-950/60 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded text-[11px] font-medium transition shrink-0 whitespace-nowrap">
                     🗑️
                   </button>
                 `}
@@ -4403,7 +4409,7 @@ function simulateTelemetryLogPrompt() {
             <span>HTTP ${resp.status} ${resp.statusText || (resp.ok ? 'OK' : 'DENIED')}</span>
             <span class="text-[10px] text-slate-500">${endpoint}</span>
           </div>
-<pre class="text-[10px] text-slate-300 overflow-x-auto m-0 p-0">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+<pre class="text-[10px] text-slate-300 overflow-x-auto break-all m-0 p-0">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
         `;
       } catch (err) {
         probeBox.innerHTML = `<span class="text-rose-400 font-bold">Error: ${escapeHtml(err.message)}</span>`;
@@ -4507,8 +4513,8 @@ function simulateTelemetryLogPrompt() {
       if (headerLevel) {
         headerLevel.innerText = isViewOnly ? `Lvl ${lvl} (View-Only)` : `Lvl ${lvl}`;
         headerLevel.className = isViewOnly 
-          ? 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800'
-          : 'px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800';
+          ? 'hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800'
+          : 'hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800';
       }
 
       // Configure View-Only UI restrictions on User Management if lvl <= 10
@@ -4594,8 +4600,8 @@ function simulateTelemetryLogPrompt() {
               <td class="p-2">${eventsBadges}</td>
               <td class="p-2 text-slate-400">${w.secret ? '••••••••' : '<span class="text-slate-600 italic">none</span>'}</td>
               <td class="p-2 text-right space-x-1 whitespace-nowrap">
-                <button onclick="testWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition text-[10px]">Ping</button>
-                <button onclick="deleteWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px]">Delete</button>
+                <button onclick="testWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition text-[10px] shrink-0 whitespace-nowrap">Ping</button>
+                <button onclick="deleteWebhook('${escapeHtml(w.id)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px] shrink-0 whitespace-nowrap">Delete</button>
               </td>
             </tr>
           `;
@@ -4722,12 +4728,12 @@ function simulateTelemetryLogPrompt() {
           const timeStr = new Date(l.timestamp).toLocaleTimeString();
           return `
             <div class="flex items-center justify-between p-1.5 rounded bg-slate-900/60 border border-borderCol/50">
-              <div class="flex items-center space-x-2 truncate">
+              <div class="flex items-center  truncate">
                 <span class="px-1.5 py-0.5 rounded text-[9px] border ${badgeClass}">${l.status_code || 'ERR'}</span>
                 <span class="text-slate-300 font-semibold truncate max-w-xs">${escapeHtml(l.url)}</span>
                 <span class="text-slate-500 font-sans text-[10px]">(${escapeHtml(l.event)})</span>
               </div>
-              <div class="flex items-center space-x-2 shrink-0">
+              <div class="flex items-center  shrink-0">
                 <span class="text-slate-400">${l.duration_ms}ms</span>
                 <span class="text-slate-500 font-sans">${timeStr}</span>
               </div>
@@ -4834,7 +4840,7 @@ function simulateTelemetryLogPrompt() {
               </td>
               <td class="p-2 text-right space-x-1 whitespace-nowrap">
                 <a href="${escapeHtml(f.download_url)}" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition text-[10px] inline-block">Download</a>
-                <button onclick="deleteUploadedFile('${escapeHtml(f.stored_name)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px]">Delete</button>
+                <button onclick="deleteUploadedFile('${escapeHtml(f.stored_name)}')" class="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition text-[10px] shrink-0 whitespace-nowrap">Delete</button>
               </td>
             </tr>
           `;
@@ -4903,7 +4909,7 @@ function simulateTelemetryLogPrompt() {
             <div class="p-4 rounded-lg bg-red-950/30 border border-red-800/50 text-red-300 text-xs">
               <p class="font-semibold">Failed to load API catalog</p>
               <p class="text-[11px] text-red-400/80 mt-1">${escapeHtml(err.message)}</p>
-              <button onclick="fetchAdminAPIs()" class="mt-2 px-2 py-1 rounded bg-red-900/60 hover:bg-red-800 text-white text-[10px]">Retry</button>
+              <button onclick="fetchAdminAPIs()" class="mt-2 px-2 py-1 rounded bg-red-900/60 hover:bg-red-800 text-white text-[10px] shrink-0 whitespace-nowrap">Retry</button>
             </div>
           `;
         }
@@ -5224,7 +5230,7 @@ function simulateTelemetryLogPrompt() {
 
       const div = document.createElement('div');
       div.id = rowId;
-      div.className = 'flex items-center space-x-2';
+      div.className = 'flex items-center ';
       div.innerHTML = `
         <input type="text" placeholder="Key" value="${escapeHtml(defaultKey)}" oninput="updateBenchResolvedUrl()" class="bench-qp-key w-1/3 bg-slate-950 border border-borderCol rounded px-2 py-1 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500" />
         <span class="text-slate-500 text-xs font-mono">=</span>
@@ -5932,7 +5938,7 @@ function simulateTelemetryLogPrompt() {
         }
         if (goSrvPerc > 0) {
           tooltipHtml += `
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="flex items-center space-x-1.5 text-emerald-400"><span class="w-2 h-2 bg-emerald-400 rounded-full"></span><span>Go Server:</span></span>
               <span class="ml-4">${goSrvPerc.toFixed(2)}% (${goSrvUsed})</span>
             </div>
@@ -6142,7 +6148,7 @@ function simulateTelemetryLogPrompt() {
         return `
           <div class="p-3 hover:bg-slate-900/50 transition flex flex-col space-y-1.5 border-b border-borderCol/40 last:border-0">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center space-x-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border font-mono ${badgeStyle}">${escapeHtml(lvl)}</span>
                 <span class="text-slate-400 text-xs">${timeStr}</span>
                 ${log.caller ? `<span class="text-slate-500 text-[11px] truncate max-w-xs" title="${escapeHtml(log.caller)}">(${escapeHtml(log.caller)})</span>` : ''}
@@ -6150,7 +6156,7 @@ function simulateTelemetryLogPrompt() {
               <span class="text-[10px] text-cyan-400/80 font-mono">live telementry</span>
             </div>
             <div class="text-xs text-slate-200 select-all font-sans font-medium">${escapeHtml(log.message || '')}</div>
-            ${hasFields ? `<div class="mt-1 bg-slate-900/90 rounded p-2 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap select-all">${escapeHtml(JSON.stringify(log.fields, null, 2))}</div>` : ''}
+            ${hasFields ? `<div class="mt-1 bg-slate-900/90 rounded p-2 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap break-all select-all">${escapeHtml(JSON.stringify(log.fields, null, 2))}</div>` : ''}
           </div>
         `;
       }).join('');
