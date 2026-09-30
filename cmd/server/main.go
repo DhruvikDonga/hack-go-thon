@@ -169,7 +169,7 @@ func main() {
 	// Initialize Multipart Form Upload Handler (if enabled)
 	var uploadHandler *handler.UploadHandler
 	if cfg.Services.Upload {
-		uploadHandler = handler.NewUploadHandler(cfg.UploadDir, cfg.MaxUploadSize)
+		uploadHandler = handler.NewUploadHandler(cfg.UploadDir, cfg.MaxUploadSize, pgDB)
 	} else {
 		log.Info("Upload service disabled via services.json")
 	}

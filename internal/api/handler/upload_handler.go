@@ -11,9 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"context"
 	"time"
 
+	dbclient "hack-go-thon/internal/db_client"
+	"hack-go-thon/internal/store/pg_store"
 	"hack-go-thon/pkg/apperrors"
 	"hack-go-thon/pkg/log"
 	"hack-go-thon/pkg/response"
@@ -41,29 +43,24 @@ type UploadedFile struct {
 type UploadHandler struct {
 	uploadDir string
 	maxSize   int64
-	mu        sync.RWMutex
-	files     map[string]*UploadedFile
+	db        *dbclient.PostgresDatabase
 }
 
 // NewUploadHandler initializes the file upload handler and ensures the upload directory exists.
-func NewUploadHandler(uploadDir string, maxSize int64) *UploadHandler {
+func NewUploadHandler(uploadDir string, maxSize int64, db *dbclient.PostgresDatabase) *UploadHandler {
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
 	if maxSize <= 0 {
 		maxSize = 32 << 20 // 32MB default
 	}
-
 	_ = os.MkdirAll(uploadDir, 0755)
 
 	h := &UploadHandler{
 		uploadDir: uploadDir,
 		maxSize:   maxSize,
-		files:     make(map[string]*UploadedFile),
+		db:        db,
 	}
-
-	// Scan upload directory to populate existing files into catalog
-	h.scanExistingFiles()
 	return h
 }
 
@@ -131,15 +128,29 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 func (h *UploadHandler) ListFiles(c *gin.Context) {
 	categoryFilter := strings.TrimSpace(c.Query("category"))
 
-	h.mu.RLock()
-	list := make([]*UploadedFile, 0, len(h.files))
-	for _, f := range h.files {
-		if categoryFilter != "" && !strings.EqualFold(f.Category, categoryFilter) {
-			continue
-		}
-		list = append(list, f)
+	dbFiles, err := pgstore.ListUploadedFiles(c.Request.Context(), h.db, categoryFilter)
+	if err != nil {
+		response.Error(c, apperrors.NewInternal("Failed to list files: "+err.Error()))
+		return
 	}
-	h.mu.RUnlock()
+
+	list := make([]*UploadedFile, 0, len(dbFiles))
+	for _, f := range dbFiles {
+		list = append(list, &UploadedFile{
+			ID:            f.ID,
+			OriginalName:  f.OriginalName,
+			StoredName:    f.StoredName,
+			SizeBytes:     f.SizeBytes,
+			SizeFormatted: f.SizeFormatted,
+			MimeType:      f.MimeType,
+			Category:      f.Category,
+			Description:   f.Description,
+			SHA256:        f.SHA256,
+			URL:           f.URL,
+			DownloadURL:   f.DownloadURL,
+			UploadedAt:    f.UploadedAt,
+		})
+	}
 
 	response.OK(c, gin.H{
 		"total": len(list),
@@ -166,9 +177,8 @@ func (h *UploadHandler) GetFile(c *gin.Context) {
 		return
 	}
 
-	h.mu.RLock()
-	meta, hasMeta := h.files[filename]
-	h.mu.RUnlock()
+	meta, err := pgstore.GetUploadedFileByStoredName(c.Request.Context(), h.db, filename)
+	hasMeta := (err == nil && meta != nil)
 
 	// Apply download attachment disposition if requested
 	if c.Query("download") == "true" {
@@ -206,9 +216,7 @@ func (h *UploadHandler) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	h.mu.Lock()
-	delete(h.files, filename)
-	h.mu.Unlock()
+	_ = pgstore.DeleteUploadedFile(c.Request.Context(), h.db, filename)
 
 	log.Info("Deleted uploaded file", "filename", filename)
 	response.OK(c, gin.H{"deleted": true, "filename": filename})
@@ -283,45 +291,26 @@ func (h *UploadHandler) saveFile(fh *multipart.FileHeader, category, description
 		UploadedAt:    now,
 	}
 
-	h.mu.Lock()
-	h.files[storedName] = uploaded
-	h.mu.Unlock()
+	dbModel := &pgstore.UploadedFileModel{
+		ID:            fileID,
+		OriginalName:  origBase,
+		StoredName:    storedName,
+		SizeBytes:     copiedBytes,
+		SizeFormatted: formatBytes(copiedBytes),
+		MimeType:      mimeType,
+		Category:      category,
+		Description:   description,
+		SHA256:        sha256Hex,
+		URL:           uploaded.URL,
+		DownloadURL:   uploaded.DownloadURL,
+		UploadedAt:    now,
+	}
+
+	if err := pgstore.InsertUploadedFile(context.Background(), h.db, dbModel); err != nil {
+		log.Error("Failed to save file metadata to DB", "error", err)
+	}
 
 	return uploaded, nil
-}
-
-// scanExistingFiles loads existing files in the directory on startup.
-func (h *UploadHandler) scanExistingFiles() {
-	entries, err := os.ReadDir(h.uploadDir)
-	if err != nil {
-		return
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		name := entry.Name()
-		h.files[name] = &UploadedFile{
-			ID:            "file_" + name,
-			OriginalName:  name,
-			StoredName:    name,
-			SizeBytes:     info.Size(),
-			SizeFormatted: formatBytes(info.Size()),
-			MimeType:      detectMimeFromExt(name),
-			Category:      "general",
-			URL:           "/api/v1/files/" + name,
-			DownloadURL:   "/api/v1/files/" + name + "?download=true",
-			UploadedAt:    info.ModTime().UTC(),
-		}
-	}
 }
 
 // sanitizeFilename strips non-alphanumeric characters for safe filename storage.

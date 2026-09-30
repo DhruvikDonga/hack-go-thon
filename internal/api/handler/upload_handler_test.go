@@ -23,7 +23,7 @@ func TestUploadHandler_Flow(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	maxSize := int64(10 * 1024 * 1024) // 10MB
-	h := NewUploadHandler(tempDir, maxSize)
+	h := NewUploadHandler(tempDir, maxSize, nil)
 
 	r := gin.New()
 	r.POST("/upload", h.Upload)
@@ -142,7 +142,7 @@ func TestUploadHandler_SizeLimit(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	maxSize := int64(1024) // 1 KB max
-	h := NewUploadHandler(tempDir, maxSize)
+	h := NewUploadHandler(tempDir, maxSize, nil)
 
 	r := gin.New()
 	r.POST("/upload", h.Upload)
