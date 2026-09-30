@@ -62,32 +62,39 @@
     .pulse-dot { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    @keyframes text-swap-1 {
-      0%, 28% { opacity: 1; }
-      33%, 95% { opacity: 0; }
-      100% { opacity: 1; }
+    @keyframes curveMove {
+      0% { stroke-dashoffset: 2000; }
+      100% { stroke-dashoffset: 0; }
     }
-    @keyframes text-swap-2 {
-      0%, 28% { opacity: 0; }
-      33%, 61% { opacity: 1; }
-      66%, 100% { opacity: 0; }
+    @keyframes floatWave {
+      0%, 100% { transform: translateY(0) scaleY(1); }
+      50% { transform: translateY(-20px) scaleY(1.05); }
     }
-    @keyframes text-swap-3 {
-      0%, 61% { opacity: 0; }
-      66%, 95% { opacity: 1; }
-      100% { opacity: 0; }
+    .curve-line {
+      fill: none;
+      stroke-width: 1.5;
+      stroke-dasharray: 600;
+      animation: curveMove 15s linear infinite;
     }
-    .title-swap-wrapper { position: relative; display: inline-flex; align-items: center; overflow: visible; }
-    .title-part-1 { animation: text-swap-1 9s infinite ease-in-out; }
-    .title-part-2 { position: absolute; left: 0; white-space: nowrap; animation: text-swap-2 9s infinite ease-in-out; }
-    .title-part-3 { position: absolute; left: 0; white-space: nowrap; animation: text-swap-3 9s infinite ease-in-out; }
+    .wave-container {
+      animation: floatWave 10s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Admin Authentication Modal Overlay (Required for Level 10-99 access) -->
-  <div id="loginModalOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md transition-opacity">
-    <div class="relative w-full max-w-md mx-4 bg-cardBg border border-borderCol rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+  <div id="loginModalOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 transition-opacity overflow-hidden">
+    <!-- Animated Line Curves Background -->
+    <div class="absolute inset-0 pointer-events-none opacity-40 flex items-center justify-center wave-container">
+      <svg class="w-full h-full sm:h-[150%] max-w-5xl" viewBox="0 0 1000 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path class="curve-line" stroke="rgba(16, 185, 129, 0.4)" d="M-200,300 C0,100 200,500 500,300 C800,100 1000,500 1200,300" />
+        <path class="curve-line" stroke="rgba(56, 189, 248, 0.4)" d="M-200,400 C100,600 300,200 600,400 C900,600 1100,200 1200,400" style="animation-direction: reverse; animation-duration: 20s;" />
+        <path class="curve-line" stroke="rgba(168, 85, 247, 0.3)" d="M-200,200 C50,400 250,100 550,300 C850,500 1050,100 1200,200" style="animation-duration: 25s;" />
+      </svg>
+    </div>
+
+    <div class="relative w-full max-w-md mx-4 bg-slate-900/80 backdrop-blur-2xl border border-slate-700/50 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] p-6 sm:p-8 space-y-6">
       
       <!-- Modal Header -->
       <div class="text-center space-y-2">
@@ -136,10 +143,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
         </div>
-        <div class="title-swap-wrapper w-28 sm:w-48 h-6 sm:h-7 text-white overflow-hidden">
-          <span class="title-part-1 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent truncate block">HGT</span>
-          <span class="title-part-2 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent truncate block w-full">Admin Panel</span>
-          <span class="title-part-3 text-sm sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent truncate block w-full"><span id="headerActiveOption">Mesh Rooms</span></span>
+        <div class="flex-1 min-w-0 sm:min-w-[160px] h-6 sm:h-7 text-white overflow-hidden flex items-center">
+          <span class="text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent truncate block w-full">HGT Control Panel</span>
         </div>
       </div>
 
