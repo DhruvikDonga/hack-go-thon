@@ -12,6 +12,11 @@ var AdminTemplatesFS embed.FS
 //go:embed admin_apis.json
 var AdminAPIsJSON []byte
 
+// PitchTemplatesFS contains the embedded HTML content for the hackathon pitch deck.
+//
+//go:embed templates/pitch/*
+var PitchTemplatesFS embed.FS
+
 // AdminJS contains the embedded JavaScript for the admin dashboard.
 //
 //go:embed admin.js

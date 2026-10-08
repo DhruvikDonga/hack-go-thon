@@ -77,6 +77,20 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 	engine.GET("/admin", serveAdminUI)
 	engine.GET("/", serveAdminUI)
 	
+	// Embedded Pitch Deck UI (served at /pitch)
+	pitchTmpl, err := template.ParseFS(web.PitchTemplatesFS, "templates/pitch/layout.html")
+	if err != nil {
+		panic("failed to parse pitch templates: " + err.Error())
+	}
+
+	servePitchUI := func(c *gin.Context) {
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		if err := pitchTmpl.ExecuteTemplate(c.Writer, "layout.html", nil); err != nil {
+			c.String(500, "Error rendering pitch UI: %v", err)
+		}
+	}
+	engine.GET("/pitch", servePitchUI)
+
 	engine.GET("/admin.js", func(c *gin.Context) {
 		c.Data(200, "application/javascript; charset=utf-8", web.AdminJS)
 	})

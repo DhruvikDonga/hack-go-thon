@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hack-Go-Thon Pitch Deck</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    body {
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Subtle dot grid background for both themes */
+    .bg-grid-light {
+      background-size: 40px 40px;
+      background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    }
+    .dark .bg-grid-dark {
+      background-size: 40px 40px;
+      background-image: radial-gradient(circle, #374151 1px, transparent 1px);
+    }
+
+    .slide {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
+      min-height: 100%;
+      padding: 3rem 0;
+    }
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .slide.active .stagger-1 { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.1s; opacity: 0; }
+    .slide.active .stagger-2 { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.2s; opacity: 0; }
+    .slide.active .stagger-3 { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.3s; opacity: 0; }
+    .slide.active .stagger-4 { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.4s; opacity: 0; }
+    .slide.active .stagger-5 { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.5s; opacity: 0; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-50 h-screen w-screen relative flex flex-col transition-colors duration-500">
+  
+  <!-- Background Grid -->
+  <div class="absolute inset-0 z-0 bg-grid-light dark:bg-grid-dark opacity-50"></div>
+  
+  <!-- Subtle Ambient Glow -->
+  <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen transition-all duration-700"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen transition-all duration-700"></div>
+  </div>
+
+  <div class="relative z-10 w-full h-full flex flex-col">
+    
+    <!-- Top Navigation / Header -->
+    <header class="relative z-50 h-20 flex items-center justify-between px-10 border-b border-gray-200 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md transition-colors duration-500">
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">hack-go-thon</div>
+        </div>
+        
+        <div class="flex items-center space-x-4 border-l border-gray-200 dark:border-gray-700 pl-6">
+          <a href="https://github.com/dhruvik/hack-go-thon" target="_blank" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="GitHub Repository">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path></svg>
+          </a>
+          <a href="/admin" target="_blank" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Live Product">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-6">
+        <div class="group relative">
+          <button class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-brand-500 transition-colors py-2">
+            Slide Index 
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <!-- Using pt-2 to bridge the hover gap, ensuring the background is solid with bg-white dark:bg-gray-900 on inner child -->
+          <div class="absolute top-full right-0 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden py-2">
+              <button onclick="goToSlide(1)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">1. Vision</button>
+              <button onclick="goToSlide(2)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">2. Problem</button>
+              <button onclick="goToSlide(3)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">3. Solution</button>
+              <button onclick="goToSlide(4)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">4. Moat</button>
+              <button onclick="goToSlide(5)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">5. Execution</button>
+              <button onclick="goToSlide(6)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">6. Deep Dive</button>
+              <button onclick="goToSlide(7)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">7. Live Demo</button>
+              <button onclick="goToSlide(8)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">8. Q&A</button>
+            </div>
+          </div>
+        </div>
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <!-- Sun Icon -->
+          <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          <!-- Moon Icon -->
+          <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 w-full flex-col overflow-y-auto overflow-x-hidden relative">
+      <!-- Slide 1: Vision -->
+      <div class="slide active flex-col items-center justify-center w-full max-w-5xl px-8 text-center mx-auto" id="slide-1">
+        <span class="stagger-1 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-brand-600 bg-brand-50 dark:bg-brand-900/30 dark:text-brand-400 mb-8 inline-block border border-brand-100 dark:border-brand-800">The Ultimate Starter Kit</span>
+        <h1 class="stagger-2 text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">
+          Win your next hackathon with <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Go.</span>
+        </h1>
+        <p class="stagger-3 text-xl md:text-3xl text-gray-600 dark:text-gray-300 max-w-4xl leading-relaxed font-light">
+          A high-performance, developer-first boilerplate with built-in WebSockets, AI context, and zero-downtime deployments.
+        </p>
+      </div>
+
+      <!-- Slide 2: The Problem -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-2">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 class="stagger-1 text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">The Problem</h2>
+            <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">You only have 48 hours.</h1>
+            <p class="stagger-3 text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+              Hackathon teams waste up to 12 hours configuring databases, wrestling with complex WebSocket routing, and frantically trying to deploy broken containers at 3 AM. Existing JS-heavy templates are bloated and brittle.
+            </p>
+          </div>
+          <div class="space-y-6 stagger-4">
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all">
+              <div class="flex items-center gap-4 mb-3">
+                <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Deployment Nightmares</h3>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400">Judges don't care if "it works on localhost". If it's not live, you lose.</p>
+            </div>
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all">
+              <div class="flex items-center gap-4 mb-3">
+                <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Lack of Real-Time</h3>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400">Modern apps require instant interactivity. Setting up robust WebSockets from scratch drains your core development time.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3: The Solution -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-3">
+        <h2 class="stagger-1 text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3 text-center">The Solution</h2>
+        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-16 leading-tight text-center">Meet hack-go-thon</h1>
+        
+        <div class="stagger-3 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none text-center group hover:-translate-y-2 transition-all duration-300">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Blazing Fast Go</h3>
+            <p class="text-gray-600 dark:text-gray-400">Built on Go's standard library. Get unparalleled performance and concurrency out of the box without JS framework fatigue.</p>
+          </div>
+
+          <div class="p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none text-center group hover:-translate-y-2 transition-all duration-300">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Kamal 2 Deployment</h3>
+            <p class="text-gray-600 dark:text-gray-400">Push to production effortlessly. Pre-configured deploy.yml gets your app live with zero-downtime rolling updates.</p>
+          </div>
+
+          <div class="p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none text-center group hover:-translate-y-2 transition-all duration-300">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">AI Ready</h3>
+            <p class="text-gray-600 dark:text-gray-400">PostgreSQL with pgvector comes pre-installed. Start building RAG and semantic search apps from minute one.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 4: Moat -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-4">
+        <h2 class="stagger-1 text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-3">Why Use This Template?</h2>
+        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-10 leading-tight">Focus on the product, not the plumbing.</h1>
+        
+        <div class="stagger-3 grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
+          <div class="flex gap-6">
+            <div class="text-4xl opacity-50 dark:opacity-100">01</div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">simplysocket Integration</h3>
+              <p class="text-gray-600 dark:text-gray-400">We authored a custom WebSocket engine included in the repo. Sub-millisecond latency for live chats, dashboards, and multiplayer games.</p>
+            </div>
+          </div>
+          <div class="flex gap-6">
+            <div class="text-4xl opacity-50 dark:opacity-100">02</div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Admin Dashboard Built-in</h3>
+              <p class="text-gray-600 dark:text-gray-400">Track user metrics and telemetry immediately via a built-in admin panel without setting up external observability tools.</p>
+            </div>
+          </div>
+          <div class="flex gap-6">
+            <div class="text-4xl opacity-50 dark:opacity-100">03</div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Beautiful Presentation</h3>
+              <p class="text-gray-600 dark:text-gray-400">This exact pitch deck template is served directly from the Go backend. Just edit the HTML and present your hackathon pitch seamlessly.</p>
+            </div>
+          </div>
+          <div class="flex gap-6">
+            <div class="text-4xl opacity-50 dark:opacity-100">04</div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Production Ready Quality</h3>
+              <p class="text-gray-600 dark:text-gray-400">Wow the judges by showing them your project is instantly ready for thousands of users, deployed securely on real infrastructure.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 5: Execution -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-5">
+        <h2 class="stagger-1 text-sm font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest mb-3">Judging Criteria</h2>
+        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-10 leading-tight">Built to score maximum points.</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="stagger-3 p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Flawless Live Demos</h3>
+            <p class="text-gray-600 dark:text-gray-400">Because hack-go-thon uses robust Go architecture, your backend won't crash when judges test your live product.</p>
+          </div>
+          <div class="stagger-4 p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Concise & Focused</h3>
+            <p class="text-gray-600 dark:text-gray-400">The included UI templates ensure your narrative is clean, focused, and completely free of unnecessary detail.</p>
+          </div>
+          <div class="stagger-5 p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Instant Technical Credibility</h3>
+            <p class="text-gray-600 dark:text-gray-400">Telling judges you built a native Go server using Postgres pgvector and Kamal immediately demonstrates technical excellence.</p>
+          </div>
+          <div class="stagger-5 p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Genuine Problem Solving</h3>
+            <p class="text-gray-600 dark:text-gray-400">Spend 95% of your 48 hours solving the actual hackathon prompt, rather than fighting with configuration files.</p>
+          </div>
+        </div>
+      </div>
+
+            <!-- Slide 6: Hackathon Deep Dive -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-6">
+        <h2 class="stagger-1 text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3">Under the Hood</h2>
+        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-10 leading-tight">Everything you need to win.</h1>
+        
+        <div class="stagger-3 space-y-6 pb-20">
+          <p class="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+            Let's dive into the extensive features baked right into the repository. When you fork hack-go-thon, you instantly get access to this powerful architectural foundation.
+          </p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- WebSocket -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Real-time WebSockets</h3>
+              <p class="text-gray-600 dark:text-gray-400">Powered by <code>simplysocket</code>. Built entirely in Go, routing messages to massive fleets of clients with sub-millisecond latency and O(1) complexity.</p>
+            </div>
+            
+            <!-- WebRTC -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">WebRTC SFU & P2P</h3>
+              <p class="text-gray-600 dark:text-gray-400">Enterprise-grade media hub using Pion. Features a Selective Forwarding Unit for multi-party video, 1:1 signaling, and UDP DataChannels.</p>
+            </div>
+
+            <!-- pgvector -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">AI-Ready pgvector</h3>
+              <p class="text-gray-600 dark:text-gray-400">PostgreSQL with the <code>pgvector</code> extension is integrated out of the box for native semantic searches and Retrieval-Augmented Generation (RAG).</p>
+            </div>
+            
+            <!-- RBAC Auth -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">RBAC & JWT Auth</h3>
+              <p class="text-gray-600 dark:text-gray-400">Production-ready auth with bcrypt hashing, JWT validation, and multi-level Role-Based Access Control embedded directly into token claims.</p>
+            </div>
+
+            <!-- Admin UI -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Embedded Admin UI</h3>
+              <p class="text-gray-600 dark:text-gray-400">A sleek dark-mode control center bundled into the Go binary. Live mesh visualization, RAG playground, WebRTC lab, and telemetry streams.</p>
+            </div>
+
+            <!-- API Explorer -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Dynamic API Explorer</h3>
+              <p class="text-gray-600 dark:text-gray-400">Zero-overhead API testing playground generated via AST analysis. Dynamic path parameters, JSON formatting, and 1-click token injection.</p>
+            </div>
+
+            <!-- Webhooks -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Mobile Webhook Engine</h3>
+              <p class="text-gray-600 dark:text-gray-400">Cryptographically signed HMAC webhooks for mobile push relays and 3rd-party consumers, backed by async Postgres delivery logs.</p>
+            </div>
+
+            <!-- Uploads -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Multipart File Uploads</h3>
+              <p class="text-gray-600 dark:text-gray-400">Secure file ingestion API with magic-byte MIME sniffing, SHA256 integrity checksums, and streaming download endpoints.</p>
+            </div>
+
+            <!-- Job Scheduler & Modular Flags -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Jobs & Feature Flags</h3>
+              <p class="text-gray-600 dark:text-gray-400">In-process panic-isolated task scheduler, plus <code>services.json</code> to selectively toggle databases, websockets, or APIs with zero code changes.</p>
+            </div>
+
+            <!-- Kamal -->
+            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kamal 2 Deployments</h3>
+              <p class="text-gray-600 dark:text-gray-400">Pre-configured <code>deploy.yml</code> handles Traefik routing, Let's Encrypt SSL, and rolling zero-downtime updates directly to your VPS.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+<!-- Slide 7: Demo & Repo -->
+      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-7">
+        <h2 class="stagger-1 text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Get Started</h2>
+        <h1 class="stagger-2 text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-8">Ready to dominate your next hackathon?</h1>
+        <p class="stagger-3 text-2xl text-gray-600 dark:text-gray-300 mb-12 font-light max-w-2xl">
+          Clone the repository, spin up the server, and start building the future in Go.
+        </p>
+        
+        <div class="stagger-4 flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/admin" target="_blank" class="px-8 py-4 rounded-full bg-blue-600 dark:bg-blue-500 text-white font-bold text-lg hover:scale-105 transition-transform shadow-xl shadow-blue-500/20 flex items-center justify-center">
+            View Live Dashboard
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </a>
+          <a href="https://github.com/dhruvik/hack-go-thon" target="_blank" class="px-8 py-4 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-lg hover:scale-105 transition-transform shadow-xl flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path></svg>
+            Fork Repository
+          </a>
+        </div>
+      </div>
+
+      <!-- Slide 8: Q&A -->
+      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-8">
+        <span class="stagger-1 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-brand-600 bg-brand-50 dark:bg-brand-900/30 dark:text-brand-400 mb-8 inline-block border border-brand-100 dark:border-brand-800">Final Step</span>
+        <h1 class="stagger-2 text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">
+          Q&A
+        </h1>
+        <p class="stagger-3 text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed font-light mb-12">
+          Confident handling of technical and business questions.
+        </p>
+        <div class="stagger-4 grid grid-cols-2 gap-4 max-w-2xl w-full mx-auto">
+          <div class="p-6 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left">
+            <div class="font-bold text-gray-900 dark:text-white mb-1">Architecture</div>
+            <div class="text-sm text-gray-500">Go, WebSockets, pgvector</div>
+          </div>
+          <div class="p-6 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 text-left">
+            <div class="font-bold text-gray-900 dark:text-white mb-1">Open Source</div>
+            <div class="text-sm text-gray-500">MIT Licensed, Free to Fork</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation / Footer -->
+    <footer class="h-20 flex items-center justify-between px-10 border-t border-gray-200 dark:border-gray-800/50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-md transition-colors duration-500">
+      
+      <div class="flex items-center space-x-2 text-sm font-medium text-gray-400 dark:text-gray-500">
+        <span id="slide-counter">01 / 05</span>
+        <span class="px-2">—</span>
+        <span>Use <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded mx-1 font-sans text-xs text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">←</kbd> <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded mx-1 font-sans text-xs text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">→</kbd> to navigate</span>
+      </div>
+      
+      <div class="flex space-x-3">
+        <button onclick="prevSlide()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all focus:outline-none" id="btn-prev" disabled>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button onclick="nextSlide()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:scale-105 disabled:opacity-30 disabled:hover:scale-100 transition-all focus:outline-none" id="btn-next">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <script>
+    // Theme Toggle Logic
+    const htmlEl = document.documentElement;
+    
+    // Check initial state (default to dark if not set, or follow system)
+    if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+      htmlEl.classList.remove('dark');
+    } else {
+      htmlEl.classList.add('dark');
+    }
+
+    function toggleTheme() {
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        localStorage.theme = 'light';
+      } else {
+        htmlEl.classList.add('dark');
+        localStorage.theme = 'dark';
+      }
+    }
+
+    // Slide Navigation Logic
+    let currentSlide = 1;
+    const totalSlides = 8;
+
+    function updateSlides() {
+      document.querySelectorAll('.slide').forEach((slide, index) => {
+        if (index + 1 === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+      
+      document.getElementById('slide-counter').innerText = `0${currentSlide} / 0${totalSlides}`;
+      document.getElementById('btn-prev').disabled = currentSlide === 1;
+      document.getElementById('btn-next').disabled = currentSlide === totalSlides;
+    }
+
+        function goToSlide(index) {
+      if (index >= 1 && index <= totalSlides) {
+        currentSlide = index;
+        updateSlides();
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlides();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlides();
+      }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>
