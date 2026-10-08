@@ -1,6 +1,8 @@
 package api
 
 import (
+	"html/template"
+
 	"hack-go-thon/config"
 	"hack-go-thon/internal/api/handler"
 	"hack-go-thon/internal/api/middleware"
@@ -60,11 +62,24 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 	})
 
 	// Embedded Admin Control Center UI Dashboard (served at /admin and /)
+	// Parse the embedded templates
+	adminTmpl, err := template.ParseFS(web.AdminTemplatesFS, "templates/admin/layout.html", "templates/admin/sections/*.html")
+	if err != nil {
+		panic("failed to parse admin templates: " + err.Error())
+	}
+
 	serveAdminUI := func(c *gin.Context) {
-		c.Data(200, "text/html; charset=utf-8", web.AdminHTML)
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		if err := adminTmpl.ExecuteTemplate(c.Writer, "layout.html", nil); err != nil {
+			c.String(500, "Error rendering admin UI: %v", err)
+		}
 	}
 	engine.GET("/admin", serveAdminUI)
 	engine.GET("/", serveAdminUI)
+	
+	engine.GET("/admin.js", func(c *gin.Context) {
+		c.Data(200, "application/javascript; charset=utf-8", web.AdminJS)
+	})
 
 	// API v1 Route Group
 	v1 := engine.Group("/api/v1")
@@ -330,14 +345,14 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 				// @Description Creates a new account with hashed password and metadata
 				// @Tags Users
 				// @Auth open
-				// @Body {"username": "alice", "email": "alice@example.com", "password": "Password123!", "role": "member", "auth_level": 1}
+				// @Body {"username": "alice", "email": "alice@example.com", "password": "YOUR_SECURE_PASSWORD", "role": "member", "auth_level": 1}
 				auth.POST("/register", rc.UserHandler.Register)
 
 				// @Summary Authenticate user & issue JWT
 				// @Description Validates credentials and returns JWT token with auth_level claims
 				// @Tags Users
 				// @Auth open
-				// @Body {"username": "admin", "password": "Password123!"}
+				// @Body {"username": "admin", "password": "YOUR_SECURE_PASSWORD"}
 				auth.POST("/login", rc.UserHandler.Login)
 
 				// @Summary Get currently authenticated profile
@@ -360,7 +375,7 @@ func SetupRouter(rc RouterConfig) *gin.Engine {
 				// @Description Directly provisions a new user with role and metadata
 				// @Tags Users
 				// @Auth open
-				// @Body {"username": "bob", "email": "bob@example.com", "password": "Password123!", "role": "moderator", "auth_level": 50}
+				// @Body {"username": "bob", "email": "bob@example.com", "password": "YOUR_SECURE_PASSWORD", "role": "moderator", "auth_level": 50}
 				users.POST("", rc.UserHandler.CreateUser)
 
 				// @Summary Get user by ID

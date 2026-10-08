@@ -1,0 +1,92 @@
+{{ define "section-webhooks" }}
+<div id="section-webhooks" class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm space-y-4 section-card transition-all">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-semibold text-white flex items-center ">
+              <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span>Mobile Webhooks & Notification Center</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Register mobile push endpoints, sign payloads with HMAC-SHA256, and dispatch live alerts.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button data-target="webhooks" onclick="focusSection('webhooks')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
+              <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+              <span class="focus-btn-label">Focus</span>
+            </button>
+            <button onclick="fetchWebhooks()" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shrink-0 whitespace-nowrap">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Register Webhook Form -->
+        <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Register Mobile Webhook URL</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="whUrlInput" type="url" placeholder="https://mobile-gateway/v1/notify" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <input id="whSecretInput" type="text" placeholder="HMAC Secret (optional)" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="whEventsInput" type="text" placeholder="Events (e.g. notification, alert or *)" value="*" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+            <input id="whDescInput" type="text" placeholder="Description (e.g. iOS Push Gateway)" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div class="flex justify-end">
+            <button onclick="registerWebhook()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
+              <span>+ Register Webhook</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Registered Webhooks Table -->
+        <div class="overflow-x-auto max-h-48 overflow-y-auto border border-borderCol rounded-lg">
+          <table class="w-full text-left text-xs text-slate-300 whitespace-nowrap md:whitespace-normal">
+            <thead class="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] sticky top-0 border-b border-borderCol">
+              <tr>
+                <th class="p-2">Target URL</th>
+                <th class="p-2">Events</th>
+                <th class="p-2">Secret</th>
+                <th class="p-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="webhooksTableBody" class="divide-y divide-borderCol/60 bg-slate-900/40 font-mono text-[11px]">
+              <tr><td colspan="4" class="p-3 text-center text-slate-500 italic font-sans">No webhooks registered.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Dispatch Notification Tool -->
+        <div class="bg-slate-950 border border-borderCol rounded-lg p-3 space-y-2">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>Dispatch Notification / Alert</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="joinWebhooksRoom()" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition shrink-0 whitespace-nowrap">🔔 Join 'webhooks' Room</button>
+              <span class="text-[10px] text-indigo-400 font-mono">Notifies 'webhooks' Room</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input id="notifTitleInput" type="text" placeholder="Notification Title..." value="System Announcement" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <input id="notifEventInput" type="text" placeholder="Event Type (default: notification)" value="notification" class="bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <textarea id="notifMessageInput" rows="2" placeholder="Notification message body..." class="w-full bg-slate-900 border border-borderCol rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500">Scheduled server update will complete in 10 minutes.</textarea>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="notifStatusText" class="text-[11px] text-slate-400 font-mono"></span>
+            <button onclick="dispatchWebhookNotification()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded transition flex items-center space-x-1 shrink-0 whitespace-nowrap">
+              <span>🚀 Dispatch Notification</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Delivery Logs -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+            <span>Recent Delivery History</span>
+            <button onclick="fetchWebhookLogs()" class="text-indigo-400 hover:underline">Refresh Logs</button>
+          </div>
+          <div id="webhookLogsContainer" class="h-28 overflow-y-auto bg-slate-950 border border-borderCol rounded-md p-2 font-mono text-[10px] space-y-1 text-slate-400">
+            <span class="text-slate-600 italic font-sans">No recent delivery attempts recorded.</span>
+          </div>
+        </div>
+      </div>
+{{ end }}

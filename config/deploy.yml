@@ -7,7 +7,7 @@ image: dhruvikdonga/hack-go-thon
 # Deploy to these servers.
 servers:
   web:
-    - 51.38.114.53
+    - 72.61.106.105
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -20,7 +20,7 @@ servers:
 proxy:
   ssl: true
   hosts:
-    - api.hack-go-thon.local
+    - 72.61.106.105.nip.io
   # Proxy connects to your container on port 8080 (the default server port).
   app_port: 8080
   healthcheck:
@@ -70,23 +70,26 @@ aliases:
 
 # Use a different ssh user than root
 ssh:
-  user: ubuntu
+  user: root
 
 # Persistent storage volume for uploaded media/attachments
 volumes:
   - "hack-go-thon-uploads:/home/appuser/uploads"
+  - "/var/run/docker.sock:/var/run/docker.sock"
 
 # Optional: Accessory services (e.g. pgvector database if self-hosting PostgreSQL on the node)
-# accessories:
-#   db:
-#     image: pgvector/pgvector:pg16
-#     host: 51.38.114.53
-#     port: 5432
-#     env:
-#       clear:
-#         POSTGRES_DB: hack_db
-#         POSTGRES_USER: postgres
-#       secret:
-#         - POSTGRES_PASSWORD
-#     directories:
-#       - data:/var/lib/postgresql/data
+accessories:
+  db:
+    image: pgvector/pgvector:pg16
+    hosts:
+    - 72.61.106.105
+    port: 5432
+    env:
+      clear:
+        POSTGRES_DB: hack_db
+        POSTGRES_USER: postgres
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data
+

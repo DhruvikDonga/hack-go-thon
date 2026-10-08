@@ -1,0 +1,48 @@
+{{ define "section-jobs" }}
+<div id="section-jobs" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-white flex items-center ">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Scheduled Background Jobs & Workers</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">In-process periodic task scheduler (<code class="text-purple-400">jobs.Scheduler</code>) with panic recovery & live metrics</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="jobs" onclick="focusSection('jobs')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
+          <button onclick="fetchJobs()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Refresh Jobs</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Jobs Table Container -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs font-mono">
+          <thead>
+            <tr class="border-b border-borderCol text-slate-400 uppercase tracking-wider text-[11px]">
+              <th class="py-2.5 px-3">Job Name</th>
+              <th class="py-2.5 px-3">Interval</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Run Count</th>
+              <th class="py-2.5 px-3">Last Duration</th>
+              <th class="py-2.5 px-3">Last Execution</th>
+            </tr>
+          </thead>
+          <tbody id="jobsTableBody" class="divide-y divide-borderCol/50 text-slate-300">
+            <tr>
+              <td colspan="6" class="py-6 text-center text-slate-500 italic">No scheduled tasks registered.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+{{ end }}

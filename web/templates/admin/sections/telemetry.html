@@ -1,0 +1,267 @@
+{{ define "section-telemetry" }}
+<div id="section-telemetry" class="w-full flex flex-col space-y-6 section-card transition-all mt-8">
+      <div class="bg-cardBg border border-borderCol rounded-xl p-5 shadow-sm">
+        
+        <!-- Header & Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-borderCol gap-3">
+          <div class="flex items-center space-x-3">
+            <span class="p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-400 text-xl font-bold flex items-center justify-center">📈</span>
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="font-bold text-white text-base">Telementry</h3>
+                <span id="telemetryRoomStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">Waiting WebSocket...</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">30s Cadence</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">auth_level &gt; 1</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Non-blocking Zap logger sink (Warn/Error/Fatal) streamed to <code class="text-cyan-300">live telementry</code> room with 10-point rolling Linux VM RAM &amp; Go memory metrics.</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="fetchTelemetryMetrics()" title="Refresh telemetry metrics from REST API" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap">
+              <span>🔄</span>
+              <span>Refresh Metrics</span>
+            </button>
+            <button onclick="simulateTelemetryLogPrompt()" title="Inject simulated high-severity log entry" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap">
+              <span>⚡</span>
+              <span>Simulate Spike</span>
+            </button>
+            <button class="section-expand-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-borderCol transition flex items-center space-x-1 cursor-pointer shrink-0 whitespace-nowrap" data-target="telemetry">
+              <span>⛶</span>
+              <span class="focus-btn-label">Focus</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Upper Grid: Metrics Display & 10-Point Interactive Graph -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+          
+          <!-- Left: 10-Point Rolling Graph & Metrics (8 cols) -->
+          <div class="lg:col-span-8 flex flex-col space-y-4">
+            
+            <!-- Live RAM & Go Memory Stat Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>System RAM</span>
+                  <span class="text-[10px] text-cyan-400 font-mono">Linux VM</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatRamPct" class="text-xl sm:text-2xl font-extrabold text-cyan-300 font-mono">--%</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  <span id="telemetryStatRamUsed">--</span> / <span id="telemetryStatRamTotal">--</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Free Memory</span>
+                  <span class="text-[10px] text-emerald-400 font-mono">Available</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatRamFree" class="text-xl sm:text-2xl font-extrabold text-emerald-300 font-mono">-- MB</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  Unused / buffer cache
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Go Heap Alloc</span>
+                  <span class="text-[10px] text-purple-400 font-mono">Runtime</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatGoAlloc" class="text-xl sm:text-2xl font-extrabold text-purple-300 font-mono">-- MB</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  Sys: <span id="telemetryStatGoSys">--</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/80 p-3 rounded-lg border border-borderCol/80 flex flex-col justify-between">
+                <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Concurrency</span>
+                  <span class="text-[10px] text-amber-400 font-mono">Threads</span>
+                </div>
+                <div class="flex items-baseline space-x-1.5 my-1">
+                  <span id="telemetryStatGoroutines" class="text-xl sm:text-2xl font-extrabold text-amber-300 font-mono">--</span>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono truncate">
+                  GC Cycles: <span id="telemetryStatNumGC">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SVG 10-Point Rolling Chart Box -->
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-xs font-semibold text-slate-300">System RAM &amp; Heap Memory Timeline</span>
+                  <span id="telemetryGraphCadenceLabel" class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono border border-borderCol">Rolling 10 data points (every 30s)</span>
+                </div>
+                <div class="flex items-center space-x-3 text-[11px] font-mono">
+                  <span class="flex items-center space-x-1 text-cyan-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>
+                    <span>System RAM %</span>
+                  </span>
+                  <span class="flex items-center space-x-1 text-purple-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span>
+                    <span>Go Heap (MB)</span>
+                  </span>
+                  <span class="flex items-center space-x-1 text-indigo-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 inline-block"></span>
+                    <span>Postgres %</span>
+                  </span>
+                  <span class="flex items-center space-x-1 text-emerald-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                    <span>Go Server %</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Interactive SVG Canvas Container -->
+              <div class="relative w-full h-56 bg-slate-900/60 rounded-lg border border-borderCol/60 p-2 flex flex-col justify-between overflow-hidden">
+                <div id="telemetryChartEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs">
+                  <div class="animate-spin text-xl mb-1">⏳</div>
+                  <span>Waiting for telemetry metrics data points...</span>
+                </div>
+                <svg id="telemetrySvgGraph" class="w-full h-full overflow-visible" viewBox="0 0 700 200" preserveAspectRatio="none">
+                  <!-- Generated dynamically by renderTelemetryGraph() -->
+                </svg>
+              </div>
+
+              <!-- Time axis labels container -->
+              <div id="telemetryTimeAxis" class="flex items-center justify-between text-[10px] font-mono text-slate-500 px-2 pt-1 border-t border-borderCol/40">
+                <span>-4m30s</span>
+                <span>-3m30s</span>
+                <span>-2m30s</span>
+                <span>-1m30s</span>
+                <span>-30s</span>
+                <span class="text-cyan-400 font-bold">Now (live)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Telemetry Core Info & Spike Injection Simulator (4 cols) -->
+          <div class="lg:col-span-4 flex flex-col space-y-4">
+            
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Telemetry Core Sink</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Active</span>
+              </div>
+
+              <div class="space-y-2 text-xs">
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
+                  <span class="text-emerald-400 text-base">🛡️</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Non-Blocking Log Worker</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Application logging never blocks. High-severity logs are tapped via <code class="text-emerald-300">zapcore.NewTee</code> into a non-blocking buffered channel.</div>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
+                  <span class="text-amber-400 text-base">🔍</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Strict Log Exclusion Filter</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5"><span class="text-rose-400 font-semibold">Excludes Debug &amp; Info</span> logs. Captures exclusively <span class="text-amber-300 font-semibold">Warn</span>, <span class="text-rose-400 font-semibold">Error</span>, and <span class="text-purple-400 font-semibold">Fatal</span> events.</div>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-900/80 border border-borderCol/60 flex items-start ">
+                  <span class="text-purple-400 text-base">🔒</span>
+                  <div>
+                    <div class="font-semibold text-slate-200">Elevated Room Access</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Room <code class="text-cyan-300">live telementry</code> admits only accounts with <code class="text-purple-300 font-mono">auth_level &gt; 1</code> (Staff &amp; Admins). Normal users are barred.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Spike Simulation Card -->
+            <div class="bg-slate-950 rounded-xl border border-borderCol p-4 flex flex-col space-y-3">
+              <div class="flex items-center justify-between border-b border-borderCol/60 pb-2">
+                <span class="text-xs font-bold text-white uppercase tracking-wider">Test Log Generator</span>
+                <span class="text-[10px] text-slate-500 font-mono">Zap Core Probe</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Trigger real high-severity logs into the Zap telemetry pipeline to test live room broadcast &amp; bell notifications:</p>
+              
+              <div class="flex flex-wrap gap-2">
+                <button onclick="triggerSimulatedLog('warn')" class="px-2 py-1.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
+                  <span>⚠️</span>
+                  <span>Warn</span>
+                </button>
+                <button onclick="triggerSimulatedLog('error')" class="px-2 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
+                  <span>❌</span>
+                  <span>Error</span>
+                </button>
+                <button onclick="triggerSimulatedLog('fatal')" class="px-2 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-800 text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1 shrink-0 whitespace-nowrap">
+                  <span>💥</span>
+                  <span>Fatal</span>
+                </button>
+              </div>
+              <div id="simLogFeedback" class="text-[11px] font-mono text-slate-500 italic text-center min-h-[16px]"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Lower Section: Time-Based High-Severity Log Feed -->
+        <div class="mt-8 border-t border-borderCol/80 pt-6 flex flex-col space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <h4 class="font-bold text-white text-sm">Time-Based High-Severity Log Stream</h4>
+              <span id="telemetryLogCountBadge" class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-800 text-slate-300 border border-borderCol">0 events</span>
+              <span class="text-[10px] text-slate-500 font-mono">(Warn, Error, Fatal)</span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Severity Filter -->
+              <div class="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-borderCol text-xs">
+                <button onclick="setTelemetryLogLevelFilter('ALL')" id="btnLogFilterALL" class="px-2 py-1 rounded text-[11px] font-semibold bg-slate-800 text-white cursor-pointer shrink-0 whitespace-nowrap">ALL</button>
+                <button onclick="setTelemetryLogLevelFilter('warn')" id="btnLogFilterWarn" class="px-2 py-1 rounded text-[11px] font-medium text-amber-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">WARN</button>
+                <button onclick="setTelemetryLogLevelFilter('error')" id="btnLogFilterError" class="px-2 py-1 rounded text-[11px] font-medium text-rose-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">ERROR</button>
+                <button onclick="setTelemetryLogLevelFilter('fatal')" id="btnLogFilterFatal" class="px-2 py-1 rounded text-[11px] font-medium text-purple-400 hover:bg-slate-800 cursor-pointer shrink-0 whitespace-nowrap">FATAL</button>
+              </div>
+
+              <!-- Search -->
+              <input type="text" id="telemetryLogSearchInput" oninput="renderTelemetryLogs()" placeholder="Search logs..." class="w-36 min-w-0 sm:w-48 px-2.5 py-1 bg-slate-900 border border-borderCol rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+
+              <!-- Clear -->
+              <button onclick="clearTelemetryLogs()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-borderCol transition cursor-pointer shrink-0 whitespace-nowrap">Clear</button>
+            </div>
+          </div>
+
+          <!-- Log Stream Graph -->
+          <div class="relative w-full h-40 bg-slate-900/60 rounded-lg border border-borderCol/60 p-2 flex flex-col justify-between overflow-hidden mb-4">
+            <div id="telemetryLogChartEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs z-10 bg-slate-900/40">
+              <div class="animate-spin text-xl mb-1">⏳</div>
+              <span>Waiting for log telemetry intervals...</span>
+            </div>
+            
+            <div class="flex justify-between items-center mb-1 z-10 px-2">
+              <span class="text-[10px] font-bold text-slate-400 tracking-wider">EVENTS OVER TIME (LAST 1 MINUTE)</span>
+              <div class="flex space-x-3 text-[10px] font-mono">
+                <span class="flex items-center text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-400 mr-1"></span>Warn</span>
+                <span class="flex items-center text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-400 mr-1"></span>Error</span>
+                <span class="flex items-center text-purple-400"><span class="w-2 h-2 rounded-full bg-purple-400 mr-1"></span>Fatal</span>
+              </div>
+            </div>
+            
+            <svg id="telemetryLogSvgGraph" class="w-full h-full overflow-visible z-0" viewBox="0 0 700 120" preserveAspectRatio="none"></svg>
+          </div>
+
+          <!-- Log stream list table/container -->
+          <div class="rounded-xl border border-borderCol bg-slate-950 overflow-hidden">
+            <div class="max-h-80 overflow-y-auto custom-scrollbar font-mono text-xs divide-y divide-borderCol/40" id="telemetryLogStreamContainer">
+              <div class="p-8 text-center text-slate-500 italic font-sans">
+                <span>Listening for high-severity logs on room <code class="text-cyan-400 font-mono">live telementry</code>... (Debug &amp; Info filtered out)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+{{ end }}

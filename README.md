@@ -93,8 +93,7 @@ make docker-up
 ```
 
 Open **[http://localhost:8080/admin](http://localhost:8080/admin)** to access the live Control Center!
-- **Default Superadmin Login**: `admin@hack-go-thon.local` / `Mp@tel98` (phone `9427425572`, Level 99) via the **"Fill Admin (Lvl 99)"** button.
-- **Default Staff Viewer Login**: `staff@hack-go-thon.local` / `Staff@123` (phone `9427425570`, Level 10 View-Only) via the **"Fill Staff (Lvl 10)"** button.
+
 
 ---
 

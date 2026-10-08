@@ -13,7 +13,23 @@
     "auth_level": 0,
     "params": null,
     "headers": {},
-    "source_line": 76
+    "source_line": 91
+  },
+  {
+    "id": "get--admin.js",
+    "method": "GET",
+    "path": "/admin.js",
+    "summary": "GET /admin.js",
+    "description": "",
+    "category": "Admin.Js",
+    "tags": [
+      "Admin.Js"
+    ],
+    "auth": "open",
+    "auth_level": 0,
+    "params": null,
+    "headers": {},
+    "source_line": 80
   },
   {
     "id": "get--api-v1-health-live",
@@ -30,7 +46,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc HealthHandler}.Live",
-    "source_line": 87
+    "source_line": 102
   },
   {
     "id": "get--api-v1-health-ready",
@@ -47,7 +63,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc HealthHandler}.Ready",
-    "source_line": 93
+    "source_line": 108
   },
   {
     "id": "get--api-v1-items",
@@ -64,7 +80,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc ExampleHandler}.ListItems",
-    "source_line": 182
+    "source_line": 197
   },
   {
     "id": "post--api-v1-items",
@@ -84,7 +100,7 @@
     },
     "body": "{\"name\": \"Example Item\", \"description\": \"Sample description\"}",
     "handler": "\u0026{rc ExampleHandler}.CreateItem",
-    "source_line": 176
+    "source_line": 191
   },
   {
     "id": "get--api-v1-items-id",
@@ -109,7 +125,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc ExampleHandler}.GetItem",
-    "source_line": 189
+    "source_line": 204
   },
   {
     "id": "get--api-v1-jobs",
@@ -125,7 +141,7 @@
     "auth_level": 0,
     "params": null,
     "headers": {},
-    "source_line": 243
+    "source_line": 258
   },
   {
     "id": "post--api-v1-llm-ask",
@@ -145,7 +161,7 @@
     },
     "body": "{\"prompt\": \"What is WebRTC?\", \"model\": \"gpt-4o-mini\"}",
     "handler": "\u0026{rc ExampleHandler}.AskAI",
-    "source_line": 200
+    "source_line": 215
   },
   {
     "id": "get--api-v1-protected-admin-only",
@@ -163,7 +179,7 @@
     "headers": {
       "Authorization": "Bearer \u003cjwt-token\u003e"
     },
-    "source_line": 424
+    "source_line": 439
   },
   {
     "id": "get--api-v1-protected-profile",
@@ -181,7 +197,7 @@
     "headers": {
       "Authorization": "Bearer \u003cjwt-token\u003e"
     },
-    "source_line": 406
+    "source_line": 421
   },
   {
     "id": "post--api-v1-rag-ask",
@@ -201,7 +217,7 @@
     },
     "body": "{\"question\": \"How do we store vector embeddings?\"}",
     "handler": "\u0026{rc RAGHandler}.AskRAG",
-    "source_line": 233
+    "source_line": 248
   },
   {
     "id": "get--api-v1-rag-documents",
@@ -218,7 +234,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc RAGHandler}.ListDocuments",
-    "source_line": 219
+    "source_line": 234
   },
   {
     "id": "post--api-v1-rag-documents",
@@ -238,7 +254,7 @@
     },
     "body": "{\"title\": \"Architecture Overview\", \"content\": \"Microservices built with Go and PostgreSQL\"}",
     "handler": "\u0026{rc RAGHandler}.CreateDocument",
-    "source_line": 213
+    "source_line": 228
   },
   {
     "id": "post--api-v1-rag-search",
@@ -258,7 +274,7 @@
     },
     "body": "{\"query\": \"What database is used?\", \"limit\": 5}",
     "handler": "\u0026{rc RAGHandler}.SearchDocuments",
-    "source_line": 226
+    "source_line": 241
   },
   {
     "id": "get--api-v1-secure-data",
@@ -276,7 +292,7 @@
     "headers": {
       "X-API-Key": "\u003capi-key\u003e"
     },
-    "source_line": 534
+    "source_line": 549
   },
   {
     "id": "get--api-v1-telemetry-metrics",
@@ -293,7 +309,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc TelemetryHandler}.GetMetrics",
-    "source_line": 551
+    "source_line": 566
   },
   {
     "id": "post--api-v1-telemetry-simulate",
@@ -313,7 +329,7 @@
     },
     "body": "{\"level\": \"warn\", \"message\": \"Simulated memory threshold warning\", \"fields\": {\"threshold_percent\": 85}}",
     "handler": "\u0026{rc TelemetryHandler}.SimulateLog",
-    "source_line": 558
+    "source_line": 573
   },
   {
     "id": "get--api-v1-files",
@@ -330,7 +346,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc UploadHandler}.ListFiles",
-    "source_line": 508
+    "source_line": 523
   },
   {
     "id": "delete--api-v1-files-filename",
@@ -355,7 +371,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc UploadHandler}.DeleteFile",
-    "source_line": 523
+    "source_line": 538
   },
   {
     "id": "get--api-v1-files-filename",
@@ -387,7 +403,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc UploadHandler}.GetFile",
-    "source_line": 516
+    "source_line": 531
   },
   {
     "id": "post--api-v1-upload",
@@ -406,7 +422,7 @@
       "Content-Type": "multipart/form-data"
     },
     "handler": "\u0026{rc UploadHandler}.Upload",
-    "source_line": 502
+    "source_line": 517
   },
   {
     "id": "post--api-v1-auth-login",
@@ -424,9 +440,9 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{\"username\": \"admin\", \"password\": \"Password123!\"}",
+    "body": "{\"username\": \"admin\", \"password\": \"YOUR_SECURE_PASSWORD\"}",
     "handler": "\u0026{rc UserHandler}.Login",
-    "source_line": 341
+    "source_line": 356
   },
   {
     "id": "get--api-v1-auth-me",
@@ -445,7 +461,7 @@
       "Authorization": "Bearer \u003cjwt-token\u003e"
     },
     "handler": "\u0026{rc UserHandler}.Me",
-    "source_line": 348
+    "source_line": 363
   },
   {
     "id": "post--api-v1-auth-register",
@@ -463,9 +479,9 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{\"username\": \"alice\", \"email\": \"alice@example.com\", \"password\": \"Password123!\", \"role\": \"member\", \"auth_level\": 1}",
+    "body": "{\"username\": \"alice\", \"email\": \"alice@example.com\", \"password\": \"YOUR_SECURE_PASSWORD\", \"role\": \"member\", \"auth_level\": 1}",
     "handler": "\u0026{rc UserHandler}.Register",
-    "source_line": 334
+    "source_line": 349
   },
   {
     "id": "get--api-v1-users",
@@ -482,7 +498,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc UserHandler}.ListUsers",
-    "source_line": 357
+    "source_line": 372
   },
   {
     "id": "post--api-v1-users",
@@ -500,9 +516,9 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": "{\"username\": \"bob\", \"email\": \"bob@example.com\", \"password\": \"Password123!\", \"role\": \"moderator\", \"auth_level\": 50}",
+    "body": "{\"username\": \"bob\", \"email\": \"bob@example.com\", \"password\": \"YOUR_SECURE_PASSWORD\", \"role\": \"moderator\", \"auth_level\": 50}",
     "handler": "\u0026{rc UserHandler}.CreateUser",
-    "source_line": 364
+    "source_line": 379
   },
   {
     "id": "delete--api-v1-users-id",
@@ -527,7 +543,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc UserHandler}.DeleteUser",
-    "source_line": 386
+    "source_line": 401
   },
   {
     "id": "get--api-v1-users-id",
@@ -552,7 +568,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc UserHandler}.GetUser",
-    "source_line": 371
+    "source_line": 386
   },
   {
     "id": "put--api-v1-users-id",
@@ -580,7 +596,7 @@
     },
     "body": "{\"email\": \"updated@example.com\", \"role\": \"admin\", \"auth_level\": 90}",
     "handler": "\u0026{rc UserHandler}.UpdateUser",
-    "source_line": 379
+    "source_line": 394
   },
   {
     "id": "post--api-v1-users-id-token",
@@ -607,7 +623,7 @@
       "Content-Type": "application/json"
     },
     "handler": "\u0026{rc UserHandler}.GenerateUserToken",
-    "source_line": 393
+    "source_line": 408
   },
   {
     "id": "get--api-v1-webrtc-ice-servers",
@@ -624,7 +640,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.GetICEServers",
-    "source_line": 256
+    "source_line": 271
   },
   {
     "id": "post--api-v1-webrtc-server-session",
@@ -644,7 +660,7 @@
     },
     "body": "{\"sdp\": \"v=0\\r\\no=- 0 0 IN IP4 127.0.0.1...\"}",
     "handler": "\u0026{rc WebRTCHandler}.CreateServerSession",
-    "source_line": 269
+    "source_line": 284
   },
   {
     "id": "delete--api-v1-webrtc-server-session-id",
@@ -669,7 +685,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.CloseServerSession",
-    "source_line": 276
+    "source_line": 291
   },
   {
     "id": "post--api-v1-webrtc-sfu-join",
@@ -689,7 +705,7 @@
     },
     "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\", \"sdp\": \"...\"}",
     "handler": "\u0026{rc WebRTCHandler}.JoinSFU",
-    "source_line": 292
+    "source_line": 307
   },
   {
     "id": "post--api-v1-webrtc-sfu-leave",
@@ -709,7 +725,7 @@
     },
     "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\"}",
     "handler": "\u0026{rc WebRTCHandler}.LeaveSFU",
-    "source_line": 306
+    "source_line": 321
   },
   {
     "id": "post--api-v1-webrtc-sfu-renegotiate",
@@ -729,7 +745,7 @@
     },
     "body": "{\"room_id\": \"conf-alpha\", \"peer_id\": \"peer-1\", \"sdp\": \"...\"}",
     "handler": "\u0026{rc WebRTCHandler}.RenegotiateSFU",
-    "source_line": 299
+    "source_line": 314
   },
   {
     "id": "get--api-v1-webrtc-sfu-rooms",
@@ -746,7 +762,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.GetSFURooms",
-    "source_line": 320
+    "source_line": 335
   },
   {
     "id": "delete--api-v1-webrtc-sfu-rooms-room_id-peers-peer_id",
@@ -778,7 +794,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.LeaveSFU",
-    "source_line": 314
+    "source_line": 329
   },
   {
     "id": "get--api-v1-webrtc-sfu-ws",
@@ -795,7 +811,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.HandleSFUWS",
-    "source_line": 285
+    "source_line": 300
   },
   {
     "id": "get--api-v1-webrtc-status",
@@ -812,7 +828,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebRTCHandler}.GetStatus",
-    "source_line": 262
+    "source_line": 277
   },
   {
     "id": "get--api-v1-ws",
@@ -843,7 +859,7 @@
       }
     ],
     "headers": {},
-    "source_line": 104
+    "source_line": 119
   },
   {
     "id": "get--api-v1-ws-rooms",
@@ -859,7 +875,7 @@
     "auth_level": 0,
     "params": null,
     "headers": {},
-    "source_line": 110
+    "source_line": 125
   },
   {
     "id": "get--api-v1-webhooks",
@@ -876,7 +892,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebhookHandler}.List",
-    "source_line": 450
+    "source_line": 465
   },
   {
     "id": "post--api-v1-webhooks",
@@ -896,7 +912,7 @@
     },
     "body": "{\"url\": \"https://example.com/webhook\", \"events\": [\"*\"], \"secret\": \"my-secret-key\", \"description\": \"Mobile push\"}",
     "handler": "\u0026{rc WebhookHandler}.Register",
-    "source_line": 444
+    "source_line": 459
   },
   {
     "id": "delete--api-v1-webhooks-id",
@@ -921,7 +937,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc WebhookHandler}.Delete",
-    "source_line": 472
+    "source_line": 487
   },
   {
     "id": "get--api-v1-webhooks-id",
@@ -946,7 +962,7 @@
     ],
     "headers": {},
     "handler": "\u0026{rc WebhookHandler}.Get",
-    "source_line": 457
+    "source_line": 472
   },
   {
     "id": "put--api-v1-webhooks-id",
@@ -974,7 +990,7 @@
     },
     "body": "{\"url\": \"https://example.com/new-webhook\", \"events\": [\"notification\", \"alert\"]}",
     "handler": "\u0026{rc WebhookHandler}.Update",
-    "source_line": 465
+    "source_line": 480
   },
   {
     "id": "get--api-v1-webhooks-logs",
@@ -991,7 +1007,7 @@
     "params": null,
     "headers": {},
     "handler": "\u0026{rc WebhookHandler}.GetLogs",
-    "source_line": 492
+    "source_line": 507
   },
   {
     "id": "post--api-v1-webhooks-send",
@@ -1011,7 +1027,7 @@
     },
     "body": "{\"event\": \"notification\", \"title\": \"System Alert\", \"message\": \"Deployment succeeded\"}",
     "handler": "\u0026{rc WebhookHandler}.Send",
-    "source_line": 479
+    "source_line": 494
   },
   {
     "id": "post--api-v1-webhooks-test",
@@ -1031,6 +1047,6 @@
     },
     "body": "{\"webhook_id\": \"optional-id\", \"url\": \"https://httpbin.org/post\"}",
     "handler": "\u0026{rc WebhookHandler}.Test",
-    "source_line": 486
+    "source_line": 501
   }
 ]

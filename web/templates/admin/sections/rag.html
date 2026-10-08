@@ -1,0 +1,53 @@
+{{ define "section-rag" }}
+<div id="section-rag" class="section-card bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm transition-all">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-white flex items-center ">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span>Postgres pgvector & RAG Explorer</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Semantic vector similarity search & question answering with in-database vector embeddings</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button data-target="rag" onclick="focusSection('rag')" class="section-expand-btn px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
+            <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            <span class="focus-btn-label">Focus</span>
+          </button>
+          <span class="text-xs px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">pgvector:pg16</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Add Document to RAG -->
+        <div class="bg-slate-900/60 border border-borderCol rounded-lg p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">1. Index Document (Embedding Gen)</h3>
+          <div class="space-y-3">
+            <input id="docTitle" type="text" placeholder="Document Title (e.g., Go Concurrency)" class="w-full bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+            <textarea id="docContent" rows="3" placeholder="Document Content (e.g., Goroutines are lightweight threads managed by the Go runtime...)" class="w-full bg-slate-950 border border-borderCol rounded-md p-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"></textarea>
+            <button onclick="indexDocument()" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-md shadow transition">
+              Generate Vector & Save to pgvector
+            </button>
+            <div id="indexDocResult" class="text-xs font-mono text-slate-400 hidden"></div>
+          </div>
+        </div>
+
+        <!-- Semantic Search & Ask RAG -->
+        <div class="bg-slate-900/60 border border-borderCol rounded-lg p-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">2. Ask RAG / Semantic Search</h3>
+          <div class="space-y-3">
+            <div class="flex ">
+              <input id="ragQuery" type="text" placeholder="Ask a question or search knowledge base..." class="flex-1 min-w-0 bg-slate-950 border border-borderCol rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+              <button onclick="askRAG()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs rounded-md shadow transition shrink-0 whitespace-nowrap">
+                Ask RAG
+              </button>
+            </div>
+            <div id="ragResults" class="h-40 overflow-y-auto bg-slate-950 border border-borderCol rounded-md p-3 text-xs font-mono text-slate-300">
+              <span class="text-slate-500 italic">Retrieved knowledge and citations will appear here...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+{{ end }}

@@ -1,0 +1,59 @@
+{{ define "section-llm" }}
+<div id="section-llm" class="lg:col-span-5 flex flex-col space-y-6 section-card transition-all">
+        <div class="bg-cardBg border border-borderCol rounded-xl p-6 shadow-sm flex-1 flex flex-col">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center ">
+                <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <span>simplysocket LLM Streaming</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Stream tokens via WebSocket mesh in real-time</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button data-target="llm" onclick="focusSection('llm')" class="section-expand-btn px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1 shrink-0 whitespace-nowrap" title="Focus this section exclusively">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                <span class="focus-btn-label">Focus</span>
+              </button>
+              <span id="streamStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-slate-400">Idle</span>
+            </div>
+          </div>
+
+          <!-- Prompt Input -->
+          <div class="space-y-3 mb-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Prompt</label>
+              <textarea id="llmPrompt" rows="3" class="w-full bg-slate-900 border border-borderCol rounded-lg p-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">Explain how simplysocket enables real-time LLM streaming over Go WebSockets.</textarea>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="text-xs text-slate-400">Model:</label>
+                <select id="llmModel" class="bg-slate-900 border border-borderCol rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none">
+                  <option value="gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="gpt-4o">gpt-4o</option>
+                </select>
+              </div>
+              <button id="streamBtn" onclick="triggerLLMStream()" class="px-4 py-1.5 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-medium text-xs rounded-lg shadow-md shadow-brand-500/10 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+                <span>Stream Response</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Streaming Response Output Box -->
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+              <span>Token Output:</span>
+              <span id="tokenStats" class="font-mono text-emerald-400">0 tokens</span>
+            </div>
+            <div id="streamOutput" class="flex-1 min-w-0 min-h-[200px] max-h-[360px] overflow-y-auto bg-slate-950 border border-borderCol rounded-lg p-4 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+              <span class="text-slate-500 italic">Click "Stream Response" to start receiving real-time WebSocket tokens...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+{{ end }}
