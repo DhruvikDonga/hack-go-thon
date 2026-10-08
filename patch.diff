@@ -1,7 +1,0 @@
---- README.md
-+++ README.md
-@@ -69,2 +69,5 @@
- - 📊 **Audit Logging & Structured Telemetry**  
-+  The `live-telemetry` room broadcasts live system insights directly to the Admin UI over WebSockets. A background worker captures system RAM, Go heap allocations (`app_alloc_mb`), and goroutines every 30 seconds. A non-blocking `zap` log sink streams high-severity logs (`warn`, `error`, `fatal`) with structural context, firing alert notifications in the UI for a real-time operational view.
-+
- - 🩺 **Kubernetes Health Probes & Graceful Shutdown**  
