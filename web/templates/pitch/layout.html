@@ -136,9 +136,10 @@
               <button onclick="goToSlide(4)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">4. Moat</button>
               <button onclick="goToSlide(5)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">5. Execution</button>
               <button onclick="goToSlide(6)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">6. Performance</button>
-              <button onclick="goToSlide(7)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">7. Deep Dive</button>
-              <button onclick="goToSlide(8)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">8. Live Demo</button>
-              <button onclick="goToSlide(9)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">9. Q&A</button>
+              <button onclick="goToSlide(7)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">7. Architecture</button>
+              <button onclick="goToSlide(8)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">8. Deep Dive</button>
+              <button onclick="goToSlide(9)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">9. Live Demo</button>
+              <button onclick="goToSlide(10)" class="px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400">10. Q&A</button>
             </div>
           </div>
         </div>
@@ -338,8 +339,87 @@
         </div>
       </div>
 
-      <!-- Slide 6: Hackathon Deep Dive -->
-      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-7">
+      <!-- Slide 7: Architecture -->
+      <div class="slide flex-col justify-center w-full max-w-5xl px-12 mx-auto" id="slide-7">
+        <h2 class="stagger-1 text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Deployment</h2>
+        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">Production Architecture.</h1>
+        <p class="stagger-3 text-lg text-gray-600 dark:text-gray-300 mb-12">
+          A seamless, containerized deployment pipeline managed entirely by Kamal 2.
+        </p>
+
+        <div class="stagger-4 w-full flex flex-col items-center justify-center p-10 bg-white/50 dark:bg-gray-800/30 rounded-3xl border border-gray-200 dark:border-gray-800 relative overflow-hidden shadow-xl">
+          
+          <!-- Clients -->
+          <div class="flex gap-6 mb-6">
+            <div class="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg font-medium text-sm flex items-center gap-2">📱 Mobile Client</div>
+            <div class="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg font-medium text-sm flex items-center gap-2">💻 Web Browser</div>
+          </div>
+
+          <!-- Arrow Down -->
+          <div class="w-1 h-8 bg-blue-500 mb-2 rounded-full"></div>
+
+          <!-- Server Box -->
+          <div class="w-full max-w-3xl bg-white dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-900/50 rounded-2xl p-8 relative shadow-2xl">
+            <div class="absolute -top-3 left-6 px-3 bg-white dark:bg-gray-900 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-900/50">Cloud VPS (72.61.106.105)</div>
+            
+            <!-- Traefik -->
+            <div class="w-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 flex justify-between items-center mb-8">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div class="font-bold text-blue-800 dark:text-blue-300">Kamal Proxy</div>
+              </div>
+              <div class="text-xs font-mono bg-blue-100 dark:bg-blue-900/50 px-3 py-1.5 rounded-md text-blue-700 dark:text-blue-300">api.72.61.106.105.nip.io</div>
+            </div>
+
+            <!-- Docker Engine Box -->
+            <div class="w-full border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 relative">
+              <div class="absolute -top-3 left-4 px-2 bg-white dark:bg-gray-900 text-xs font-bold text-gray-500 uppercase tracking-widest">Docker Engine</div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- App Container -->
+                <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm hover:scale-105 transition-transform">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </div>
+                    <div>
+                      <div class="font-bold text-gray-900 dark:text-white">Go Backend</div>
+                      <div class="text-[10px] text-gray-500 font-mono">hack-go-thon (Port 8080)</div>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-[10px] uppercase font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded">simplysocket</span>
+                    <span class="text-[10px] uppercase font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">WebRTC</span>
+                  </div>
+                </div>
+
+                <!-- DB Container -->
+                <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm hover:scale-105 transition-transform">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    </div>
+                    <div>
+                      <div class="font-bold text-gray-900 dark:text-white">PostgreSQL</div>
+                      <div class="text-[10px] text-gray-500 font-mono">pgvector:pg16 (Port 5432)</div>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <span class="text-[10px] uppercase font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded">pgvector AI</span>
+                    <span class="text-[10px] uppercase font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">Volumes</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 7: Hackathon Deep Dive -->
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-8">
         <h2 class="stagger-1 text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3">Under the Hood</h2>
         <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-10 leading-tight">Everything you need to win.</h1>
         
@@ -406,14 +486,14 @@
             <!-- Kamal -->
             <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
               <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kamal 2 Deployments</h3>
-              <p class="text-gray-600 dark:text-gray-400">Pre-configured <code>deploy.yml</code> handles Traefik routing, Let's Encrypt SSL, and rolling zero-downtime updates directly to your VPS.</p>
+              <p class="text-gray-600 dark:text-gray-400">Pre-configured <code>deploy.yml</code> handles kamal-proxy routing, Let's Encrypt SSL, and rolling zero-downtime updates directly to your VPS.</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Slide 7: Demo & Repo -->
-      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-8">
+      <!-- Slide 8: Demo & Repo -->
+      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-9">
         <h2 class="stagger-1 text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Get Started</h2>
         <h1 class="stagger-2 text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-8">Ready to dominate your next hackathon?</h1>
         <p class="stagger-3 text-2xl text-gray-600 dark:text-gray-300 mb-12 font-light max-w-2xl">
@@ -432,8 +512,8 @@
         </div>
       </div>
 
-      <!-- Slide 8: Q&A -->
-      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-9">
+      <!-- Slide 9: Q&A -->
+      <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-10">
         <span class="stagger-1 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-brand-600 bg-brand-50 dark:bg-brand-900/30 dark:text-brand-400 mb-8 inline-block border border-brand-100 dark:border-brand-800">Final Step</span>
         <h1 class="stagger-2 text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">
           Q&A
@@ -500,7 +580,7 @@
 
     // Slide Navigation Logic
     let currentSlide = 1;
-    const totalSlides = 9;
+    const totalSlides = 10;
 
     function updateSlides() {
       document.querySelectorAll('.slide').forEach((slide, index) => {
