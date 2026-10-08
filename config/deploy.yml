@@ -20,7 +20,7 @@ servers:
 proxy:
   ssl: true
   hosts:
-    - backend.72.61.106.105.nip.io
+    - api.72.61.106.105.nip.io
   # Proxy connects to your container on port 8080 (the default server port).
   app_port: 8080
   healthcheck:
