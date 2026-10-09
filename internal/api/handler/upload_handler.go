@@ -14,15 +14,14 @@ import (
 	"strings"
 	"time"
 
-	dbclient "hack-go-thon/internal/db_client"
-	pgstore "hack-go-thon/internal/store/pg_store"
-	"hack-go-thon/pkg/apperrors"
-	"hack-go-thon/pkg/log"
-	"hack-go-thon/pkg/response"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	dbclient "hack-go-thon/internal/db_client"
+	"hack-go-thon/internal/store/pg_store"
+	"hack-go-thon/pkg/apperrors"
+	"hack-go-thon/pkg/log"
+	"hack-go-thon/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
