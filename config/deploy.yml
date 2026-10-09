@@ -82,18 +82,18 @@ volumes:
   - "/var/run/docker.sock:/var/run/docker.sock"
 
 # Optional: Accessory services (e.g. pgvector database if self-hosting PostgreSQL on the node)
-accessories:
-  db:
-    image: pgvector/pgvector:pg16
-    hosts:
-    - 72.61.106.105
-    port: 5432
-    env:
-      clear:
-        POSTGRES_DB: hack_db
-        POSTGRES_USER: postgres
-      secret:
-        - POSTGRES_PASSWORD
-    directories:
-      - data:/var/lib/postgresql/data
+# accessories:
+#   db:
+#     image: pgvector/pgvector:pg16
+#     hosts:
+#     - 72.61.106.105
+#     port: 5432
+#     env:
+#       clear:
+#         POSTGRES_DB: hack_db
+#         POSTGRES_USER: postgres
+#       secret:
+#         - POSTGRES_PASSWORD
+#     directories:
+#       - data:/var/lib/postgresql/data
 
