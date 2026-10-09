@@ -154,7 +154,7 @@ func getContainerStats() []ContainerStat {
 		if len(parts) >= 3 {
 			name := parts[0]
 			// Filter specifically for Kamal's generated container names
-			if name == "hack-go-thon-db" || strings.HasPrefix(name, "hack-go-thon-web") {
+			if name == "hack-go-thon-nats" || strings.HasPrefix(name, "hack-go-thon-web") {
 				stats = append(stats, ContainerStat{
 					Name:    name,
 					MemUsed: strings.TrimSpace(parts[1]),

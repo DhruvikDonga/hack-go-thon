@@ -626,20 +626,20 @@ let socket = null;
           ];
           
           if (containers && containers.length > 0) {
-            let postgres = containers.find(c => c.name === 'hack-go-thon-db');
+            let nats = containers.find(c => c.name === 'hack-go-thon-nats');
             let goApp = containers.find(c => c.name.startsWith('hack-go-thon-web'));
             
-            if (postgres) {
+            if (nats) {
               boxes.push({
-                icon: '🐘',
-                title: 'Postgres Container',
-                value: postgres.mem_perc,
+                icon: '📬',
+                title: 'NATS Container',
+                value: nats.mem_perc,
                 unit: 'used',
                 color: 'text-indigo-400',
                 badge: 'Docker Stats',
                 subvalues: [
-                  { label: 'RAM', val: postgres.mem_used, color: 'text-slate-300' },
-                  { label: 'Service', val: postgres.name.substring(0, 15), color: 'text-indigo-300' }
+                  { label: 'RAM', val: nats.mem_used, color: 'text-slate-300' },
+                  { label: 'Service', val: nats.name.substring(0, 15), color: 'text-indigo-300' }
                 ]
               });
             }
@@ -4167,7 +4167,7 @@ function simulateTelemetryLogPrompt() {
       // Calculate coordinates
       const ramPoints = [];
       const heapPoints = [];
-      const pgPoints = [];
+      const natsPoints = [];
       const goSrvPoints = [];
 
       history.forEach((pt, i) => {
@@ -4181,14 +4181,14 @@ function simulateTelemetryLogPrompt() {
         heapPoints.push({ x, y: heapY, pt, heapMB });
 
         // Containers (0-100% scale)
-        let pgPerc = 0, goSrvPerc = 0;
+        let natsPerc = 0, goSrvPerc = 0;
         if (pt.containers) {
-          let pg = pt.containers.find(c => c.name === 'hack-go-thon-db');
-          if (pg) pgPerc = parseFloat(pg.mem_perc) || 0;
+          let nats = pt.containers.find(c => c.name === 'hack-go-thon-nats');
+          if (nats) natsPerc = parseFloat(nats.mem_perc) || 0;
           let go = pt.containers.find(c => c.name.startsWith('hack-go-thon-web'));
           if (go) goSrvPerc = parseFloat(go.mem_perc) || 0;
         }
-        pgPoints.push({ x, y: padT + chartH - (pgPerc / 100) * chartH, perc: pgPerc, pt });
+        natsPoints.push({ x, y: padT + chartH - (natsPerc / 100) * chartH, perc: natsPerc, pt });
         goSrvPoints.push({ x, y: padT + chartH - (goSrvPerc / 100) * chartH, perc: goSrvPerc, pt });
       });
 
@@ -4224,9 +4224,9 @@ function simulateTelemetryLogPrompt() {
       });
 
       // Render Postgres path
-      if (pgPoints.length > 0) {
-        const pgPathD = pgPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
-        content += `<path d="${pgPathD}" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
+      if (natsPoints.length > 0) {
+        const natsPathD = natsPoints.map((p, idx) => (idx === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
+        content += `<path d="${natsPathD}" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`;
       }
       
       // Render Go Srv path
@@ -4245,11 +4245,11 @@ function simulateTelemetryLogPrompt() {
       });
       
       // Render Circles for Postgres
-      pgPoints.forEach(p => {
+      natsPoints.forEach(p => {
         if (p.perc > 0) {
           content += `
             <circle cx="${p.x}" cy="${p.y}" r="3" fill="#818cf8" stroke="#0f172a" stroke-width="1.5" class="cursor-pointer hover:scale-150 transition-transform">
-              <title>Postgres Container: ${p.perc.toFixed(2)}% RAM</title>
+              <title>NATS Container: ${p.perc.toFixed(2)}% RAM</title>
             </circle>
           `;
         }
@@ -4273,11 +4273,11 @@ function simulateTelemetryLogPrompt() {
         const rectX = x - halfW;
         const rectW = halfW * 2;
         
-        let pgPerc = 0, goSrvPerc = 0;
-        let pgUsed = "0", goSrvUsed = "0";
+        let natsPerc = 0, goSrvPerc = 0;
+        let natsUsed = "0", goSrvUsed = "0";
         if (pt.containers) {
-          let pg = pt.containers.find(c => c.name === 'hack-go-thon-db');
-          if (pg) { pgPerc = parseFloat(pg.mem_perc) || 0; pgUsed = pg.mem_used.split(' / ')[0]; }
+          let pg = pt.containers.find(c => c.name === 'hack-go-thon-nats');
+          if (pg) { natsPerc = parseFloat(pg.mem_perc) || 0; natsUsed = pg.mem_used.split(' / ')[0]; }
           let go = pt.containers.find(c => c.name.startsWith('hack-go-thon-web'));
           if (go) { goSrvPerc = parseFloat(go.mem_perc) || 0; goSrvUsed = go.mem_used.split(' / ')[0]; }
         }
@@ -4298,11 +4298,11 @@ function simulateTelemetryLogPrompt() {
             <span class="ml-4">${allocStr}</span>
           </div>
         `;
-        if (pgPerc > 0) {
+        if (natsPerc > 0) {
           tooltipHtml += `
             <div class="flex items-center justify-between mb-1">
-              <span class="flex items-center space-x-1.5 text-indigo-400"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span><span>Postgres:</span></span>
-              <span class="ml-4">${pgPerc.toFixed(2)}% (${pgUsed})</span>
+              <span class="flex items-center space-x-1.5 text-indigo-400"><span class="w-2 h-2 bg-indigo-400 rounded-full"></span><span>NATS:</span></span>
+              <span class="ml-4">${natsPerc.toFixed(2)}% (${natsUsed})</span>
             </div>
           `;
         }
