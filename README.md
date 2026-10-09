@@ -29,6 +29,13 @@ A production-grade, modular Go backend boilerplate designed for rapid hackathon 
   - **Sub-Millisecond UDP DataChannel**: Server-managed Pion peer connections for raw UDP messaging and ping-pong latency benchmarking.
   - **ICE & NAT Traversal**: Automated STUN/TURN configuration (`/api/v1/webrtc/ice-servers`).
 
+
+- ☁️ **AWS RDS & S3 Integrated**  
+  Built for a split architecture out of the box. Computes locally on a high-core VPS (Hostinger) while securely offloading state to AWS RDS PostgreSQL (with pgvector) and file uploads to Amazon S3. 
+
+- 🚀 **Event-Driven Messaging via NATS**  
+  Fully decoupled, event-driven architecture powered by a local NATS server. Broadcasts events (like `file.uploaded`) across the cluster with zero latency, making it instantly scalable and ready for auxiliary AI/Analytics workers (like Python ML services) to subscribe.
+
 - 🎛️ **Modular Subsystem Feature Flags (`services.json`)**  
   Selectively initialize only the services your hackathon or production workload requires (`services.json` or `SERVICES_CONFIG_PATH`). All components default to `true` with support for lenient aliases (`db`, `ws`, `api`, `sfu`, `scheduler`):
   ```json
