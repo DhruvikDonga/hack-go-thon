@@ -109,9 +109,7 @@ func main() {
 
 	// 6. Initialize Handlers & Services
 	healthHandler := handler.NewHealthHandler()
-	if pgDB != nil {
-		healthHandler.RegisterChecker(pgDB)
-	}
+	healthHandler.RegisterChecker(msgbroker.NewChecker())
 
 	var exampleHandler *handler.ExampleHandler
 	if cfg.Services.APIHandler {

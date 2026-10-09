@@ -1,6 +1,7 @@
 package msgbroker
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -48,4 +49,25 @@ func Subscribe(subject string, handler nats.MsgHandler) (*nats.Subscription, err
 		return nil, fmt.Errorf("NATS is not connected")
 	}
 	return NC.Subscribe(subject, handler)
+}
+
+// NATSChecker implements the handler.Checker interface
+type NATSChecker struct{}
+
+func (c *NATSChecker) Name() string {
+	return "nats"
+}
+
+func (c *NATSChecker) Check(ctx context.Context) error {
+	if NC == nil {
+		return fmt.Errorf("NATS is not connected")
+	}
+	if NC.IsClosed() {
+		return fmt.Errorf("NATS connection is closed")
+	}
+	return nil
+}
+
+func NewChecker() *NATSChecker {
+	return &NATSChecker{}
 }
