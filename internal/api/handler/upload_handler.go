@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"hack-go-thon/internal/msgbroker"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -129,6 +131,12 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	}
 
 	log.Info("Successfully uploaded file(s)", "count", len(results), "category", category)
+
+	// Publish to NATS
+	for _, res := range results {
+		payload, _ := json.Marshal(res)
+		msgbroker.Publish("file.uploaded", payload)
+	}
 
 	if len(results) == 1 {
 		response.Created(c, results[0])

@@ -15,6 +15,7 @@ import (
 	pgstore "hack-go-thon/internal/store/pg_store"
 	"hack-go-thon/internal/telemetry"
 	webrtcserver "hack-go-thon/internal/webrtc_server"
+	"hack-go-thon/internal/msgbroker"
 	"hack-go-thon/internal/worker"
 	"hack-go-thon/internal/ws"
 	"hack-go-thon/pkg/log"
@@ -43,6 +44,10 @@ func main() {
 		"websocket", cfg.Services.WebSocket,
 		"webrtc", cfg.Services.WebRTC,
 	)
+
+	// Initialize NATS
+	msgbroker.InitNATS()
+	defer msgbroker.Close()
 
 	// 3. Setup Graceful Shutdown Context
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

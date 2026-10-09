@@ -51,6 +51,7 @@ env:
     APP_NAME: "hack-go-thon"
     CORS_ALLOWED_ORIGINS: "*"
     UPLOAD_DIR: "/home/appuser/uploads"
+    NATS_URL: "nats://72.61.106.105:4222"
   secret:
     - PG_URI
     - OPENAI_API_KEY
@@ -97,3 +98,9 @@ volumes:
 #     directories:
 #       - data:/var/lib/postgresql/data
 
+accessories:
+  nats:
+    image: nats:alpine
+    hosts:
+      - 72.61.106.105
+    port: 4222
