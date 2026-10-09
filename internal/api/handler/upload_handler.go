@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,9 +12,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	dbclient "hack-go-thon/internal/db_client"
 	"hack-go-thon/internal/store/pg_store"
 	"hack-go-thon/pkg/apperrors"
@@ -44,6 +47,8 @@ type UploadHandler struct {
 	uploadDir string
 	maxSize   int64
 	db        *dbclient.PostgresDatabase
+	s3Client  *s3.Client
+	s3Bucket  string
 }
 
 // NewUploadHandler initializes the file upload handler and ensures the upload directory exists.
@@ -61,6 +66,18 @@ func NewUploadHandler(uploadDir string, maxSize int64, db *dbclient.PostgresData
 		maxSize:   maxSize,
 		db:        db,
 	}
+
+	if bucket := os.Getenv("S3_BUCKET"); bucket != "" {
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err == nil {
+			h.s3Client = s3.NewFromConfig(cfg)
+			h.s3Bucket = bucket
+			log.Info("S3 upload configured", "bucket", bucket, "region", cfg.Region)
+		} else {
+			log.Error("Failed to load AWS config for S3", "error", err)
+		}
+	}
+
 	return h
 }
 
@@ -170,15 +187,29 @@ func (h *UploadHandler) GetFile(c *gin.Context) {
 		return
 	}
 
+	meta, err := pgstore.GetUploadedFileByStoredName(c.Request.Context(), h.db, filename)
+	hasMeta := (err == nil && meta != nil)
+
+	if h.s3Client != nil {
+		presignClient := s3.NewPresignClient(h.s3Client)
+		req, err := presignClient.PresignGetObject(c.Request.Context(), &s3.GetObjectInput{
+			Bucket: aws.String(h.s3Bucket),
+			Key:    aws.String(filename),
+		}, s3.WithPresignExpires(15*time.Minute))
+		if err != nil {
+			response.Error(c, apperrors.NewInternal("Failed to generate S3 URL"))
+			return
+		}
+		c.Redirect(http.StatusFound, req.URL)
+		return
+	}
+
 	filePath := filepath.Join(h.uploadDir, filename)
 	fileInfo, err := os.Stat(filePath)
 	if os.IsNotExist(err) || (err == nil && fileInfo.IsDir()) {
 		response.Error(c, apperrors.NewNotFound("Requested file does not exist"))
 		return
 	}
-
-	meta, err := pgstore.GetUploadedFileByStoredName(c.Request.Context(), h.db, filename)
-	hasMeta := (err == nil && meta != nil)
 
 	// Apply download attachment disposition if requested
 	if c.Query("download") == "true" {
@@ -205,15 +236,25 @@ func (h *UploadHandler) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	filePath := filepath.Join(h.uploadDir, filename)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		response.Error(c, apperrors.NewNotFound("File not found"))
-		return
-	}
+	if h.s3Client != nil {
+		_, err := h.s3Client.DeleteObject(c.Request.Context(), &s3.DeleteObjectInput{
+			Bucket: aws.String(h.s3Bucket),
+			Key:    aws.String(filename),
+		})
+		if err != nil {
+			log.Error("Failed to delete from S3", "error", err)
+		}
+	} else {
+		filePath := filepath.Join(h.uploadDir, filename)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			response.Error(c, apperrors.NewNotFound("File not found"))
+			return
+		}
 
-	if err := os.Remove(filePath); err != nil {
-		response.Error(c, apperrors.NewInternal("Failed to delete file from disk: "+err.Error()))
-		return
+		if err := os.Remove(filePath); err != nil {
+			response.Error(c, apperrors.NewInternal("Failed to delete file from disk: "+err.Error()))
+			return
+		}
 	}
 
 	_ = pgstore.DeleteUploadedFile(c.Request.Context(), h.db, filename)
@@ -254,22 +295,37 @@ func (h *UploadHandler) saveFile(fh *multipart.FileHeader, category, description
 	randBytes := make([]byte, 4)
 	_, _ = rand.Read(randBytes)
 	storedName := fmt.Sprintf("%d_%x_%s%s", time.Now().Unix(), randBytes, sanitizedBase, ext)
-	destPath := filepath.Join(h.uploadDir, storedName)
 
-	destFile, err := os.Create(destPath)
-	if err != nil {
-		return nil, fmt.Errorf("create file error: %w", err)
-	}
-	defer destFile.Close()
-
-	// 3. Compute SHA256 while writing to disk
+	// 3. Compute SHA256 while writing to disk or S3
 	hasher := sha256.New()
-	multiWriter := io.MultiWriter(destFile, hasher)
+	var copiedBytes int64
 
-	copiedBytes, err := io.Copy(multiWriter, src)
-	if err != nil {
-		_ = os.Remove(destPath)
-		return nil, fmt.Errorf("copy write error: %w", err)
+	if h.s3Client != nil {
+		tee := io.TeeReader(src, hasher)
+		_, err = h.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket:      aws.String(h.s3Bucket),
+			Key:         aws.String(storedName),
+			Body:        tee,
+			ContentType: aws.String(mimeType),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("s3 upload error: %w", err)
+		}
+		copiedBytes = fh.Size
+	} else {
+		destPath := filepath.Join(h.uploadDir, storedName)
+		destFile, err := os.Create(destPath)
+		if err != nil {
+			return nil, fmt.Errorf("create file error: %w", err)
+		}
+		defer destFile.Close()
+
+		multiWriter := io.MultiWriter(destFile, hasher)
+		copiedBytes, err = io.Copy(multiWriter, src)
+		if err != nil {
+			_ = os.Remove(destPath)
+			return nil, fmt.Errorf("copy write error: %w", err)
+		}
 	}
 
 	sha256Hex := hex.EncodeToString(hasher.Sum(nil))

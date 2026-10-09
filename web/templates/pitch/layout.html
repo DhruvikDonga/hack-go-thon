@@ -340,157 +340,111 @@
       </div>
 
       <!-- Slide 7: Architecture -->
-      <div class="slide flex-col justify-center w-full max-w-5xl px-12 mx-auto" id="slide-7">
+      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-7">
         <h2 class="stagger-1 text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Deployment</h2>
         <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">Production Architecture.</h1>
-        <p class="stagger-3 text-lg text-gray-600 dark:text-gray-300 mb-12">
-          A seamless, containerized deployment pipeline managed entirely by Kamal 2.
+        <p class="stagger-3 text-lg text-gray-600 dark:text-gray-300 mb-8">
+          A highly-scalable distributed architecture. Compute is localized on an 8-core VPS, while state and storage are safely offloaded to AWS.
         </p>
 
-        <div class="stagger-4 w-full flex flex-col items-center justify-center p-10 bg-white/50 dark:bg-gray-800/30 rounded-3xl border border-gray-200 dark:border-gray-800 relative overflow-hidden shadow-xl">
+        <div class="stagger-4 w-full flex flex-col lg:flex-row items-stretch justify-center gap-6 relative">
           
-          <!-- Clients -->
-          <div class="flex gap-6 mb-6">
-            <div class="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg font-medium text-sm flex items-center gap-2">📱 Mobile Client</div>
-            <div class="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-lg font-medium text-sm flex items-center gap-2">💻 Web Browser</div>
-          </div>
-
-          <!-- Arrow Down -->
-          <div class="w-1 h-8 bg-blue-500 mb-2 rounded-full"></div>
-
-          <!-- Server Box -->
-          <div class="w-full max-w-3xl bg-white dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-900/50 rounded-2xl p-8 relative shadow-2xl">
-            <div class="absolute -top-3 left-6 px-3 bg-white dark:bg-gray-900 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-900/50">Cloud VPS (72.61.106.105)</div>
+          <!-- Hostinger VPS Box -->
+          <div class="flex-1 bg-white dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-900/50 rounded-3xl p-6 relative shadow-2xl flex flex-col">
+            <div class="absolute -top-3 left-6 px-3 bg-white dark:bg-gray-900 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-900/50">Hostinger VPS (8 vCores)</div>
             
-            <!-- Traefik -->
-            <div class="w-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 flex justify-between items-center mb-8">
+            <!-- Kamal Proxy -->
+            <div class="w-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex justify-between items-center mb-6">
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-                <div class="font-bold text-blue-800 dark:text-blue-300">Kamal Proxy</div>
+                <div class="font-bold text-blue-800 dark:text-blue-300 text-sm">Kamal Proxy (Routing)</div>
               </div>
-              <div class="text-xs font-mono bg-blue-100 dark:bg-blue-900/50 px-3 py-1.5 rounded-md text-blue-700 dark:text-blue-300">api.72.61.106.105.nip.io</div>
             </div>
 
             <!-- Docker Engine Box -->
-            <div class="w-full border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 relative">
-              <div class="absolute -top-3 left-4 px-2 bg-white dark:bg-gray-900 text-xs font-bold text-gray-500 uppercase tracking-widest">Docker Engine</div>
+            <div class="flex-1 w-full border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-5 relative flex flex-col gap-4">
+              <div class="absolute -top-3 left-4 px-2 bg-white dark:bg-gray-900 text-xs font-bold text-gray-500 uppercase tracking-widest">Docker Containers</div>
               
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- App Container -->
-                <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm hover:scale-105 transition-transform">
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </div>
-                    <div>
-                      <div class="font-bold text-gray-900 dark:text-white">Go Backend</div>
-                      <div class="text-[10px] text-gray-500 font-mono">hack-go-thon (Port 8080)</div>
-                    </div>
+              <!-- Frontend Container -->
+              <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:scale-[1.02] transition-transform">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
                   </div>
-                  <div class="flex gap-2">
-                    <span class="text-[10px] uppercase font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded">simplysocket</span>
-                    <span class="text-[10px] uppercase font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">WebRTC</span>
-                  </div>
-                </div>
-
-                <!-- DB Container -->
-                <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm hover:scale-105 transition-transform">
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-                    </div>
-                    <div>
-                      <div class="font-bold text-gray-900 dark:text-white">PostgreSQL</div>
-                      <div class="text-[10px] text-gray-500 font-mono">pgvector:pg16 (Port 5432)</div>
-                    </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <span class="text-[10px] uppercase font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded">pgvector AI</span>
-                    <span class="text-[10px] uppercase font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">Volumes</span>
+                  <div>
+                    <div class="font-bold text-gray-900 dark:text-white text-sm">Frontend App</div>
+                    <div class="text-[10px] text-gray-500 font-mono">app.ourdomain.com</div>
                   </div>
                 </div>
               </div>
-            </div>
 
+              <!-- Go Backend Container -->
+              <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:scale-[1.02] transition-transform">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                  </div>
+                  <div>
+                    <div class="font-bold text-gray-900 dark:text-white text-sm">Go API & WebSockets</div>
+                    <div class="text-[10px] text-gray-500 font-mono">api.ourdomain.com</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Python ML Container -->
+              <div class="bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:scale-[1.02] transition-transform">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/40 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                  </div>
+                  <div>
+                    <div class="font-bold text-gray-900 dark:text-white text-sm">Python ML Service</div>
+                    <div class="text-[10px] text-gray-500 font-mono">ml.ourdomain.com</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
+
+          <!-- AWS Box -->
+          <div class="flex-1 bg-white dark:bg-gray-900 border-2 border-orange-200 dark:border-orange-900/50 rounded-3xl p-6 relative shadow-2xl flex flex-col">
+            <div class="absolute -top-3 left-6 px-3 bg-white dark:bg-gray-900 text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest rounded-full border border-orange-100 dark:border-orange-900/50">AWS Cloud</div>
+            
+            <div class="flex-1 flex flex-col justify-center gap-6 mt-6">
+              
+              <!-- RDS Database -->
+              <div class="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-2xl p-6 shadow-md flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                  <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                </div>
+                <div>
+                  <div class="font-bold text-gray-900 dark:text-white text-lg">RDS PostgreSQL</div>
+                  <div class="text-sm text-gray-500 mb-2">Native pgvector AI Support</div>
+                  <span class="text-[10px] uppercase font-bold bg-orange-200 dark:bg-orange-800/50 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">Persistent State</span>
+                </div>
+              </div>
+
+              <!-- S3 Storage -->
+              <div class="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-2xl p-6 shadow-md flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                  <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                </div>
+                <div>
+                  <div class="font-bold text-gray-900 dark:text-white text-lg">Amazon S3</div>
+                  <div class="text-sm text-gray-500 mb-2">Infinite Media Storage</div>
+                  <span class="text-[10px] uppercase font-bold bg-orange-200 dark:bg-orange-800/50 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">File Uploads</span>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <!-- Slide 7: Hackathon Deep Dive -->
-      <div class="slide flex-col justify-center w-full max-w-6xl px-12 mx-auto" id="slide-8">
-        <h2 class="stagger-1 text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3">Under the Hood</h2>
-        <h1 class="stagger-2 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-10 leading-tight">Everything you need to win.</h1>
-        
-        <div class="stagger-3 space-y-6 pb-20">
-          <p class="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
-            Let's dive into the extensive features baked right into the repository. When you fork hack-go-thon, you instantly get access to this powerful architectural foundation.
-          </p>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- WebSocket -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Real-time WebSockets</h3>
-              <p class="text-gray-600 dark:text-gray-400">Powered by <code>simplysocket</code>. Built entirely in Go, routing messages to massive fleets of clients with sub-millisecond latency and O(1) complexity.</p>
-            </div>
-            
-            <!-- WebRTC -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">WebRTC SFU & P2P</h3>
-              <p class="text-gray-600 dark:text-gray-400">Enterprise-grade media hub using Pion. Features a Selective Forwarding Unit for multi-party video, 1:1 signaling, and UDP DataChannels.</p>
-            </div>
-
-            <!-- pgvector -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">AI-Ready pgvector</h3>
-              <p class="text-gray-600 dark:text-gray-400">PostgreSQL with the <code>pgvector</code> extension is integrated out of the box for native semantic searches and Retrieval-Augmented Generation (RAG).</p>
-            </div>
-            
-            <!-- RBAC Auth -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">RBAC & JWT Auth</h3>
-              <p class="text-gray-600 dark:text-gray-400">Production-ready auth with bcrypt hashing, JWT validation, and multi-level Role-Based Access Control embedded directly into token claims.</p>
-            </div>
-
-            <!-- Admin UI -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Embedded Admin UI</h3>
-              <p class="text-gray-600 dark:text-gray-400">A sleek dark-mode control center bundled into the Go binary. Live mesh visualization, RAG playground, WebRTC lab, and telemetry streams.</p>
-            </div>
-
-            <!-- API Explorer -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Dynamic API Explorer</h3>
-              <p class="text-gray-600 dark:text-gray-400">Zero-overhead API testing playground generated via AST analysis. Dynamic path parameters, JSON formatting, and 1-click token injection.</p>
-            </div>
-
-            <!-- Webhooks -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Mobile Webhook Engine</h3>
-              <p class="text-gray-600 dark:text-gray-400">Cryptographically signed HMAC webhooks for mobile push relays and 3rd-party consumers, backed by async Postgres delivery logs.</p>
-            </div>
-
-            <!-- Uploads -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Multipart File Uploads</h3>
-              <p class="text-gray-600 dark:text-gray-400">Secure file ingestion API with magic-byte MIME sniffing, SHA256 integrity checksums, and streaming download endpoints.</p>
-            </div>
-
-            <!-- Job Scheduler & Modular Flags -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Jobs & Feature Flags</h3>
-              <p class="text-gray-600 dark:text-gray-400">In-process panic-isolated task scheduler, plus <code>services.json</code> to selectively toggle databases, websockets, or APIs with zero code changes.</p>
-            </div>
-
-            <!-- Kamal -->
-            <div class="p-8 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xl">
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kamal 2 Deployments</h3>
-              <p class="text-gray-600 dark:text-gray-400">Pre-configured <code>deploy.yml</code> handles kamal-proxy routing, Let's Encrypt SSL, and rolling zero-downtime updates directly to your VPS.</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Slide 8: Demo & Repo -->
       <div class="slide flex-col items-center justify-center w-full max-w-4xl px-12 text-center mx-auto" id="slide-9">

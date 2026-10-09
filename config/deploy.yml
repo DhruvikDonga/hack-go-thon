@@ -59,6 +59,10 @@ env:
     - TURN_SERVER_URL
     - TURN_USERNAME
     - TURN_CREDENTIAL
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - S3_BUCKET
 
 # Aliases are triggered with "kamal <alias>". You can overwrite arguments on invocation:
 # "kamal logs -f" or "kamal restart"
