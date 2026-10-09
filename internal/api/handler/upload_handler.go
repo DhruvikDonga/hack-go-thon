@@ -14,14 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	dbclient "hack-go-thon/internal/db_client"
-	"hack-go-thon/internal/store/pg_store"
+	pgstore "hack-go-thon/internal/store/pg_store"
 	"hack-go-thon/pkg/apperrors"
 	"hack-go-thon/pkg/log"
 	"hack-go-thon/pkg/response"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/gin-gonic/gin"
 )
@@ -303,10 +304,11 @@ func (h *UploadHandler) saveFile(fh *multipart.FileHeader, category, description
 	if h.s3Client != nil {
 		tee := io.TeeReader(src, hasher)
 		_, err = h.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-			Bucket:      aws.String(h.s3Bucket),
-			Key:         aws.String(storedName),
-			Body:        tee,
-			ContentType: aws.String(mimeType),
+			Bucket:        aws.String(h.s3Bucket),
+			Key:           aws.String(storedName),
+			Body:          tee,
+			ContentType:   aws.String(mimeType),
+			ContentLength: aws.Int64(fh.Size),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("s3 upload error: %w", err)
